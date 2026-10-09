@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LoginAuth from './LoginAuth.vue'
+import LoginAuth from '@/pages/LoginAuth.vue'
 </script>
 
 <template>
