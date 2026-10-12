@@ -1,17 +1,55 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useRoute, useRouter } from 'vue-router'
 import { dashboardNavigation } from '@/config/dashboard-navigation'
-import type { UserRole } from '@/types/roles'
+import { roleLabelByRole } from '@/types/roles'
+import { useAuthStore } from '@/stores/auth.store'
 
 const drawer = defineModel<boolean>({ default: true })
-const props = withDefaults(defineProps<{ role?: UserRole }>(), { role: 'operator' })
 const route = useRoute()
-const navigationItems = computed(() => dashboardNavigation.filter((item) => item.allowedRoles.includes(props.role)))
-const settingsRoute = computed(() => props.role === 'administrator' ? 'admin-settings' : 'settings')
-const profile = computed(() => props.role === 'administrator'
-  ? { initials: 'AK', name: 'Aïcha Koné', label: 'Administratrice entreprise' }
-  : { initials: 'JD', name: 'Jean Djezou', label: 'Opérateur KAYBIC' })
+const router = useRouter()
+const authStore = useAuthStore()
+const { activeRole, currentUser } = storeToRefs(authStore)
+
+const navigationItems = computed(() => {
+  if (!activeRole.value) return []
+
+  return dashboardNavigation.filter((item) =>
+    item.allowedRoles.includes(activeRole.value!),
+  )
+})
+
+const settingsRoute = computed(() => {
+  switch (activeRole.value) {
+    case 'administrator':
+      return 'admin-settings'
+    case 'supervisor':
+      return 'supervisor-settings'
+    case 'teamLeader':
+      return 'team-leader-settings'
+    default:
+      return 'settings'
+  }
+})
+
+const profile = computed(() => {
+  const name = currentUser.value?.names ?? 'Utilisateur'
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+
+  return {
+    initials,
+    name,
+    label: activeRole.value
+      ? roleLabelByRole[activeRole.value]
+      : 'Profil indisponible',
+  }
+})
 
 const routeGroups: Record<string, string[]> = {
   companies: ['companies', 'company-create', 'company-details', 'company-edit'],
@@ -24,6 +62,11 @@ const routeGroups: Record<string, string[]> = {
 function isItemActive(routeName: string) {
   const currentRouteName = String(route.name ?? '')
   return (routeGroups[routeName] ?? [routeName]).includes(currentRouteName)
+}
+
+async function handleLogout() {
+  await authStore.logout()
+  await router.replace({ name: 'login' })
 }
 </script>
 
@@ -77,9 +120,9 @@ function isItemActive(routeName: string) {
             prepend-icon="mdi-logout"
             title="Se déconnecter"
             value="logout"
-            :to="{ name: 'login' }"
             rounded="lg"
             class="text-red-600"
+            @click="handleLogout"
           />
         </v-list>
         <v-divider class="my-4" />

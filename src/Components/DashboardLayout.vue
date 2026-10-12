@@ -5,9 +5,6 @@ import { useDisplay } from 'vuetify'
 
 import AppSidebar from '@/Components/layout/AppSidebar.vue'
 import AppTopbar from '@/Components/layout/AppTopbar.vue'
-import type { UserRole } from '@/types/roles'
-
-const props = withDefaults(defineProps<{ role?: UserRole }>(), { role: 'operator' })
 
 const { lgAndUp } = useDisplay()
 const drawer = ref(lgAndUp.value)
@@ -19,8 +16,8 @@ watch(lgAndUp, (isDesktop) => {
 
 <template>
   <v-layout class="min-h-screen bg-background">
-    <AppSidebar v-model="drawer" :role="props.role" />
-    <AppTopbar :role="props.role" @toggle-navigation="drawer = !drawer" />
+    <AppSidebar v-model="drawer" />
+    <AppTopbar @toggle-navigation="drawer = !drawer" />
 
     <v-main class="bg-background">
       <v-container fluid class="pa-4 pa-md-8">

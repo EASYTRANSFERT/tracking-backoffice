@@ -2,9 +2,6 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import UserMenu from '@/Components/layout/UserMenu.vue'
-import type { UserRole } from '@/types/roles'
-
-withDefaults(defineProps<{ role?: UserRole }>(), { role: 'operator' })
 
 const emit = defineEmits<{
   toggleNavigation: []
@@ -51,7 +48,7 @@ const pageTitle = computed(() => String(route.meta.title ?? 'Dashboard'))
       aria-label="Notifications"
     />
 
-    <UserMenu :role="role" />
+    <UserMenu />
 
     <div class="mr-3" />
   </v-app-bar>

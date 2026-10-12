@@ -58,4 +58,16 @@ export const dashboardNavigation: NavigationItem[] = [
     icon: 'mdi-qrcode-scan',
     allowedRoles: ['administrator'],
   },
+  {
+    title: 'Dashboard',
+    routeName: 'supervisor-dashboard',
+    iconSrc: dashboardIcon,
+    allowedRoles: ['supervisor'],
+  },
+  {
+    title: 'Dashboard',
+    routeName: 'team-leader-dashboard',
+    iconSrc: dashboardIcon,
+    allowedRoles: ['teamLeader'],
+  },
 ]

@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
+import { dashboardRouteByRole } from '@/types/roles'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,7 +19,6 @@ const router = createRouter({
     {
       path: '/dashboard',
       component: () => import('@/Components/DashboardLayout.vue'),
-      props: { role: 'operator' },
       meta: { requiresAuth: true },
       children: [
         {
@@ -94,7 +95,6 @@ const router = createRouter({
     {
       path: '/admin',
       component: () => import('@/Components/DashboardLayout.vue'),
-      props: { role: 'administrator' },
       meta: { requiresAuth: true },
       children: [
         {
@@ -196,6 +196,44 @@ const router = createRouter({
       ],
     },
     {
+      path: '/supervisor',
+      component: () => import('@/Components/DashboardLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'supervisor-dashboard',
+          component: () => import('@/pages/ProfileDashboardPage.vue'),
+          meta: { title: 'Dashboard', allowedRoles: ['supervisor'] },
+        },
+        {
+          path: 'settings',
+          name: 'supervisor-settings',
+          component: () => import('@/pages/SettingsPage.vue'),
+          meta: { title: 'Paramètres', allowedRoles: ['supervisor'] },
+        },
+      ],
+    },
+    {
+      path: '/team-leader',
+      component: () => import('@/Components/DashboardLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'team-leader-dashboard',
+          component: () => import('@/pages/ProfileDashboardPage.vue'),
+          meta: { title: 'Dashboard', allowedRoles: ['teamLeader'] },
+        },
+        {
+          path: 'settings',
+          name: 'team-leader-settings',
+          component: () => import('@/pages/SettingsPage.vue'),
+          meta: { title: 'Paramètres', allowedRoles: ['teamLeader'] },
+        },
+      ],
+    },
+    {
       path: '/unauthorized',
       name: 'unauthorized',
       component: () => import('@/pages/system/UnauthorizedPage.vue'),
@@ -206,6 +244,42 @@ const router = createRouter({
       component: () => import('@/pages/system/NotFoundPage.vue'),
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const authStore = useAuthStore()
+  const requiresAuth = to.matched.some(
+    (record) => record.meta.requiresAuth,
+  )
+
+  if (requiresAuth && !authStore.isAuthenticated) {
+    return {
+      name: 'login',
+      query: { redirect: to.fullPath },
+    }
+  }
+
+  if (
+    to.name === 'login' &&
+    authStore.isAuthenticated &&
+    authStore.activeRole
+  ) {
+    return {
+      name: dashboardRouteByRole[authStore.activeRole],
+    }
+  }
+
+  const allowedRoles = to.meta.allowedRoles
+
+  if (
+    allowedRoles?.length &&
+    (!authStore.activeRole ||
+      !allowedRoles.includes(authStore.activeRole))
+  ) {
+    return { name: 'unauthorized' }
+  }
+
+  return true
 })
 
 export default router

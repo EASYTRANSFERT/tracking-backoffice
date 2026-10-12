@@ -1,11 +1,46 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { UserRole } from '@/types/roles'
+import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
+import { roleLabelByRole } from '@/types/roles'
+import { useAuthStore } from '@/stores/auth.store'
 
-const props = withDefaults(defineProps<{ role?: UserRole }>(), { role: 'operator' })
-const profile = computed(() => props.role === 'administrator'
-  ? { initials: 'AK', name: 'Aïcha Koné', label: 'Administratrice entreprise', settingsRoute: 'admin-settings' }
-  : { initials: 'JD', name: 'Jean Djezou', label: 'Opérateur KAYBIC', settingsRoute: 'settings' })
+const router = useRouter()
+const authStore = useAuthStore()
+const { activeRole, currentUser } = storeToRefs(authStore)
+
+const profile = computed(() => {
+  const name = currentUser.value?.names ?? 'Utilisateur'
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+
+  const settingsRoutes = {
+    operator: 'settings',
+    administrator: 'admin-settings',
+    supervisor: 'supervisor-settings',
+    teamLeader: 'team-leader-settings',
+  } as const
+
+  return {
+    initials,
+    name,
+    label: activeRole.value
+      ? roleLabelByRole[activeRole.value]
+      : 'Profil indisponible',
+    settingsRoute: activeRole.value
+      ? settingsRoutes[activeRole.value]
+      : 'settings',
+  }
+})
+
+async function handleLogout() {
+  await authStore.logout()
+  await router.replace({ name: 'login' })
+}
 </script>
 
 <template>
@@ -63,7 +98,7 @@ const profile = computed(() => props.role === 'administrator'
           prepend-icon="mdi-logout"
           title="Se déconnecter"
           class="text-red-600"
-          :to="{ name: 'login' }"
+          @click="handleLogout"
         />
       </v-list>
     </v-card>
