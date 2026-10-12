@@ -8,6 +8,10 @@ import type {
   SessionResponse,
 } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
+import {
+  findMockAuthUserByCredentials,
+  findMockAuthUserById,
+} from '@/mocks/auth-users'
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -16,25 +20,17 @@ const mockQrCode = `/qrcode.png`
 export const handlers = [
   http.post(`${API_URL}/auth/login`, async ({ request }) => {
     const credentials = (await request.json()) as LoginRequest
+    const mockUser = findMockAuthUserByCredentials(
+      credentials.email,
+      credentials.password,
+    )
 
-    if (
-      credentials.email === 'jecolia.tieleo@easytransfert.ci' &&
-      credentials.password === 'Password123!'
-    ) {
+    if (mockUser) {
       const response: LoginChallengeResponse = {
-        userId: 'usr_mock_first',
-        qrCode: mockQrCode,
-      }
-
-      return HttpResponse.json(response)
-    }
-
-    if (
-      credentials.email === 'jecolia.tieleo@easytransfert.ci' &&
-      credentials.password === 'Password12345'
-    ) {
-      const response: LoginChallengeResponse = {
-        userId: 'usr_mock_existing',
+        userId: mockUser.user.id,
+        ...(mockUser.firstTotpSetup
+          ? { qrCode: mockQrCode }
+          : {}),
       }
 
       return HttpResponse.json(response)
@@ -57,8 +53,9 @@ export const handlers = [
 
   http.post(`${API_URL}/auth/totp/confirm`, async ({ request }) => {
     const payload = (await request.json()) as ConfirmTotpRequest
+    const mockUser = findMockAuthUserById(payload.userId)
 
-    if (payload.code !== '123456') {
+    if (!mockUser || payload.code !== mockUser.totpCode) {
       const problem: ApiProblemDetails = {
         title: 'Invalid TOTP',
         status: 401,
@@ -75,8 +72,8 @@ export const handlers = [
     }
 
     const session: SessionResponse = {
-      accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token',
+      accessToken: `mock-access-token-${payload.userId}`,
+      refreshToken: `mock-refresh-token-${payload.userId}`,
       tokenType: 'Bearer',
       expiresIn: 900,
     }
@@ -112,5 +109,27 @@ export const handlers = [
     return new HttpResponse(null, {
       status: 204,
     })
+  }),
+
+  http.get(`${API_URL}/users/:userId`, ({ params }) => {
+    const mockUser = findMockAuthUserById(String(params.userId))
+
+    if (!mockUser) {
+      const problem: ApiProblemDetails = {
+        title: 'User not found',
+        status: 404,
+        detail: "L'utilisateur demandé n'existe pas.",
+        code: 'NOT_FOUND',
+      }
+
+      return HttpResponse.json(problem, {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/problem+json',
+        },
+      })
+    }
+
+    return HttpResponse.json(mockUser.user)
   }),
 ]

@@ -3,12 +3,16 @@ import { defineStore } from 'pinia'
 import { isAxiosError } from 'axios'
 
 import { authService } from '@/Services/auth.service'
+import { userService } from '@/Services/user.service'
+import { getDashboardRoles } from '@/types/roles'
 
 import type {
   LoginRequest,
   SessionResponse,
 } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
+import type { UserRole } from '@/types/roles'
+import type { UserResponse } from '@/types/user'
 
 export type AuthStep =
   | 'credentials'
@@ -20,6 +24,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const userId = ref<string | null>(null)
   const qrCode = ref<string | null>(null)
+  const currentUser = shallowRef<UserResponse | null>(null)
+  const activeRole = ref<UserRole | null>(null)
 
   const session = shallowRef<SessionResponse | null>(null)
   const accessTokenExpiresAt = ref<number | null>(null)
@@ -36,7 +42,16 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const isAuthenticated = computed(() => {
-    return step.value === 'authenticated' && Boolean(accessToken.value)
+    return (
+      step.value === 'authenticated' &&
+      Boolean(accessToken.value) &&
+      Boolean(currentUser.value) &&
+      Boolean(activeRole.value)
+    )
+  })
+
+  const availableRoles = computed(() => {
+    return getDashboardRoles(currentUser.value?.roles ?? [])
   })
 
   const isFirstMfaSetup = computed(() => {
@@ -66,7 +81,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function confirmTotp(code: string): Promise<boolean> {
-    if (!userId.value) {
+    const challengeUserId = userId.value
+
+    if (!challengeUserId) {
       errorMessage.value =
         "La tentative de connexion n'est plus valide. Veuillez recommencer."
 
@@ -79,11 +96,42 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authService.confirmTotp({
-        userId: userId.value,
+        userId: challengeUserId,
         code,
       })
 
       applySession(response)
+
+      const authenticatedUser = await userService.findOne(
+        challengeUserId,
+      )
+      const dashboardRoles = getDashboardRoles(
+        authenticatedUser.roles,
+      )
+
+      if (authenticatedUser.status !== 'ACTIVE') {
+        resetAuthentication()
+        errorMessage.value =
+          "Ce compte n'est pas actif. Veuillez contacter votre administrateur."
+        return false
+      }
+
+      if (dashboardRoles.length === 0) {
+        resetAuthentication()
+        errorMessage.value =
+          "Ce profil n'a pas accès au back-office."
+        return false
+      }
+
+      if (dashboardRoles.length > 1) {
+        resetAuthentication()
+        errorMessage.value =
+          'Ce compte possède plusieurs profils. La sélection du profil est requise.'
+        return false
+      }
+
+      currentUser.value = authenticatedUser
+      activeRole.value = dashboardRoles[0]!
 
       qrCode.value = null
       userId.value = null
@@ -91,7 +139,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error) {
-      errorMessage.value = getErrorMessage(error)
+      const message = getErrorMessage(error)
+
+      if (accessToken.value) {
+        resetAuthentication()
+      }
+
+      errorMessage.value = message
       return false
     } finally {
       isLoading.value = false
@@ -148,6 +202,8 @@ export const useAuthStore = defineStore('auth', () => {
   function clearSession() {
     session.value = null
     accessTokenExpiresAt.value = null
+    currentUser.value = null
+    activeRole.value = null
     step.value = 'credentials'
   }
 
@@ -214,6 +270,9 @@ export const useAuthStore = defineStore('auth', () => {
     step,
     userId,
     qrCode,
+    currentUser,
+    activeRole,
+    availableRoles,
     session,
     accessToken,
     refreshToken,

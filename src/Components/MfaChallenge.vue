@@ -117,6 +117,7 @@ function handleSubmit() {
 
     <v-btn
       type="submit"
+      color="primary"
       :disabled="loading || code.length !== 6"
       class="flex w-full items-center justify-center rounded-md bg-red-600 px-5 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-red-300"
     >

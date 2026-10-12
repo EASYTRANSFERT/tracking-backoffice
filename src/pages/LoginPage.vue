@@ -9,6 +9,7 @@ import MfaChallenge from '@/Components/MfaChallenge.vue'
 import ChangeImg from '@/Components/ChangeImg.vue'
 
 import { useAuthStore } from '@/stores/auth.store'
+import { dashboardRouteByRole } from '@/types/roles'
 
 import type { LoginRequest } from '@/types/auth'
 
@@ -48,8 +49,12 @@ async function handleTotpConfirmation(code: string) {
     await authStore.confirmTotp(code)
 
   if (authenticated) {
+    const destination = authStore.activeRole
+      ? dashboardRouteByRole[authStore.activeRole]
+      : 'unauthorized'
+
     await router.replace({
-      name: 'dashboard',
+      name: destination,
     })
   }
 }
