@@ -1,0 +1,8 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'; import { storeToRefs } from 'pinia'; import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'; import PageHeader from '@/Components/layout/PageHeader.vue'; import MissionForm from '@/Components/missions/MissionForm.vue'; import { useAdministratorStore } from '@/stores/administrator.store'; import type { MissionInput } from '@/types/administrator'
+const route = useRoute(); const router = useRouter(); const store = useAdministratorStore(); const { sites, users } = storeToRefs(store); const id = computed(() => route.params.missionId as string | undefined); const mission = computed(() => id.value ? store.getMissionById(id.value) : undefined); const dirty = ref(false)
+onBeforeRouteLeave(() => !dirty.value || window.confirm('Des modifications ne sont pas enregistrées. Voulez-vous quitter cette page ?'))
+function submit(payload: MissionInput) { dirty.value = false; const missionId = id.value ? (store.updateMission(id.value, payload), id.value) : store.createMission(payload); void router.push({ name: 'admin-mission-details', params: { missionId } }) }
+</script>
+<template><div class="mx-auto w-full max-w-[1050px]"><PageHeader><template #title>{{ id ? 'Modifier la mission' : 'Nouvelle mission' }}</template><template #description>Configurez la période, le site et les personnes affectées.</template><template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-missions' }">Retour</v-btn></template></PageHeader><v-alert v-if="id && !mission" type="error" variant="tonal" title="Mission introuvable" /><MissionForm v-else :mission="mission" :sites="sites" :users="users" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" /></div></template>
+
