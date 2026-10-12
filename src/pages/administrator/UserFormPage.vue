@@ -1,0 +1,8 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'; import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'; import PageHeader from '@/Components/layout/PageHeader.vue'; import UserForm from '@/Components/users/UserForm.vue'; import { useAdministratorStore } from '@/stores/administrator.store'; import type { EnterpriseUserInput } from '@/types/administrator'
+const route = useRoute(); const router = useRouter(); const store = useAdministratorStore(); const id = computed(() => route.params.userId as string | undefined); const user = computed(() => id.value ? store.getUserById(id.value) : undefined); const dirty = ref(false)
+onBeforeRouteLeave(() => !dirty.value || window.confirm('Des modifications ne sont pas enregistrées. Voulez-vous quitter cette page ?'))
+function submit(payload: EnterpriseUserInput) { dirty.value = false; const userId = id.value ? (store.updateUser(id.value, payload), id.value) : store.createUser(payload); void router.push({ name: 'admin-user-details', params: { userId } }) }
+</script>
+<template><div class="mx-auto w-full max-w-[1050px]"><PageHeader><template #title>{{ id ? 'Modifier l’utilisateur' : 'Nouvel utilisateur' }}</template><template #description>{{ id ? 'Mettez à jour ses informations et ses droits.' : 'Créez le profil puis envoyez une invitation sécurisée.' }}</template><template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-users' }">Retour</v-btn></template></PageHeader><v-alert v-if="id && !user" type="error" variant="tonal" title="Utilisateur introuvable" /><UserForm v-else :user="user" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" /></div></template>
+
