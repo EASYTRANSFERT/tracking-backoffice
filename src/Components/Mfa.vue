@@ -47,14 +47,15 @@ function handleSubmit() {
 </script>
 
 <template>
-  <form class="space-y-6" @submit.prevent="handleSubmit">
-    <div
+  <v-form class="space-y-6" @submit.prevent="handleSubmit">
+    <v-alert
       v-if="displayedError"
       role="alert"
-      class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
     >
+    <!--
+      class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"-->
       {{ displayedError }}
-    </div>
+  </v-alert>
 
     <div v-if="firstSetup" class="text-center">
       <p class="mb-5 text-sm leading-6 text-gray-600">
@@ -114,7 +115,7 @@ function handleSubmit() {
       />
     </div>
 
-    <button
+    <v-btn
       type="submit"
       :disabled="loading || code.length !== 6"
       class="flex w-full items-center justify-center rounded-md bg-red-600 px-5 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-red-300"
@@ -126,15 +127,15 @@ function handleSubmit() {
       />
 
       {{ loading ? 'Vérification...' : 'Confirmer' }}
-    </button>
+  </v-btn>
 
-    <button
+    <v-btn
       type="button"
       :disabled="loading"
       class="w-full text-sm font-medium text-gray-600 transition hover:text-red-600 disabled:cursor-not-allowed disabled:text-gray-400"
       @click="emit('back')"
     >
       Revenir à la connexion
-    </button>
-  </form>
+    </v-btn>
+  </v-form>
 </template>

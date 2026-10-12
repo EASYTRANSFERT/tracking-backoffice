@@ -60,7 +60,7 @@ async function handleTotpConfirmation(code: string) {
     class="grid min-h-screen w-full grid-cols-1 bg-gray-100 md:grid-cols-2"
   >
     <section
-      class="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12 md:min-h-0"
+      class="relative bg-gradient-to-br from-gray-100 via-white to-red-50 flex min-h-screen items-center justify-center overflow-hidden px-6 py-12 md:min-h-0"
     >
       <img
         src="@/assets/background.svg"

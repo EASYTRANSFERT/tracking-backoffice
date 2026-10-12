@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import LoginAuth from '@/pages/LoginAuth.vue'
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <LoginAuth />
+  <v-app>
+    <RouterView />
+  </v-app>
 </template>
-
-<style scoped></style>

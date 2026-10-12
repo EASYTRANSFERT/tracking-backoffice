@@ -8,8 +8,13 @@ defineProps<Props>()
 </script>
 
 <template>
-  <div
-  class="relative z-10 w-full max-w-md rounded-2xl border border-white/60 bg-transparent px-8 py-10 shadow-2xl shadow-black/10 backdrop-blur-xl sm:px-12"
+  <v-card
+  width="100%"
+  max-width="400"
+  elevation="8"
+  color="rgba(255,  255, 255, 0.20)"
+  rounded="xl"
+  class="relative z-10 border border-white/70 px-10 py-12 backdrop-blur-2xl sm:px-14"
   >
     <header class="mb-8 text-center">
       <h1 class="text-4xl font-bold tracking-tight text-gray-700">
@@ -29,7 +34,8 @@ defineProps<Props>()
         {{ description }}
       </p>
     </header>
-
-    <slot />
-  </div>
+    <v-card-text class="pa-0">
+      <slot />
+    </v-card-text>
+  </v-card>
 </template>
