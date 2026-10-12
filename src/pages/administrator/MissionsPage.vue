@@ -1,0 +1,6 @@
+<script setup lang="ts">
+import { storeToRefs } from 'pinia'; import { useRouter } from 'vue-router'; import PageHeader from '@/Components/layout/PageHeader.vue'; import MissionTable from '@/Components/missions/MissionTable.vue'; import { useAdministratorStore } from '@/stores/administrator.store'; import type { Mission } from '@/types/administrator'
+const router = useRouter(); const store = useAdministratorStore(); const { missions, sites, users } = storeToRefs(store); const view = (mission: Mission) => router.push({ name: 'admin-mission-details', params: { missionId: mission.id } }); const edit = (mission: Mission) => router.push({ name: 'admin-mission-edit', params: { missionId: mission.id } })
+</script>
+<template><div class="mx-auto w-full max-w-[1440px]"><PageHeader><template #title>Missions</template><template #description>Planifiez les interventions et affectez les équipes aux sites.</template><template #actions><v-btn color="primary" prepend-icon="mdi-plus" :to="{ name: 'admin-mission-create' }">Nouvelle mission</v-btn></template></PageHeader><MissionTable :missions="missions" :sites="sites" :users="users" @view="view" @edit="edit" @cancel="store.cancelMission($event.id)" /></div></template>
+
