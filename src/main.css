@@ -1,5 +1,29 @@
-@layer theme,  base,vuetify, components,utilities;
+@import '@fontsource/poppins/latin-400.css';
+@import '@fontsource/poppins/latin-500.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
 
+@layer theme, base, vuetify, components, utilities;
 
-@import'vuetify/styles' layer(vuetify);
+@import 'vuetify/styles' layer(vuetify);
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --color-kaybic-red: #d80f16;
+  --color-kaybic-grey: #848484;
+  --color-kaybic-background: #f6f6f7;
+  --color-kaybic-ink: #252830;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    min-width: 320px;
+    background: var(--color-kaybic-background);
+    color: var(--color-kaybic-ink);
+  }
+}
