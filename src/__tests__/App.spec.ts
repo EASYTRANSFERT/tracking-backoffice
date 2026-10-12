@@ -1,11 +1,24 @@
-import { describe, it, expect } from 'vitest'
-
+import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
-import App from '../App.vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
+
+import App from '@/App.vue'
+import vuetify from '@/plugins/vuetify'
 
 describe('App', () => {
-  it('mounts renders properly', () => {
-    const wrapper = mount(App)
-    expect(wrapper.text()).toContain('You did it!')
+  it('renders the active router page inside Vuetify', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: { template: '<p>Page de test</p>' } }],
+    })
+
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(App, {
+      global: { plugins: [vuetify, router] },
+    })
+
+    expect(wrapper.text()).toContain('Page de test')
   })
 })
