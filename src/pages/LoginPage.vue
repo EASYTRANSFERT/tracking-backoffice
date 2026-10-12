@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import AuthCard from '@/Components/AuthCard.vue'
 import LoginForm from '@/Components/LoginForm.vue'
-import MfaChallenge from '@/Components/Mfa.vue'
+import MfaChallenge from '@/Components/MfaChallenge.vue'
 import ChangeImg from '@/Components/ChangeImg.vue'
 
 import { useAuthStore } from '@/stores/auth.store'

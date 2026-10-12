@@ -22,6 +22,9 @@ export default createVuetify({
           secondary: '#848484',
           background: '#F6F6F7',
           surface: '#FFFFFF',
+          'surface-variant': '#F1F2F4',
+          'on-background': '#252830',
+          'on-surface': '#252830',
           error: '#B3261E',
           success: '#2E7D4F',
           warning: '#A76000',
@@ -38,12 +41,29 @@ export default createVuetify({
 
     VBtn: {
       rounded: 'lg',
+      style: 'text-transform: none; letter-spacing: 0;',
     },
 
     VTextField: {
       variant: 'outlined',
       density: 'comfortable',
       color: 'primary',
+    },
+
+    VSelect: {
+      variant: 'outlined',
+      density: 'comfortable',
+      color: 'primary',
+    },
+
+    VTextarea: {
+      variant: 'outlined',
+      density: 'comfortable',
+      color: 'primary',
+    },
+
+    VDialog: {
+      scrollable: true,
     },
 
     VChip: {
