@@ -1,60 +1,33 @@
 <template>
-  <v-menu location="bottom end">
-    <template #activator="{ props }">
-      <v-btn
-        v-bind="props"
-        variant="text"
-        class="ml-2 h-auto px-2 text-none"
-      >
-        <v-avatar
-          color="primary"
-          size="38"
-          class="mr-3"
-        >
-          <span class="text-sm font-semibold text-white">
-            JT
-          </span>
-        </v-avatar>
+  <header class="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-[28px] font-bold leading-tight text-[#252830]">
+        <slot name="title">Bonjour Jean</slot>
+      </h1>
 
-        <div class="hidden text-left sm:block">
-          <p class="text-sm font-semibold text-gray-800">
-            Jecolia Tieleo
-          </p>
+      <p class="mt-2 text-sm text-[#747985]">
+        <slot name="description">Voici l’état de la plateforme aujourd’hui.</slot>
+      </p>
+    </div>
 
-          <p class="text-xs text-gray-500">
-            Opérateur KAYBIC
-          </p>
-        </div>
-
-        <v-icon
-          icon="mdi-chevron-down"
-          size="small"
-          class="ml-2"
-        />
-      </v-btn>
-    </template>
-
-    <v-card min-width="230">
-      <v-list density="comfortable">
-        <v-list-item
-          prepend-icon="mdi-account-outline"
-          title="Mon profil"
-        />
-
-        <v-list-item
-          prepend-icon="mdi-cog-outline"
-          title="Paramètres"
-        />
-
-        <v-divider class="my-2" />
-
-        <v-list-item
-          prepend-icon="mdi-logout"
-          title="Se déconnecter"
-          class="text-red-600"
-        />
-      </v-list>
-    </v-card>
-  </v-menu>
+    <div class="page-header-actions flex flex-wrap items-center gap-3">
+      <slot name="actions">
+        <v-btn color="primary" prepend-icon="mdi-plus" size="large" class="w-full sm:w-auto">
+          Nouvelle entreprise
+        </v-btn>
+      </slot>
+    </div>
+  </header>
 </template>
 
+<style scoped>
+.page-header-actions :deep(.v-btn.bg-primary) {
+  min-height: 44px;
+  padding-inline: 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 8px 18px rgb(216 15 22 / 18%);
+}
+</style>
