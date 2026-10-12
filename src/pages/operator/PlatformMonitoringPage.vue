@@ -30,8 +30,7 @@ const priorityColor = { low: 'success', medium: 'warning', high: 'error' } as co
     <v-row>
       <v-col cols="12" sm="6" lg="3"><DashboardStatCard title="Agents actifs" :value="activeAgentsCount" icon="mdi-account-group-outline" change="Toutes entreprises" /></v-col>
       <v-col cols="12" sm="6" lg="3"><DashboardStatCard title="Pointages aujourd’hui" value="1 842" icon="mdi-qrcode-scan" change="+8,4 %" /></v-col>
-      <v-col cols="12" sm="6" lg="3"><DashboardStatCard title="Stockage utilisé" value="68 %" icon="mdi-database-outline" change="1,36 To / 2 To" change-color="warning" /></v-col>
-      <v-col cols="12" sm="6" lg="3"><DashboardStatCard title="Disponibilité" value="99,98 %" icon="mdi-server-network" change="Services opérationnels" /></v-col>
+      <v-col cols="12" sm="6" lg="3"><DashboardStatCard title="Disponibilité" value="OK" icon="mdi-server-network" change="Services opérationnels" /></v-col>
     </v-row>
 
     <v-row class="mt-1">
