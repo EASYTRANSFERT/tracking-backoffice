@@ -11,7 +11,7 @@ const data = reactive<SiteInput>({
   radiusM: props.site?.radiusM ?? 100, managerId: props.site?.managerId ?? '',
 })
 const required = (value: string) => Boolean(String(value ?? '').trim()) || 'Ce champ est obligatoire'
-const positive = (value: number) => value > 0 || 'La distance doit être supérieure à zéro'
+const positive = (value?: number) => !value || value > 0 || 'La distance doit être supérieure à zéro'
 const managerName = (item: EnterpriseUser) => `${item.firstName} ${item.lastName}`
 watch(data, () => emit('dirtyChange', true), { deep: true })
 async function submit() {
@@ -33,9 +33,10 @@ async function submit() {
         <v-divider />
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
           <v-text-field v-model="data.name" label="Nom du site" :rules="[required]" />
-          <v-text-field v-model="data.city" label="Ville" :rules="[required]" />
-          <v-text-field v-model="data.address" label="Adresse" :rules="[required]" class="md:col-span-2" />
-          <v-select v-model="data.managerId" label="Responsable" :items="managers" :item-title="managerName" item-value="id" :rules="[required]" />
+          <v-text-field v-model="data.city" label="Ville (facultatif)" />
+          <v-text-field v-model="data.address" label="Adresse (facultatif)" class="md:col-span-2" />
+          <v-select v-model="data.managerId" label="Superviseur responsable (facultatif)" :items="managers" :item-title="managerName" item-value="id" clearable />
+          <v-alert class="md:col-span-2" type="info" variant="tonal">Vous pouvez enregistrer le site maintenant et compléter sa configuration plus tard.</v-alert>
         </v-card-text>
       </v-card>
       <v-card>
@@ -45,8 +46,8 @@ async function submit() {
         </v-card-title>
         <v-divider />
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-3">
-          <v-text-field v-model="data.latitude" label="Latitude" :rules="[required]" />
-          <v-text-field v-model="data.longitude" label="Longitude" :rules="[required]" />
+          <v-text-field v-model="data.latitude" label="Latitude (facultatif)" />
+          <v-text-field v-model="data.longitude" label="Longitude (facultatif)" />
           <v-text-field v-model.number="data.radiusM" label="Rayon" suffix="m" type="number" :rules="[positive]" />
           <v-alert class="md:col-span-3" type="info" variant="tonal" text="Le QR code du site sera généré automatiquement après l’enregistrement." />
         </v-card-text>
