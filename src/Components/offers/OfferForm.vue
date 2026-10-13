@@ -6,11 +6,10 @@ const props = withDefaults(defineProps<{ offer?: Offer; loading?: boolean }>(), 
 const emit = defineEmits<{ submit: [payload: OfferInput]; cancel: []; dirtyChange: [dirty: boolean] }>()
 const form = ref()
 const formData = reactive<OfferInput>({
+  code: props.offer?.code ?? '',
   name: props.offer?.name ?? '',
   description: props.offer?.description ?? '',
-  price: props.offer?.price ?? 0,
   maxActiveAgents: props.offer?.maxActiveAgents ?? 25,
-  status: props.offer?.status ?? 'active',
 })
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
 const positive = (value: number) => value > 0 || 'La valeur doit être supérieure à zéro'
@@ -39,9 +38,8 @@ function handleCancel() {
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
+        <v-text-field v-model="formData.code" label="Code unique" hint="Exemple : STARTER" :rules="[required]" />
         <v-text-field v-model="formData.name" label="Libellé de l’offre" :rules="[required]" />
-        <v-select v-model="formData.status" label="Statut" :items="[{ title: 'Active', value: 'active' }, { title: 'Inactive', value: 'inactive' }]" />
-        <v-text-field v-model.number="formData.price" label="Prix mensuel" type="number" suffix="FCFA" min="1" :rules="[positive]" />
         <v-text-field v-model.number="formData.maxActiveAgents" label="Nombre maximum d’agents actifs" type="number" min="1" :rules="[positive]" />
         <v-textarea v-model="formData.description" label="Description" rows="4" :rules="[required]" class="md:col-span-2" />
       </v-card-text>

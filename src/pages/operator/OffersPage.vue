@@ -7,7 +7,7 @@ import { useOperatorStore } from '@/stores/operator.store'
 
 const router = useRouter()
 const store = useOperatorStore()
-const { offers } = storeToRefs(store)
+const { offers, canUpdateOffers } = storeToRefs(store)
 </script>
 
 <template>
@@ -19,8 +19,9 @@ const { offers } = storeToRefs(store)
     </PageHeader>
     <OfferTable
       :offers="offers"
+      :editable="canUpdateOffers"
       @view="router.push({ name: 'offer-details', params: { offerId: $event.id } })"
-      @edit="router.push({ name: 'offer-edit', params: { offerId: $event.id } })"
+      @edit="canUpdateOffers && router.push({ name: 'offer-edit', params: { offerId: $event.id } })"
     />
   </div>
 </template>
