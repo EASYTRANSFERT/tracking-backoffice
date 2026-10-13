@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { createPinia } from 'pinia'
 
 import App from '@/App.vue'
 import vuetify from '@/plugins/vuetify'
@@ -16,7 +17,7 @@ describe('App', () => {
     await router.isReady()
 
     const wrapper = mount(App, {
-      global: { plugins: [vuetify, router] },
+      global: { plugins: [createPinia(), vuetify, router] },
     })
 
     expect(wrapper.text()).toContain('Page de test')
