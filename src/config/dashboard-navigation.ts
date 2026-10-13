@@ -41,6 +41,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['administrator'],
   },
   {
+    title: 'Équipes',
+    routeName: 'admin-teams',
+    icon: 'mdi-account-multiple-outline',
+    allowedRoles: ['administrator'],
+  },
+  {
     title: 'Sites',
     routeName: 'admin-sites',
     icon: 'mdi-map-marker-radius-outline',

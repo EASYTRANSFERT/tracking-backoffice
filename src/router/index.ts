@@ -134,6 +134,24 @@ const router = createRouter({
           meta: { title: 'Modifier l’utilisateur', allowedRoles: ['administrator'] },
         },
         {
+          path: 'teams',
+          name: 'admin-teams',
+          component: () => import('@/pages/administrator/TeamsPage.vue'),
+          meta: { title: 'Équipes', allowedRoles: ['administrator'] },
+        },
+        {
+          path: 'teams/new',
+          name: 'admin-team-create',
+          component: () => import('@/pages/administrator/TeamFormPage.vue'),
+          meta: { title: 'Nouvelle équipe', allowedRoles: ['administrator'] },
+        },
+        {
+          path: 'teams/:teamId/edit',
+          name: 'admin-team-edit',
+          component: () => import('@/pages/administrator/TeamFormPage.vue'),
+          meta: { title: 'Modifier l’équipe', allowedRoles: ['administrator'] },
+        },
+        {
           path: 'sites',
           name: 'admin-sites',
           component: () => import('@/pages/administrator/SitesPage.vue'),
@@ -144,6 +162,12 @@ const router = createRouter({
           name: 'admin-site-create',
           component: () => import('@/pages/administrator/SiteFormPage.vue'),
           meta: { title: 'Nouveau site', allowedRoles: ['administrator'] },
+        },
+        {
+          path: 'sites/import',
+          name: 'admin-site-import',
+          component: () => import('@/pages/administrator/SiteImportPage.vue'),
+          meta: { title: 'Importer des sites', allowedRoles: ['administrator'] },
         },
         {
           path: 'sites/:siteId',

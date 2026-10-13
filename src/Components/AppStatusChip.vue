@@ -15,6 +15,7 @@ type Status =
   | 'ongoing'
   | 'completed'
   | 'cancelled'
+  | 'draft'
 
 const props = defineProps<{
   status: Status
@@ -35,6 +36,7 @@ const statusConfig = computed(() => {
     ongoing: { label: 'En cours', color: 'warning', icon: 'mdi-progress-clock' },
     completed: { label: 'Terminée', color: 'success', icon: 'mdi-check-circle' },
     cancelled: { label: 'Annulée', color: 'error', icon: 'mdi-close-circle' },
+    draft: { label: 'À compléter', color: 'info', icon: 'mdi-pencil-clock-outline' },
   }[props.status]
 })
 </script>
