@@ -20,10 +20,10 @@ function openStatusDialog(company: Company) {
   statusDialog.value = true
 }
 
-function updateStatus(reason: string) {
+async function updateStatus(reason: string) {
   if (!selectedCompany.value) return
-  if (selectedCompany.value.status === 'suspended') store.reactivateCompany(selectedCompany.value.id)
-  else store.suspendCompany(selectedCompany.value.id, reason)
+  if (selectedCompany.value.status === 'suspended') await store.reactivateCompany(selectedCompany.value.id)
+  else await store.suspendCompany(selectedCompany.value.id, reason)
 }
 </script>
 

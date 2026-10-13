@@ -6,31 +6,36 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import CompanyForm from '@/Components/companies/CompanyForm.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useOperatorStore } from '@/stores/operator.store'
+import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { CompanyInput } from '@/types/operator'
 
 const route = useRoute()
 const router = useRouter()
 const store = useOperatorStore()
+const feedback = useUiFeedbackStore()
 const { offers } = storeToRefs(store)
 const companyId = computed(() => route.params.companyId as string | undefined)
 const company = computed(() => companyId.value ? store.getCompanyById(companyId.value) : undefined)
 const isEditing = computed(() => Boolean(companyId.value))
 const isDirty = ref(false)
 
-onBeforeRouteLeave(() => {
-  if (!isDirty.value) return true
-  return window.confirm('Des modifications ne sont pas enregistrées. Voulez-vous vraiment quitter cette page ?')
-})
+onBeforeRouteLeave(async () => !isDirty.value || await feedback.askConfirmation({ title: 'Quitter sans enregistrer ?', message: 'Les modifications de cette entreprise seront perdues.', confirmText: 'Quitter' }))
 
-function submit(payload: CompanyInput) {
-  isDirty.value = false
-  if (companyId.value) {
-    store.updateCompany(companyId.value, payload)
-    void router.push({ name: 'company-details', params: { companyId: companyId.value }, query: { updated: '1' } })
-    return
+async function submit(payload: CompanyInput) {
+  try {
+    isDirty.value = false
+    if (companyId.value) {
+      await store.updateCompany(companyId.value, payload)
+      feedback.success('Entreprise mise à jour.')
+      await router.push({ name: 'company-details', params: { companyId: companyId.value }, query: { updated: '1' } })
+      return
+    }
+    const id = await store.createCompany(payload)
+    feedback.success('Entreprise créée.')
+    await router.push({ name: 'company-details', params: { companyId: id }, query: { created: '1' } })
+  } catch (error) {
+    feedback.error(error instanceof Error ? error.message : 'Impossible d’enregistrer cette entreprise.')
   }
-  const id = store.createCompany(payload)
-  void router.push({ name: 'company-details', params: { companyId: id }, query: { created: '1' } })
 }
 
 function cancel() {

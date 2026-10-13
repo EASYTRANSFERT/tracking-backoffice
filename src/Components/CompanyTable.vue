@@ -47,7 +47,7 @@ const filteredCompanies = computed(() => {
     const matchesSearch =
       !query ||
       company.legalName.toLocaleLowerCase('fr').includes(query) ||
-      company.contactEmail.toLocaleLowerCase('fr').includes(query)
+      (company.contactEmail ?? '').toLocaleLowerCase('fr').includes(query)
     const matchesStatus = selectedStatus.value === 'all' || company.status === selectedStatus.value
     return matchesSearch && matchesStatus
   })

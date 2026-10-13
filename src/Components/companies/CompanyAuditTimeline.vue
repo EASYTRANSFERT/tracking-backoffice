@@ -13,7 +13,7 @@ defineProps<{ company: Company }>()
     </v-timeline-item>
     <v-timeline-item dot-color="primary" size="small">
       <p class="text-sm font-semibold text-[#252830]">Compte entreprise créé</p>
-      <p class="mt-1 text-xs leading-5 text-[#747985]">L’offre initiale et le premier administrateur ont été configurés.</p>
+      <p class="mt-1 text-xs leading-5 text-[#747985]">Le compte entreprise a été enregistré sur la plateforme.</p>
       <p class="mt-1 text-[11px] text-[#9a9da5]">{{ new Date(company.createdAt).toLocaleString('fr-FR') }}</p>
     </v-timeline-item>
   </v-timeline>

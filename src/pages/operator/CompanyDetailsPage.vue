@@ -22,10 +22,10 @@ const showSuccess = ref(route.query.created === '1' || route.query.updated === '
 const successMessage = computed(() => route.query.created === '1' ? 'Entreprise créée avec succès.' : 'Entreprise mise à jour avec succès.')
 const formattedDate = computed(() => company.value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(company.value.createdAt)) : '')
 
-function updateStatus(reason: string) {
+async function updateStatus(reason: string) {
   if (!company.value) return
-  if (company.value.status === 'suspended') store.reactivateCompany(company.value.id)
-  else store.suspendCompany(company.value.id, reason)
+  if (company.value.status === 'suspended') await store.reactivateCompany(company.value.id)
+  else await store.suspendCompany(company.value.id, reason)
 }
 </script>
 
@@ -54,13 +54,9 @@ function updateStatus(reason: string) {
                 <div><dt class="text-xs font-medium text-[#848484]">Statut</dt><dd class="mt-2"><AppStatusChip :status="company.status" /></dd></div>
                 <div><dt class="text-xs font-medium text-[#848484]">Pays</dt><dd class="mt-1 text-sm text-[#252830]">{{ company.country }}</dd></div>
                 <div><dt class="text-xs font-medium text-[#848484]">Fuseau horaire</dt><dd class="mt-1 text-sm text-[#252830]">{{ company.timezone }}</dd></div>
-                <div><dt class="text-xs font-medium text-[#848484]">Contact</dt><dd class="mt-1 text-sm text-[#252830]">{{ company.contactName }}</dd><dd class="text-xs text-[#747985]">{{ company.contactEmail }} · {{ company.contactPhone }}</dd></div>
+                <div><dt class="text-xs font-medium text-[#848484]">Début du contrat</dt><dd class="mt-1 text-sm text-[#252830]">{{ company.contractFrom ? new Date(company.contractFrom).toLocaleDateString('fr-FR') : 'Non renseigné' }}</dd></div>
                 <div><dt class="text-xs font-medium text-[#848484]">Agents actifs</dt><dd class="mt-1 text-sm font-semibold text-[#252830]">{{ company.activeAgents }}</dd></div>
               </dl>
-            </AppSectionCard>
-
-            <AppSectionCard title="Administrateur principal" description="Premier accès administrateur de l’entreprise" icon="mdi-account-key-outline">
-              <div class="flex items-center gap-4"><v-avatar color="red-lighten-5"><v-icon icon="mdi-account" color="primary" /></v-avatar><div><p class="font-semibold text-[#252830]">{{ company.administratorName }}</p><p class="text-sm text-[#747985]">{{ company.administratorEmail }}</p></div></div>
             </AppSectionCard>
 
             <AppSectionCard title="Historique des interventions" description="Actions importantes conservées pour l’audit" icon="mdi-history">
