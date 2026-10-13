@@ -40,7 +40,7 @@ function handleCancel() {
         </v-card-title>
         <v-divider />
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-          <v-text-field v-model="formData.legalName" label="Raison sociale" :rules="[required]" />
+          <v-text-field v-model="formData.legalName" label="Nom l'entreprise" :rules="[required]" />
           <v-select v-model="formData.country" label="Pays" :items="[{title:'Côte d’Ivoire',value:'CI'},{title:'Sénégal',value:'SN'},{title:'Mali',value:'ML'},{title:'Burkina Faso',value:'BF'},{title:'Bénin',value:'BJ'}]" :rules="[required]" />
           <v-select v-model="formData.timezone" label="Fuseau horaire" :items="['Africa/Abidjan', 'Africa/Dakar', 'Africa/Bamako', 'Africa/Ouagadougou', 'Africa/Porto-Novo']" :rules="[required]" />
           <v-text-field v-model="formData.contractFrom" label="Début du contrat" type="date" :rules="[required]" />
@@ -55,7 +55,7 @@ function handleCancel() {
         </v-card-title>
         <v-divider />
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-          <v-select v-model="formData.offerId" label="Offre attribuée" :items="offers.filter((offer) => offer.status === 'active')" item-title="name" item-value="id" :rules="[required]" />
+          <v-select v-model="formData.offerId" label="Offre attribuée" :items="offers.filter((offer) => offer.status === 'active')" item-title="name" item-value="id" />
           <v-alert type="info" variant="tonal">Le compte administrateur est créé ensuite via l’endpoint utilisateurs.</v-alert>
         </v-card-text>
       </v-card>

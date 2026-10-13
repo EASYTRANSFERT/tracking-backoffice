@@ -15,7 +15,7 @@ export const mockAuthUsers: MockAuthUser[] = [
     user: {
       id: 'usr_0192f1c47d3a7b219e553f0a2c8d4e10',
       matricule: 'KBA-OP-001',
-      names: 'Jean Djezou',
+      names: 'Martial Djezou',
       email: 'operateur@kaybic.africa',
       phone: '+2250700000001',
       roles: ['OPERATOR'],
