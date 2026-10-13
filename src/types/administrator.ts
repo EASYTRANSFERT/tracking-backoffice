@@ -1,6 +1,6 @@
 export type EnterpriseUserRole = 'administrator' | 'supervisor' | 'teamLeader' | 'agent'
 export type EnterpriseUserStatus = 'active' | 'invited' | 'disabled'
-export type SiteStatus = 'active' | 'inactive'
+export type SiteStatus = 'draft' | 'active' | 'inactive'
 export type MissionStatus = 'scheduled' | 'ongoing' | 'completed' | 'cancelled'
 
 export interface EnterpriseUser {
@@ -11,22 +11,34 @@ export interface EnterpriseUser {
   email: string
   phone: string
   role: EnterpriseUserRole
-  team: string
+  teamId?: string
   status: EnterpriseUserStatus
   createdAt: string
 }
 
-export type EnterpriseUserInput = Omit<EnterpriseUser, 'id' | 'status' | 'createdAt'>
+export type EnterpriseUserInput = Omit<EnterpriseUser, 'id' | 'status' | 'createdAt'> & {
+  password?: string
+}
+
+export interface Team {
+  id: string
+  name: string
+  leadUserId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type TeamInput = Pick<Team, 'name'>
 
 export interface Site {
   id: string
   name: string
-  address: string
-  city: string
-  latitude: string
-  longitude: string
-  radiusM: number
-  managerId: string
+  address?: string
+  city?: string
+  latitude?: string
+  longitude?: string
+  radiusM?: number
+  managerId?: string
   qrCode: string
   status: SiteStatus
   createdAt: string
@@ -41,12 +53,9 @@ export interface Mission {
   startAt: string
   endAt: string
   supervisorId: string
-  teamLeaderId: string
-  teamName: string
-  agentIds: string[]
+  teamId: string
   status: MissionStatus
   notes: string
 }
 
 export type MissionInput = Omit<Mission, 'id' | 'status'>
-
