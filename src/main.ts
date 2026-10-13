@@ -16,7 +16,6 @@ const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
-app.use(router)
 app.use(vuetify)
 
 const authStore = useAuthStore(pinia)
@@ -52,6 +51,9 @@ async function enableMocking(){
 }
 async function bootstrap() {
   await enableMocking()
+  await authStore.restoreSession()
+  app.use(router)
+  await router.isReady()
   app.mount('#app')
 }
 

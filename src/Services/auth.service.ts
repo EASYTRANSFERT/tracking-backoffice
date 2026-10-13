@@ -1,4 +1,4 @@
-import { publicApiClient } from './api-client'
+import { apiClient, publicApiClient } from './api-client'
 
 import type {
   AccessTokenResponse,
@@ -55,7 +55,7 @@ export const authService = {
     payload: TotpCodeRequest,
   ): Promise<AccessTokenResponse> {
     const response =
-      await publicApiClient.post<AccessTokenResponse>(
+      await apiClient.post<AccessTokenResponse>(
         '/auth/step-up',
         payload,
       )
