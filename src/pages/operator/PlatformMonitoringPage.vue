@@ -6,12 +6,12 @@ import AppStatusChip from '@/Components/AppStatusChip.vue'
 import DashboardStatCard from '@/Components/DashboardStatCard.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import SupportInterventionDialog from '@/Components/monitoring/SupportInterventionDialog.vue'
+import PlatformLogTable from '@/Components/monitoring/PlatformLogTable.vue'
 import { useOperatorStore } from '@/stores/operator.store'
 
 const store = useOperatorStore()
 const { companies, activeAgentsCount, activities, supportInterventions } = storeToRefs(store)
 const interventionDialog = ref(false)
-const categoryIcon = { company: 'mdi-domain', offer: 'mdi-cash-multiple', support: 'mdi-lifebuoy', system: 'mdi-server' }
 const priorityColor = { low: 'success', medium: 'warning', high: 'error' } as const
 </script>
 
@@ -34,18 +34,7 @@ const priorityColor = { low: 'success', medium: 'warning', high: 'error' } as co
     </v-row>
 
     <v-row class="mt-1">
-      <v-col cols="12" lg="7">
-        <AppSectionCard title="Activité de la plateforme" description="Événements agrégés les plus récents" icon="mdi-pulse">
-          <v-timeline side="end" align="start" density="compact" truncate-line="both">
-            <v-timeline-item v-for="activity in activities" :key="activity.id" dot-color="primary" size="small">
-              <template #icon><v-icon :icon="categoryIcon[activity.category]" size="14" /></template>
-              <p class="text-sm font-semibold text-[#252830]">{{ activity.title }}</p>
-              <p class="mt-1 text-xs leading-5 text-[#747985]">{{ activity.description }}</p>
-              <p class="mt-1 text-[11px] text-[#9a9da5]">{{ new Date(activity.createdAt).toLocaleString('fr-FR') }}</p>
-            </v-timeline-item>
-          </v-timeline>
-        </AppSectionCard>
-      </v-col>
+      <v-col cols="12" lg="7"><PlatformLogTable :activities="activities" /></v-col>
 
       <v-col cols="12" lg="5">
         <AppSectionCard title="Interventions support" description="Demandes nécessitant un suivi" icon="mdi-lifebuoy">
