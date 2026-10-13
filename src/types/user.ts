@@ -22,3 +22,33 @@ export interface UserResponse {
   createdAt: string
   updatedAt: string
 }
+
+export interface CreateUserRequest {
+  matricule: string
+  names: string
+  email?: string
+  phone: string
+  role: ApiUserRole
+  teamId?: string
+  password: string
+}
+
+export type UpdateUserRequest = Omit<CreateUserRequest, 'password'>
+
+export interface UpdatePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
+export interface UserListQuery {
+  cursor?: string
+  limit?: number
+  status?: ApiUserStatus
+  role?: ApiUserRole
+  teamId?: string
+}
+
+export interface UserPageResponse {
+  items: UserResponse[]
+  nextCursor?: string | null
+}

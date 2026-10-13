@@ -3,9 +3,9 @@ import { computed, ref, watch } from 'vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import AppTableFooter from '@/Components/common/AppTableFooter.vue'
-import type { EnterpriseUser, EnterpriseUserRole, EnterpriseUserStatus } from '@/types/administrator'
+import type { EnterpriseUser, EnterpriseUserRole, EnterpriseUserStatus, Team } from '@/types/administrator'
 
-const props = withDefaults(defineProps<{ users: EnterpriseUser[]; pageSize?: number }>(), { pageSize: 6 })
+const props = withDefaults(defineProps<{ users: EnterpriseUser[]; teams: Team[]; pageSize?: number }>(), { pageSize: 6 })
 const emit = defineEmits<{ view: [user: EnterpriseUser]; edit: [user: EnterpriseUser]; changeStatus: [user: EnterpriseUser] }>()
 const search = ref('')
 const status = ref<EnterpriseUserStatus | 'all'>('all')
@@ -23,6 +23,7 @@ const pageCount = computed(() => Math.ceil(filtered.value.length / props.pageSiz
 const start = computed(() => (page.value - 1) * props.pageSize)
 const displayed = computed(() => filtered.value.slice(start.value, start.value + props.pageSize))
 watch([search, status, role], () => { page.value = 1 })
+const teamName = (teamId?: string) => props.teams.find((team) => team.id === teamId)?.name ?? '—'
 </script>
 
 <template>
@@ -43,7 +44,7 @@ watch([search, status, role], () => { page.value = 1 })
         <tbody>
           <tr v-for="user in displayed" :key="user.id" class="cursor-pointer" @click="emit('view', user)">
             <td><div class="flex min-h-16 items-center gap-3"><v-avatar color="red-lighten-5" size="40"><span class="text-xs font-bold text-primary">{{ user.firstName[0] }}{{ user.lastName[0] }}</span></v-avatar><div><p class="font-semibold text-[#292d38]">{{ user.firstName }} {{ user.lastName }}</p><p class="text-xs text-[#848484]">{{ user.email }}</p></div></div></td>
-            <td class="text-sm text-[#535865]">{{ roleLabels[user.role] }}</td><td class="text-sm text-[#535865]">{{ user.team }}</td><td class="text-sm text-[#535865]">{{ user.employeeNumber }}</td>
+            <td class="text-sm text-[#535865]">{{ roleLabels[user.role] }}</td><td class="text-sm text-[#535865]">{{ teamName(user.teamId) }}</td><td class="text-sm text-[#535865]">{{ user.employeeNumber }}</td>
             <td><AppStatusChip :status="user.status" /></td>
             <td @click.stop><v-menu location="bottom end"><template #activator="{ props: menuProps }"><v-btn v-bind="menuProps" icon="mdi-dots-horizontal" variant="text" size="small" /></template><v-list density="compact"><v-list-item prepend-icon="mdi-eye-outline" title="Voir" @click="emit('view', user)" /><v-list-item prepend-icon="mdi-pencil-outline" title="Modifier" @click="emit('edit', user)" /><v-divider /><v-list-item :prepend-icon="user.status === 'disabled' ? 'mdi-account-check-outline' : 'mdi-account-off-outline'" :title="user.status === 'disabled' ? 'Réactiver' : 'Désactiver'" @click="emit('changeStatus', user)" /></v-list></v-menu></td>
           </tr>
@@ -54,4 +55,3 @@ watch([search, status, role], () => { page.value = 1 })
     <AppTableFooter v-if="filtered.length" :page="page" :page-count="pageCount" :start="start + 1" :end="Math.min(start + pageSize, filtered.length)" :total="filtered.length" label="utilisateurs" @update:page="page = $event" />
   </v-card>
 </template>
-
