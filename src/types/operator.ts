@@ -6,25 +6,32 @@ export interface Company {
   legalName: string
   country: string
   timezone: string
-  contactName: string
-  contactEmail: string
-  contactPhone: string
-  administratorName: string
-  administratorEmail: string
+  contactName?: string
+  contactEmail?: string
+  contactPhone?: string
+  administratorName?: string
+  administratorEmail?: string
   offerId: string
   activeAgents: number
   status: CompanyStatus
   createdAt: string
   suspensionReason?: string
+  contractFrom?: string
+  contractTo?: string
 }
 
-export type CompanyInput = Omit<
-  Company,
-  'id' | 'activeAgents' | 'status' | 'createdAt' | 'suspensionReason'
->
+export interface CompanyInput {
+  legalName: string
+  country: string
+  timezone: string
+  contractFrom: string
+  contractTo?: string
+  offerId: string
+}
 
 export interface Offer {
   id: string
+  code: string
   name: string
   description: string
   price: number
@@ -33,7 +40,12 @@ export interface Offer {
   status: OfferStatus
 }
 
-export type OfferInput = Omit<Offer, 'id' | 'companyCount'>
+export interface OfferInput {
+  code: string
+  name: string
+  description: string
+  maxActiveAgents: number
+}
 
 export interface PlatformActivity {
   id: string

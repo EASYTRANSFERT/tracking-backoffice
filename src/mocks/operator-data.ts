@@ -3,6 +3,7 @@ import type { Company, Offer, PlatformActivity, SupportIntervention } from '@/ty
 export const mockOffers: Offer[] = [
   {
     id: 'offer-premium',
+    code: 'PREMIUM',
     name: 'Premium',
     description: 'Pour les grandes équipes avec un volume important de pointages.',
     price: 245000,
@@ -12,6 +13,7 @@ export const mockOffers: Offer[] = [
   },
   {
     id: 'offer-standard',
+    code: 'STANDARD',
     name: 'Standard',
     description: 'Les fonctions essentielles pour gérer une équipe en croissance.',
     price: 145000,
@@ -21,6 +23,7 @@ export const mockOffers: Offer[] = [
   },
   {
     id: 'offer-essential',
+    code: 'ESSENTIAL',
     name: 'Essentiel',
     description: 'Une formule simple pour les petites équipes terrain.',
     price: 75000,
@@ -30,6 +33,7 @@ export const mockOffers: Offer[] = [
   },
   {
     id: 'offer-starter',
+    code: 'STARTER',
     name: 'Starter',
     description: 'Une offre de démarrage pour tester la plateforme.',
     price: 35000,
@@ -123,6 +127,10 @@ export const mockPlatformActivities: PlatformActivity[] = [
   { id: 'activity-2', title: 'Offre Premium mise à jour', description: 'La limite des agents a été portée à 500.', category: 'offer', createdAt: '2026-10-12T07:35:00.000Z' },
   { id: 'activity-3', title: 'Intervention support clôturée', description: 'Le problème de synchronisation de CIE est résolu.', category: 'support', createdAt: '2026-10-11T16:20:00.000Z' },
   { id: 'activity-4', title: 'Sauvegarde terminée', description: 'La sauvegarde quotidienne s’est terminée correctement.', category: 'system', createdAt: '2026-10-11T02:00:00.000Z' },
+  { id: 'activity-5', title: 'Entreprise suspendue', description: 'Le compte Sodeci a été suspendu par un opérateur.', category: 'company', createdAt: '2026-10-10T14:10:00.000Z' },
+  { id: 'activity-6', title: 'Intervention support créée', description: 'Une demande de synchronisation a été ouverte.', category: 'support', createdAt: '2026-10-10T09:45:00.000Z' },
+  { id: 'activity-7', title: 'Offre Standard attribuée', description: 'Eco Eburnie utilise désormais l’offre Standard.', category: 'offer', createdAt: '2026-10-09T11:30:00.000Z' },
+  { id: 'activity-8', title: 'Contrôle de santé réussi', description: 'Tous les services de la plateforme répondent normalement.', category: 'system', createdAt: '2026-10-09T06:00:00.000Z' },
 ]
 
 export const mockSupportInterventions: SupportIntervention[] = [
