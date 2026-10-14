@@ -1,8 +1,8 @@
 import type { EnterpriseUser, Mission, Site, Team } from '@/types/administrator'
 
 export const mockTeams: Team[] = [
-  { id: 'team-1', name: 'Équipe Nord', leadUserId: 'user-3', createdAt: '2026-09-08T08:00:00Z', updatedAt: '2026-09-08T08:00:00Z' },
-  { id: 'team-2', name: 'Équipe Sud', leadUserId: 'user-7', createdAt: '2026-09-10T08:00:00Z', updatedAt: '2026-09-10T08:00:00Z' },
+  { id: 'team-1', name: 'Équipe Nord', leadUserId: 'user-3', supervisorUserId: 'user-2', createdAt: '2026-09-08T08:00:00Z', updatedAt: '2026-09-08T08:00:00Z' },
+  { id: 'team-2', name: 'Équipe Sud', leadUserId: 'user-7', supervisorUserId: 'user-2', createdAt: '2026-09-10T08:00:00Z', updatedAt: '2026-09-10T08:00:00Z' },
 ]
 
 export const mockEnterpriseUsers: EnterpriseUser[] = [

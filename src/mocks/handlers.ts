@@ -7,7 +7,7 @@ import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, L
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
-import type { CreateTeamRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
+import type { AssignSupervisorRequest, CreateTeamRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
 const mockQrCode = '/qrcode.png'
@@ -277,7 +277,9 @@ export const handlers = [
   http.post(api('/teams'), async ({ request }) => {
     const payload = (await request.json()) as CreateTeamRequest
     const timestamp = now()
-    const team: TeamResponse = { id: `team-${Date.now()}`, name: payload.name, leadUserId: null, createdAt: timestamp, updatedAt: timestamp }
+    const supervisor = users.find((user) => user.id === payload.supervisorUserId && user.status === 'ACTIVE' && user.roles.includes('SUPERVISOR'))
+    if (!supervisor) return problem(409, 'TEAM_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
+    const team: TeamResponse = { id: `team-${Date.now()}`, name: payload.name, leadUserId: null, supervisorUserId: payload.supervisorUserId, createdAt: timestamp, updatedAt: timestamp }
     teams.unshift(team)
     return HttpResponse.json(team, { status: 201 })
   }),
@@ -285,7 +287,18 @@ export const handlers = [
     const team = teams.find((item) => item.id === String(params.id))
     if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
     const payload = (await request.json()) as UpdateTeamRequest
-    team.name = payload.name; team.updatedAt = now()
+    if (payload.name) team.name = payload.name
+    team.updatedAt = now()
+    return HttpResponse.json(team)
+  }),
+  http.put(api('/teams/:id/supervisor'), async ({ params, request }) => {
+    const team = teams.find((item) => item.id === String(params.id))
+    if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
+    const payload = (await request.json()) as AssignSupervisorRequest
+    const supervisor = users.find((user) => user.id === payload.userId && user.status === 'ACTIVE' && user.roles.includes('SUPERVISOR'))
+    if (!supervisor) return problem(409, 'TEAM_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
+    team.supervisorUserId = payload.userId
+    team.updatedAt = now()
     return HttpResponse.json(team)
   }),
   http.delete(api('/teams/:id'), ({ params }) => {

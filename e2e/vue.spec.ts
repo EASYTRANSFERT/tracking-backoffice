@@ -89,6 +89,29 @@ test('creates an agent without assigning a team', async ({ page }) => {
   await expect(page.getByText('Aucune — ce rôle n’exige pas d’équipe')).toBeVisible()
 })
 
+test('creates a team with its required supervisor', async ({ page }) => {
+  await loginAs(page, 'admin@entreprise.test')
+  await page.getByRole('link', { name: 'Équipes', exact: true }).click()
+  await page.getByRole('link', { name: 'Nouvelle équipe' }).click()
+
+  await page.getByLabel('Nom de l’équipe').fill('Équipe Plateau')
+  await page.getByLabel('Superviseur').click()
+  await page.getByRole('option', { name: 'Yann Kouassi' }).click()
+
+  const creationRequest = page.waitForRequest(
+    (request) => request.url().endsWith('/teams') && request.method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Créer l’équipe' }).click()
+
+  const payload = (await creationRequest).postDataJSON()
+  expect(payload).toMatchObject({
+    name: 'Équipe Plateau',
+    supervisorUserId: 'user-2',
+  })
+  await expect(page.getByRole('table')).toContainText('Équipe Plateau')
+  await expect(page.getByRole('table')).toContainText('Yann Kouassi')
+})
+
 for (const [email, settingsPath] of [
   ['operateur@kaybic.africa', '/dashboard/settings'],
   ['admin@entreprise.test', '/admin/settings'],
