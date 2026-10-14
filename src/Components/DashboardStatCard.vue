@@ -20,7 +20,7 @@ withDefaults(
     <div class="flex h-full items-start gap-4">
       <v-avatar color="red-lighten-5" size="50" rounded="lg">
         <span v-if="iconSrc" class="relative inline-flex h-7 w-7 items-center justify-center">
-          <img :src="iconSrc" alt="" aria-hidden="true" class="h-7 w-7 object-contain" />
+          <img :src="iconSrc" alt="" aria-hidden="true" class="h-7 w-7 object-contain scale-119 contrast-125" />
           <span v-if="crossedOut" aria-hidden="true" class="absolute h-[3px] w-9 rotate-45 rounded-full bg-[#D80F16] shadow-[0_0_0_2px_white]" />
         </span>
         <v-icon v-else :icon="icon" color="primary" size="26" />
