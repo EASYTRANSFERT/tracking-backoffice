@@ -13,6 +13,7 @@ export const mockEnterpriseUsers: EnterpriseUser[] = [
   { id: 'user-5', employeeNumber: 'EMP-041', firstName: 'Aminata', lastName: 'Traoré', email: 'aminata.traore@solibra.ci', phone: '+225 05 66 70 80 90', role: 'agent', teamId: 'team-2', status: 'invited', createdAt: '2026-10-01T13:45:00Z' },
   { id: 'user-6', employeeNumber: 'EMP-048', firstName: 'Arnaud', lastName: 'N’Guessan', email: 'arnaud.nguessan@solibra.ci', phone: '+225 01 33 29 16 05', role: 'agent', teamId: 'team-2', status: 'disabled', createdAt: '2026-10-03T15:00:00Z' },
   { id: 'user-7', employeeNumber: 'EMP-052', firstName: 'Mariame', lastName: 'Touré', email: 'mariame.toure@solibra.ci', phone: '+225 07 08 20 30 40', role: 'teamLeader', teamId: 'team-2', status: 'active', createdAt: '2026-09-10T08:20:00Z' },
+  { id: 'user-8', employeeNumber: 'EMP-061', firstName: 'Landry', lastName: 'Koffi', email: 'landry.koffi@solibra.ci', phone: '+225 07 44 20 10 30', role: 'agent', status: 'active', createdAt: '2026-10-08T09:15:00Z' },
 ]
 
 export const mockSites: Site[] = [
