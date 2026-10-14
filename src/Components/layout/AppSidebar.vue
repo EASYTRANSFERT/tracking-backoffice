@@ -53,7 +53,7 @@ const profile = computed(() => {
 })
 
 const routeGroups: Record<string, string[]> = {
-  companies: ['companies', 'company-create', 'company-details', 'company-edit'],
+  companies: ['companies', 'company-create', 'company-details', 'company-edit', 'company-admin-create'],
   offers: ['offers', 'offer-create', 'offer-details', 'offer-edit'],
   'admin-users': ['admin-users', 'admin-user-create', 'admin-user-import', 'admin-user-details', 'admin-user-edit'],
   'admin-teams': ['admin-teams', 'admin-team-create', 'admin-team-edit'],

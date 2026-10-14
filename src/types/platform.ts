@@ -91,4 +91,6 @@ export interface CreateOfferRequest {
 export interface CursorQuery {
   cursor?: string
   limit?: number
+  status?: TenantStatus
+  search?: string
 }

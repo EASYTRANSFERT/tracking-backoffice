@@ -52,6 +52,12 @@ const router = createRouter({
           meta: { title: 'Modifier l’entreprise', allowedRoles: ['operator'] },
         },
         {
+          path: 'companies/:companyId/administrators/new',
+          name: 'company-admin-create',
+          component: () => import('@/pages/operator/CompanyAdministratorFormPage.vue'),
+          meta: { title: 'Nouvel administrateur', allowedRoles: ['operator'] },
+        },
+        {
           path: 'offers',
           name: 'offers',
           component: () => import('@/pages/operator/OffersPage.vue'),
