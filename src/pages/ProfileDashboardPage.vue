@@ -12,23 +12,15 @@ import { useAdministratorStore } from '@/stores/administrator.store'
 const authStore = useAuthStore()
 const directoryStore = useAdministratorStore()
 const { activeRole, currentUser } = storeToRefs(authStore)
-const { users, teams, missions, sites } = storeToRefs(directoryStore)
+const { users, teams, missions, isMissionsLoading } = storeToRefs(directoryStore)
 
 const agents = computed(() => {
   return users.value.filter((user) => user.role === 'agent')
 })
 
-const assignedMissions = computed(() => {
-  if (activeRole.value === 'supervisor') {
-    return missions.value.filter(
-      (mission) => mission.supervisorId === currentUser.value?.id,
-    )
-  }
-
-  return missions.value.filter(
-    (mission) => mission.teamId === currentUser.value?.teamId,
-  )
-})
+// L’API retourne déjà les missions autorisées pour l’utilisateur connecté.
+// Aucun filtrage client ne doit inventer une affectation absente du DTO MissionResponse.
+const assignedMissions = computed(() => missions.value)
 
 const firstName = computed(() => {
   return currentUser.value?.names.split(/\s+/)[0] ?? 'Utilisateur'
@@ -85,9 +77,7 @@ const routes = computed(() => activeRole.value === 'supervisor'
     <MissionTable
       class="mt-6"
       :missions="assignedMissions"
-      :sites="sites"
-      :users="users"
-      :teams="teams"
+      :loading="isMissionsLoading"
       title="Mes missions"
       description="Missions comprises dans votre périmètre d’intervention."
       :show-actions="false"

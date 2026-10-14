@@ -7,7 +7,7 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import type { Mission } from '@/types/administrator'
 const router = useRouter(); const store = useAdministratorStore()
-const { users, sites, missions, teams, activeUsersCount, pendingDeviceActivationsCount } = storeToRefs(store)
+const { missions, teams, activeUsersCount, pendingDeviceActivationsCount, isMissionsLoading } = storeToRefs(store)
 const viewMission = (mission: Mission) => router.push({ name: 'admin-mission-details', params: { missionId: mission.id } })
 </script>
 <template>
@@ -21,7 +21,7 @@ const viewMission = (mission: Mission) => router.push({ name: 'admin-mission-det
       <DashboardStatCard title="Appareils en cours d'activation" :value="pendingDeviceActivationsCount" icon="mdi-cellphone-check" change="En attente" change-color="warning" />
       <DashboardStatCard title="Accès API" value="OK" icon="mdi-cloud-check-outline" change="Annuaire disponible" change-color="success" /></div>
     <div class="mt-6">
-      <MissionTable :missions="missions" :sites="sites" :users="users" :teams="teams" :page-size="4" title="Missions récentes" description="Suivez les dernières missions planifiées et leur état d’avancement." :show-actions="false" @view="viewMission" />
+      <MissionTable :missions="missions" :loading="isMissionsLoading" :page-size="4" title="Missions récentes" description="Suivez les dernières missions planifiées et leur état d’avancement." :show-actions="false" @view="viewMission" />
     </div>
   </div>
 </template>

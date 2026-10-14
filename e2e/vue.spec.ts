@@ -70,6 +70,25 @@ test('opens the agent directory from the administrator navigation', async ({ pag
   await expect(page.getByRole('heading', { name: 'Équipes', exact: true })).toBeVisible()
 })
 
+test('creates an agent without assigning a team', async ({ page }) => {
+  await loginAs(page, 'admin@entreprise.test')
+  await page.getByRole('link', { name: 'Agents', exact: true }).click()
+  await page.getByRole('link', { name: 'Nouvel agent' }).click()
+
+  await page.getByLabel('Prénom').fill('Nadia')
+  await page.getByLabel('Nom', { exact: true }).fill('Koné')
+  await page.getByLabel('Matricule').fill('AG-099')
+  await page.getByLabel('E-mail professionnel').fill('nadia.kone@entreprise.test')
+  await page.getByLabel('Téléphone').fill('+2250700000099')
+  await page.getByLabel('Mot de passe temporaire').fill('MotDePasse123!')
+
+  await expect(page.getByText('Facultatif — l’agent pourra être ajouté à une équipe plus tard.')).toBeVisible()
+  await page.getByRole('button', { name: 'Créer et inviter' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Nadia Koné' })).toBeVisible()
+  await expect(page.getByText('Aucune — ce rôle n’exige pas d’équipe')).toBeVisible()
+})
+
 for (const [email, settingsPath] of [
   ['operateur@kaybic.africa', '/dashboard/settings'],
   ['admin@entreprise.test', '/admin/settings'],

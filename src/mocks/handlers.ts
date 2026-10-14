@@ -1,11 +1,12 @@
 import { http, HttpResponse, type DefaultBodyType } from 'msw'
 
-import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
+import { mockEnterpriseUsers, mockMissions, mockTeams } from '@/mocks/administrator-data'
 import { mockAuthUsers, findMockAuthUserByCredentials, findMockAuthUserById } from '@/mocks/auth-users'
 import { mockCompanies, mockOffers } from '@/mocks/operator-data'
 import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, LoginRequest, RefreshRequest, SessionResponse, TotpCodeRequest } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
+import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateTeamRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -39,6 +40,22 @@ const tenants: TenantResponse[] = mockCompanies.map((company) => {
 })
 
 let teams: TeamResponse[] = mockTeams.map((team) => ({ ...team, leadUserId: team.leadUserId ?? null }))
+const missionStatusToApi: Record<(typeof mockMissions)[number]['status'], ApiMissionStatus> = {
+  scheduled: 'PLANNED', ongoing: 'OPEN', completed: 'CLOSED', cancelled: 'CLOSED',
+}
+const missions: MissionResponse[] = mockMissions.map((mission) => ({
+  id: mission.id,
+  code: mission.code,
+  name: mission.title,
+  description: mission.notes,
+  startAt: mission.startAt ? new Date(mission.startAt).toISOString() : undefined,
+  endAt: mission.endAt ? new Date(mission.endAt).toISOString() : undefined,
+  status: missionStatusToApi[mission.status],
+  openedAt: mission.status === 'ongoing' ? new Date(mission.startAt!).toISOString() : undefined,
+  closedAt: ['completed', 'cancelled'].includes(mission.status) ? new Date(mission.endAt!).toISOString() : undefined,
+  createdAt: '2026-09-01T08:00:00.000Z',
+  updatedAt: '2026-10-01T08:00:00.000Z',
+}))
 const users: UserResponse[] = [
   ...mockAuthUsers
     .filter((entry) => entry.user.roles.includes('OPERATOR'))
@@ -202,6 +219,54 @@ export const handlers = [
     if (!user) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
     user.status = 'DISABLED'; user.updatedAt = now()
     return HttpResponse.json(user)
+  }),
+
+  http.get(api('/missions'), ({ request }) => {
+    const status = new URL(request.url).searchParams.get('status')
+    const filtered = status ? missions.filter((mission) => mission.status === status) : missions
+    return HttpResponse.json(page(request, filtered))
+  }),
+  http.get(api('/missions/:id'), ({ params }) => {
+    const mission = missions.find((item) => item.id === String(params.id))
+    return mission ? HttpResponse.json(mission) : problem(404, 'NOT_FOUND', "La mission demandée n’existe pas.")
+  }),
+  http.post(api('/missions'), async ({ request }) => {
+    const payload = (await request.json()) as CreateMissionRequest
+    const timestamp = now()
+    const mission: MissionResponse = {
+      id: `mission-${Date.now()}`,
+      code: payload.code,
+      name: payload.name,
+      description: payload.description,
+      startAt: payload.startAt,
+      endAt: payload.endAt,
+      status: 'PLANNED',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    missions.unshift(mission)
+    return HttpResponse.json(mission, { status: 201 })
+  }),
+  http.patch(api('/missions/:id'), async ({ params, request }) => {
+    const mission = missions.find((item) => item.id === String(params.id))
+    if (!mission) return problem(404, 'NOT_FOUND', "La mission demandée n’existe pas.")
+    const payload = (await request.json()) as UpdateMissionRequest
+    Object.assign(mission, payload, { updatedAt: now() })
+    return HttpResponse.json(mission)
+  }),
+  http.post(api('/missions/:id/open'), ({ params }) => {
+    const mission = missions.find((item) => item.id === String(params.id))
+    if (!mission) return problem(404, 'NOT_FOUND', "La mission demandée n’existe pas.")
+    if (mission.status !== 'PLANNED') return problem(409, 'MISSION_STATUS_CONFLICT', 'Seule une mission planifiée peut être ouverte.')
+    mission.status = 'OPEN'; mission.openedAt = now(); mission.updatedAt = now()
+    return HttpResponse.json(mission)
+  }),
+  http.post(api('/missions/:id/close'), ({ params }) => {
+    const mission = missions.find((item) => item.id === String(params.id))
+    if (!mission) return problem(404, 'NOT_FOUND', "La mission demandée n’existe pas.")
+    if (mission.status !== 'OPEN') return problem(409, 'MISSION_STATUS_CONFLICT', 'Seule une mission ouverte peut être clôturée.')
+    mission.status = 'CLOSED'; mission.closedAt = now(); mission.updatedAt = now()
+    return HttpResponse.json(mission)
   }),
 
   http.get(api('/teams'), ({ request }) => HttpResponse.json(page(request, teams))),
