@@ -4,7 +4,7 @@ withDefaults(defineProps<{
   pageCount: number
   start: number
   end: number
-  total: number
+  total?: number
   label: string
   mode?: 'numbered' | 'cursor'
   hasNext?: boolean
@@ -25,7 +25,12 @@ const emit = defineEmits<{
 <template>
   <div class="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
     <p class="text-xs text-[#747985]">
-      Affichage de {{ start }} à {{ end }} sur {{ total }} {{ label }}
+      <template v-if="mode === 'numbered'">
+        Affichage de {{ start }} à {{ end }} sur {{ total ?? 0 }} {{ label }}
+      </template>
+      <template v-else>
+        Page {{ page }} · {{ Math.max(end - start + 1, 0) }} {{ label }} affiché{{ end - start + 1 > 1 ? 's' : '' }}
+      </template>
     </p>
 
     <div class="flex justify-start sm:justify-end">

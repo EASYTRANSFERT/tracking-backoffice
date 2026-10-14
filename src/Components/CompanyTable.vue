@@ -15,12 +15,18 @@ const props = withDefaults(
     description?: string
     searchable?: boolean
     pageSize?: number
+    cursorPage?: number
+    hasNextPage?: boolean
+    hasPreviousPage?: boolean
   }>(),
   {
     title: 'Entreprises clientes',
     description: 'Consultez et gérez les entreprises de la plateforme',
     searchable: true,
     pageSize: 5,
+    cursorPage: undefined,
+    hasNextPage: false,
+    hasPreviousPage: false,
   },
 )
 
@@ -28,6 +34,8 @@ const emit = defineEmits<{
   view: [company: Company]
   edit: [company: Company]
   changeStatus: [company: Company]
+  nextPage: []
+  previousPage: []
 }>()
 
 const search = ref('')
@@ -55,7 +63,8 @@ const filteredCompanies = computed(() => {
 
 const pageCount = computed(() => Math.ceil(filteredCompanies.value.length / props.pageSize))
 const pageStart = computed(() => (page.value - 1) * props.pageSize)
-const displayedCompanies = computed(() => filteredCompanies.value.slice(pageStart.value, pageStart.value + props.pageSize))
+const usesCursorPagination = computed(() => props.cursorPage !== undefined)
+const displayedCompanies = computed(() => usesCursorPagination.value ? filteredCompanies.value : filteredCompanies.value.slice(pageStart.value, pageStart.value + props.pageSize))
 
 watch([search, selectedStatus], () => { page.value = 1 })
 watch(pageCount, (count) => {
@@ -90,7 +99,6 @@ function getOfferName(offerId: string) {
             <th class="!h-12 !font-semibold text-[#747985]">Entreprise</th>
             <th class="!h-12 !font-semibold text-[#747985]">Pays</th>
             <th class="!h-12 !font-semibold text-[#747985]">Offre</th>
-            <th class="!h-12 !font-semibold text-[#747985]">Agents</th>
             <th class="!h-12 !font-semibold text-[#747985]">Statut</th>
             <th class="!h-12 w-16"><span class="sr-only">Actions</span></th>
           </tr>
@@ -110,7 +118,6 @@ function getOfferName(offerId: string) {
             </td>
             <td class="whitespace-nowrap text-sm text-[#535865]">{{ company.country }}</td>
             <td class="whitespace-nowrap text-sm font-medium text-[#535865]">{{ getOfferName(company.offerId) }}</td>
-            <td class="text-sm text-[#535865]">{{ company.activeAgents }}</td>
             <td><div class="flex min-h-16 items-center"><AppStatusChip :status="company.status" /></div></td>
             <td @click.stop>
               <v-menu location="bottom end">
@@ -139,13 +146,18 @@ function getOfferName(offerId: string) {
 
     <AppTableFooter
       v-if="filteredCompanies.length"
-      :page="page"
+      :page="cursorPage ?? page"
       :page-count="pageCount"
-      :start="pageStart + 1"
-      :end="Math.min(pageStart + pageSize, filteredCompanies.length)"
-      :total="filteredCompanies.length"
+      :start="usesCursorPagination ? 1 : pageStart + 1"
+      :end="usesCursorPagination ? displayedCompanies.length : Math.min(pageStart + pageSize, filteredCompanies.length)"
+      :total="usesCursorPagination ? undefined : filteredCompanies.length"
       label="entreprises"
+      :mode="usesCursorPagination ? 'cursor' : 'numbered'"
+      :has-next="hasNextPage"
+      :has-previous="hasPreviousPage"
       @update:page="page = $event"
+      @next="emit('nextPage')"
+      @previous="emit('previousPage')"
     />
   </v-card>
 </template>
