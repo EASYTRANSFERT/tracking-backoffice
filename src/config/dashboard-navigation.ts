@@ -52,21 +52,18 @@ export const dashboardNavigation: NavigationItem[] = [
     routeName: 'admin-sites',
     icon: 'mdi-map-marker-radius-outline',
     allowedRoles: ['administrator'],
-    prototypeOnly: true,
   },
   {
     title: 'Missions',
     routeName: 'admin-missions',
     icon: 'mdi-clipboard-text-clock-outline',
     allowedRoles: ['administrator'],
-    prototypeOnly: true,
   },
   {
     title: 'QR codes',
     routeName: 'admin-qr-codes',
     icon: 'mdi-qrcode-scan',
     allowedRoles: ['administrator'],
-    prototypeOnly: true,
   },
   {
     title: 'Dashboard',
