@@ -1,12 +1,70 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-const route = useRoute(); const store = useAdministratorStore(); const feedback = useUiFeedbackStore()
-const mission = computed(() => store.getMissionById(route.params.missionId as string)); const site = computed(() => mission.value ? store.getSiteById(mission.value.siteId) : undefined); const supervisor = computed(() => mission.value ? store.getUserById(mission.value.supervisorId) : undefined); const team = computed(() => mission.value ? store.getTeamById(mission.value.teamId) : undefined); const leader = computed(() => team.value?.leadUserId ? store.getUserById(team.value.leadUserId) : undefined); const agents = computed(() => store.users.filter((user) => user.teamId === mission.value?.teamId && user.role === 'agent')); const formatDate = (value: string) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(value))
-async function cancelMission() { if (!mission.value) return; const confirmed = await feedback.askConfirmation({ title: 'Annuler cette mission ?', message: `La mission « ${mission.value.title} » passera au statut annulé.`, confirmText: 'Annuler la mission', color: 'error' }); if (!confirmed) return; store.cancelMission(mission.value.id); feedback.success('Mission annulée.') }
+
+const route = useRoute()
+const store = useAdministratorStore()
+const feedback = useUiFeedbackStore()
+const id = computed(() => route.params.missionId as string)
+const mission = computed(() => store.getMissionById(id.value))
+const formatDate = (value?: string) => value
+  ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(value))
+  : 'Non renseignée'
+
+onMounted(async () => {
+  if (mission.value) return
+  try { await store.loadMission(id.value) }
+  catch { feedback.error('Impossible de charger cette mission.') }
+})
+
+async function openMission() {
+  if (!mission.value) return
+  const confirmed = await feedback.askConfirmation({ title: 'Ouvrir cette mission ?', message: `La mission « ${mission.value.title} » passera au statut en cours.`, confirmText: 'Ouvrir' })
+  if (!confirmed) return
+  try { await store.openMission(mission.value.id); feedback.success('Mission ouverte.') }
+  catch { feedback.error("Impossible d’ouvrir la mission.") }
+}
+async function closeMission() {
+  if (!mission.value) return
+  const confirmed = await feedback.askConfirmation({ title: 'Clôturer cette mission ?', message: `La mission « ${mission.value.title} » sera marquée comme terminée.`, confirmText: 'Clôturer' })
+  if (!confirmed) return
+  try { await store.closeMission(mission.value.id); feedback.success('Mission clôturée.') }
+  catch { feedback.error('Impossible de clôturer la mission.') }
+}
 </script>
-<template><div class="mx-auto w-full max-w-[1100px]"><PageHeader><template #title>{{ mission?.title ?? 'Mission introuvable' }}</template><template #description>Organisation, équipe affectée et état d’exécution.</template><template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-missions' }">Retour</v-btn><v-btn v-if="mission" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-mission-edit', params: { missionId: mission.id } }">Modifier</v-btn></template></PageHeader><v-alert v-if="!mission" type="error" variant="tonal" title="Mission introuvable" /><div v-else class="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]"><div class="space-y-6"><v-card><v-card-title class="flex items-center justify-between px-6 py-5"><span>Déroulement</span><AppStatusChip :status="mission.status" /></v-card-title><v-divider /><v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2"><div><p class="text-xs text-[#848484]">Site</p><p class="mt-1 font-medium">{{ site?.name ?? 'Site inconnu' }}</p></div><div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-medium">{{ team?.name ?? 'Équipe inconnue' }}</p></div><div><p class="text-xs text-[#848484]">Début</p><p class="mt-1 font-medium">{{ formatDate(mission.startAt) }}</p></div><div><p class="text-xs text-[#848484]">Fin</p><p class="mt-1 font-medium">{{ formatDate(mission.endAt) }}</p></div><div class="sm:col-span-2"><p class="text-xs text-[#848484]">Instructions</p><p class="mt-1 text-sm leading-6">{{ mission.notes || 'Aucune instruction.' }}</p></div></v-card-text></v-card><v-card><v-card-title class="px-6 py-5">Agents de l’équipe</v-card-title><v-divider /><v-list><v-list-item v-for="agent in agents" :key="agent.id" :title="`${agent.firstName} ${agent.lastName}`" :subtitle="agent.employeeNumber" prepend-icon="mdi-account-outline" /></v-list></v-card></div><v-card class="h-fit"><v-card-title class="px-5 py-5">Encadrement</v-card-title><v-divider /><v-list lines="two"><v-list-item prepend-icon="mdi-account-tie-outline" title="Superviseur" :subtitle="supervisor ? `${supervisor.firstName} ${supervisor.lastName}` : 'Non affecté'" /><v-list-item prepend-icon="mdi-account-star-outline" title="Chef d’équipe" :subtitle="leader ? `${leader.firstName} ${leader.lastName}` : 'Non affecté'" /></v-list><v-divider /><v-card-actions v-if="!['completed','cancelled'].includes(mission.status)" class="pa-5"><v-btn block variant="tonal" color="error" prepend-icon="mdi-close-circle-outline" @click="cancelMission">Annuler la mission</v-btn></v-card-actions></v-card></div></div></template>
+
+<template>
+  <div class="mx-auto w-full max-w-[1100px]">
+    <PageHeader><template #title>{{ mission?.title ?? 'Mission introuvable' }}</template><template #description>Informations et état d’exécution de la mission.</template><template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-missions' }">Retour</v-btn><v-btn v-if="mission?.status === 'scheduled'" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-mission-edit', params: { missionId: mission.id } }">Modifier</v-btn></template></PageHeader>
+    <v-alert v-if="!mission && !store.isMissionsLoading" type="error" variant="tonal" title="Mission introuvable" />
+    <div v-else-if="mission" class="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+      <v-card>
+        <v-card-title class="flex items-center justify-between px-6 py-5"><span>Déroulement</span><AppStatusChip :status="mission.status" /></v-card-title>
+        <v-divider />
+        <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2">
+          <div><p class="text-xs text-[#848484]">Référence</p><p class="mt-1 font-medium">{{ mission.code }}</p></div>
+          <div><p class="text-xs text-[#848484]">Créée le</p><p class="mt-1 font-medium">{{ formatDate(mission.createdAt) }}</p></div>
+          <div><p class="text-xs text-[#848484]">Début prévisionnel</p><p class="mt-1 font-medium">{{ formatDate(mission.startAt) }}</p></div>
+          <div><p class="text-xs text-[#848484]">Fin prévisionnelle</p><p class="mt-1 font-medium">{{ formatDate(mission.endAt) }}</p></div>
+          <div><p class="text-xs text-[#848484]">Ouverte le</p><p class="mt-1 font-medium">{{ formatDate(mission.openedAt) }}</p></div>
+          <div><p class="text-xs text-[#848484]">Clôturée le</p><p class="mt-1 font-medium">{{ formatDate(mission.closedAt) }}</p></div>
+          <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Description</p><p class="mt-1 text-sm leading-6">{{ mission.notes || 'Aucune description.' }}</p></div>
+        </v-card-text>
+      </v-card>
+      <v-card class="h-fit">
+        <v-card-title class="px-5 py-5">Actions</v-card-title><v-divider />
+        <v-card-text class="text-sm leading-6 text-[#747985]">Le cycle de vie suit les transitions prévues par l’API : planifiée, en cours, puis terminée.</v-card-text>
+        <v-card-actions class="pa-5 pt-0">
+          <v-btn v-if="mission.status === 'scheduled'" block variant="tonal" color="primary" prepend-icon="mdi-play-circle-outline" @click="openMission">Ouvrir la mission</v-btn>
+          <v-btn v-else-if="mission.status === 'ongoing'" block variant="tonal" color="success" prepend-icon="mdi-check-circle-outline" @click="closeMission">Clôturer la mission</v-btn>
+          <v-chip v-else color="success" variant="tonal" prepend-icon="mdi-check-circle-outline">Mission terminée</v-chip>
+        </v-card-actions>
+      </v-card>
+    </div>
+  </div>
+</template>
