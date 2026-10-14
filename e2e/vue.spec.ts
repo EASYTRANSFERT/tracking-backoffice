@@ -45,7 +45,16 @@ test('renders the operator company catalogue', async ({ page }) => {
   await expect(page.getByText('Suspendue', { exact: true })).toBeVisible()
 
   await page.getByText('Solibra', { exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Suspendre' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Activer' })).toBeEnabled()
+
+  await page.getByRole('link', { name: 'Créer un administrateur' }).click()
+  await expect(page).toHaveURL(/\/dashboard\/companies\/company-solibra\/administrators\/new$/)
+  await expect(page.getByRole('heading', { name: 'Nouvel administrateur' })).toBeVisible()
+})
+
+test('uses the authenticated operator name in the dashboard header', async ({ page }) => {
+  await loginAs(page, 'operateur@kaybic.africa')
+  await expect(page.getByRole('heading', { name: 'Bonjour Martial Djezou' })).toBeVisible()
 })
 
 test('opens the agent directory from the administrator navigation', async ({ page }) => {
