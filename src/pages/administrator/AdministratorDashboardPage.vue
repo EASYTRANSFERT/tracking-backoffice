@@ -12,9 +12,13 @@ const viewMission = (mission: Mission) => router.push({ name: 'admin-mission-det
 </script>
 <template>
   <div class="mx-auto w-full max-w-[1440px]">
-    <PageHeader><template #title>Tableau de bord</template>
+    <PageHeader>
+      <template #title>Tableau de bord</template>
       <template #description>Consultez les données disponibles pour votre entreprise.</template>
-      <template #actions><v-btn color="primary" prepend-icon="mdi-plus" size="large" :to="{ name: 'admin-mission-create' }">Nouvelle mission</v-btn></template></PageHeader>
+      <template #actions>
+        <v-btn color="primary" prepend-icon="mdi-plus" size="large" :to="{ name: 'admin-mission-create' }">Nouvelle mission</v-btn>
+      </template>
+    </PageHeader>
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <DashboardStatCard title="Agents actifs" :value="activeUsersCount" icon="mdi-account-group-outline" change="Sur la page chargée" />
       <DashboardStatCard title="Équipes affichées" :value="teams.length" icon="mdi-account-multiple-outline" change="Sur la page chargée" />
