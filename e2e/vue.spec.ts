@@ -56,6 +56,22 @@ test('opens the agent directory from the administrator navigation', async ({ pag
   await expect(page.getByRole('heading', { name: 'Équipes', exact: true })).toBeVisible()
 })
 
+for (const [email, settingsPath] of [
+  ['operateur@kaybic.africa', '/dashboard/settings'],
+  ['admin@entreprise.test', '/admin/settings'],
+] as const) {
+  test(`opens password settings for ${email}`, async ({ page }) => {
+    await loginAs(page, email)
+    await page.getByRole('link', { name: 'Paramètres', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`${settingsPath}$`))
+    await expect(page.getByRole('heading', { name: 'Paramètres', exact: true })).toBeVisible()
+
+    await page.getByRole('link', { name: /Changer le mot de passe/ }).click()
+    await expect(page).toHaveURL(/\/dashboard\/account\/password$/)
+    await expect(page.getByRole('heading', { name: 'Sécurité du compte' })).toBeVisible()
+  })
+}
+
 test('shows assigned missions on the supervisor dashboard', async ({ page }) => {
   await loginAs(page, 'superviseur@entreprise.test')
   await expect(page.getByRole('heading', { name: 'Mes missions' })).toBeVisible()

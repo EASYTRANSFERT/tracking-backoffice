@@ -11,7 +11,7 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
     </PageHeader>
     <v-card>
       <v-list lines="two">
-        <v-list-item prepend-icon="mdi-lock-outline" title="Mot de passe" subtitle="Modifiez le mot de passe utilisé pour vous connecter." :to="{ name: 'change-password' }">
+        <v-list-item prepend-icon="mdi-lock-reset" title="Changer le mot de passe" subtitle="Modifiez le mot de passe utilisé pour vous connecter." :to="{ name: 'change-password' }">
           <template #append><v-icon icon="mdi-chevron-right" /></template>
         </v-list-item>
       </v-list>
