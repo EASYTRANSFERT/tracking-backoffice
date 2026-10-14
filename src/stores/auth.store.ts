@@ -158,17 +158,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function logout(): Promise<void> {
+  function logout(): void {
     const currentRefreshToken = refreshToken.value
 
-    try {
-      if (currentRefreshToken) {
-        await authService.logout({
-          refreshToken: currentRefreshToken,
-        })
-      }
-    } finally {
-      resetAuthentication()
+    // Local logout must never depend on network latency. Keep the token in a
+    // local variable, clear all browser state first, then revoke it remotely
+    // as a best-effort background request.
+    resetAuthentication()
+
+    if (currentRefreshToken) {
+      void authService.logout({
+        refreshToken: currentRefreshToken,
+      }).catch(() => {
+        // The browser session is already closed. A backend/network failure
+        // must not restore it or prevent navigation to the login page.
+      })
     }
   }
 

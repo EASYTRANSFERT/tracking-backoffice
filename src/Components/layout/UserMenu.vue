@@ -38,7 +38,7 @@ const profile = computed(() => {
 })
 
 async function handleLogout() {
-  await authStore.logout()
+  authStore.logout()
   await router.replace({ name: 'login' })
 }
 </script>
