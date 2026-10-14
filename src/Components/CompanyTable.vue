@@ -131,6 +131,8 @@ function getOfferName(offerId: string) {
                   <v-list-item
                     :prepend-icon="company.status === 'suspended' ? 'mdi-play-circle-outline' : 'mdi-pause-circle-outline'"
                     :title="company.status === 'suspended' ? 'Réactiver' : 'Suspendre'"
+                    :subtitle="company.status === 'pending' ? 'Disponible après activation' : undefined"
+                    :disabled="company.status === 'pending'"
                     :class="company.status === 'suspended' ? 'text-success' : 'text-error'"
                     @click="emit('changeStatus', company)"
                   />

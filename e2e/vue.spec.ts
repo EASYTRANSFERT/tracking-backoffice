@@ -43,6 +43,9 @@ test('renders the operator company catalogue', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Entreprises', exact: true })).toBeVisible()
   await expect(page.getByRole('table')).toContainText('Ageroute')
   await expect(page.getByText('Suspendue', { exact: true })).toBeVisible()
+
+  await page.getByText('Solibra', { exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Suspendre' })).toBeDisabled()
 })
 
 test('opens the agent directory from the administrator navigation', async ({ page }) => {

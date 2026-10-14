@@ -179,6 +179,10 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   async function suspendCompany(id: string, reason: string) {
+    const company = getCompanyById(id)
+    if (!company || company.status !== 'active') {
+      throw new Error("Seule une entreprise active peut être suspendue.")
+    }
     replaceCompany(mapTenant(await tenantService.suspend(id, { reason })))
   }
 

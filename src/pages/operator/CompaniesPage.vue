@@ -16,6 +16,7 @@ const selectedCompany = ref<Company>()
 const statusDialog = ref(false)
 
 function openStatusDialog(company: Company) {
+  if (company.status === 'pending') return
   selectedCompany.value = company
   statusDialog.value = true
 }

@@ -23,7 +23,7 @@ const successMessage = computed(() => route.query.created === '1' ? 'Entreprise 
 const formattedDate = computed(() => company.value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(company.value.createdAt)) : '')
 
 async function updateStatus(reason: string) {
-  if (!company.value) return
+  if (!company.value || company.value.status === 'pending') return
   if (company.value.status === 'suspended') await store.reactivateCompany(company.value.id)
   else await store.suspendCompany(company.value.id, reason)
 }
@@ -37,7 +37,7 @@ async function updateStatus(reason: string) {
         <template #description>Compte client créé le {{ formattedDate }}</template>
         <template #actions>
           <v-btn variant="outlined" color="secondary" prepend-icon="mdi-pencil-outline" :to="{ name: 'company-edit', params: { companyId } }">Modifier</v-btn>
-          <v-btn :color="company.status === 'suspended' ? 'success' : 'error'" variant="flat" :prepend-icon="company.status === 'suspended' ? 'mdi-play-circle-outline' : 'mdi-pause-circle-outline'" @click="statusDialog = true">
+          <v-btn :color="company.status === 'suspended' ? 'success' : 'error'" variant="flat" :prepend-icon="company.status === 'suspended' ? 'mdi-play-circle-outline' : 'mdi-pause-circle-outline'" :disabled="company.status === 'pending'" :title="company.status === 'pending' ? 'Une entreprise en attente doit être activée avant de pouvoir être suspendue.' : undefined" @click="statusDialog = true">
             {{ company.status === 'suspended' ? 'Réactiver' : 'Suspendre' }}
           </v-btn>
         </template>
