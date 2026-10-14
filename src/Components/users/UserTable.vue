@@ -41,7 +41,7 @@ const teamName = (teamId?: string) => props.teams.find((team) => team.id === tea
     <v-divider />
     <div v-if="displayed.length" class="overflow-x-auto">
       <v-table hover class="min-w-[900px]">
-        <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Équipe</th><th>Matricule</th><th>Statut</th><th class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>Agent</th><th>Rôle</th><th>Équipe</th><th>Matricule</th><th>Statut</th><th class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>
           <tr v-for="user in displayed" :key="user.id" class="cursor-pointer" @click="emit('view', user)">
             <td><div class="flex min-h-16 items-center gap-3"><v-avatar color="red-lighten-5" size="40"><span class="text-xs font-bold text-primary">{{ user.firstName[0] }}{{ user.lastName[0] }}</span></v-avatar><div><p class="font-semibold text-[#292d38]">{{ user.firstName }} {{ user.lastName }}</p><p class="text-xs text-[#848484]">{{ user.email }}</p></div></div></td>
@@ -52,7 +52,7 @@ const teamName = (teamId?: string) => props.teams.find((team) => team.id === tea
         </tbody>
       </v-table>
     </div>
-    <AppEmptyState v-else icon="mdi-account-search-outline" title="Aucun utilisateur trouvé" description="Modifiez les filtres ou ajoutez un nouvel utilisateur." />
-    <AppTableFooter v-if="filtered.length" :page="cursorPage ?? page" :page-count="pageCount" :start="usesCursorPagination ? 1 : start + 1" :end="usesCursorPagination ? displayed.length : Math.min(start + pageSize, filtered.length)" :total="usesCursorPagination ? undefined : filtered.length" label="utilisateurs" :mode="usesCursorPagination ? 'cursor' : 'numbered'" :has-next="hasNextPage" :has-previous="hasPreviousPage" @update:page="page = $event" @next="emit('nextPage')" @previous="emit('previousPage')" />
+    <AppEmptyState v-else icon="mdi-account-search-outline" title="Aucun agent trouvé" description="Modifiez les filtres ou ajoutez un nouvel agent." />
+    <AppTableFooter v-if="filtered.length" :page="cursorPage ?? page" :page-count="pageCount" :start="usesCursorPagination ? 1 : start + 1" :end="usesCursorPagination ? displayed.length : Math.min(start + pageSize, filtered.length)" :total="usesCursorPagination ? undefined : filtered.length" label="agents" :mode="usesCursorPagination ? 'cursor' : 'numbered'" :has-next="hasNextPage" :has-previous="hasPreviousPage" @update:page="page = $event" @next="emit('nextPage')" @previous="emit('previousPage')" />
   </v-card>
 </template>

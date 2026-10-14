@@ -29,7 +29,7 @@ const emit = defineEmits<{
         Affichage de {{ start }} à {{ end }} sur {{ total ?? 0 }} {{ label }}
       </template>
       <template v-else>
-        Page {{ page }} · {{ Math.max(end - start + 1, 0) }} {{ label }} affiché{{ end - start + 1 > 1 ? 's' : '' }}
+        Page {{ page }} · {{ Math.max(end - start + 1, 0) }} {{ label }} sur cette page
       </template>
     </p>
 
