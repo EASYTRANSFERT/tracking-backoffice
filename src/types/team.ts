@@ -4,16 +4,22 @@ export interface TeamResponse {
   id: string
   name: string
   leadUserId?: string | null
+  supervisorUserId: string
   createdAt: string
   updatedAt: string
 }
 
 export interface CreateTeamRequest {
   name: string
+  supervisorUserId: string
 }
 
 export interface UpdateTeamRequest {
-  name: string
+  name?: string
+}
+
+export interface AssignSupervisorRequest {
+  userId: string
 }
 
 export type TeamPageResponse = CursorPage<TeamResponse>

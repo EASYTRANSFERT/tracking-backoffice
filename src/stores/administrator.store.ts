@@ -41,6 +41,7 @@ function mapTeam(team: TeamResponse): Team {
     id: team.id,
     name: team.name,
     leadUserId: team.leadUserId ?? undefined,
+    supervisorUserId: team.supervisorUserId,
     createdAt: team.createdAt,
     updatedAt: team.updatedAt,
   }
@@ -74,6 +75,7 @@ function toIso(value?: string) {
 
 export const useAdministratorStore = defineStore('administrator', () => {
   const users = ref<EnterpriseUser[]>(mockMode ? structuredClone(mockEnterpriseUsers) : [])
+  const supervisors = ref<EnterpriseUser[]>([])
   const teams = ref<Team[]>(mockMode ? structuredClone(mockTeams) : [])
   const sites = ref(structuredClone(mockSites))
   const missions = ref<Mission[]>([])
@@ -90,6 +92,9 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const pendingDeviceActivationsCount = computed(() => users.value.filter((user) => user.status === 'invited').length)
   const activeSitesCount = computed(() => sites.value.filter((site) => site.status === 'active').length)
   const ongoingMissionsCount = computed(() => missions.value.filter((mission) => mission.status === 'ongoing').length)
+  const teamDirectoryUsers = computed(() => [
+    ...new Map([...users.value, ...supervisors.value].map((user) => [user.id, user])).values(),
+  ])
 
   const getUserById = (id: string) => users.value.find((user) => user.id === id)
   const getSiteById = (id: string) => sites.value.find((site) => site.id === id)
@@ -106,12 +111,14 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (hasLoadedDirectory.value && !force) return
     isDirectoryLoading.value = true
     try {
-      const [userPage, teamPage] = await Promise.all([
+      const [userPage, teamPage, supervisorPage] = await Promise.all([
         userService.list({ limit: PAGE_SIZE }),
         teamService.list({ limit: PAGE_SIZE }),
+        userService.list({ limit: 200, role: 'SUPERVISOR', status: 'ACTIVE' }),
       ])
       users.value = userPage.items.map(mapUser)
       teams.value = teamPage.items.map(mapTeam)
+      supervisors.value = supervisorPage.items.map(mapUser)
       userNextCursor.value = userPage.nextCursor ?? null
       teamNextCursor.value = teamPage.nextCursor ?? null
       userCursorHistory.value = []
@@ -228,13 +235,25 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function createTeam(input: TeamInput) {
-    const created = await teamService.create({ name: input.name })
+    const created = await teamService.create({
+      name: input.name,
+      supervisorUserId: input.supervisorUserId,
+    })
     teams.value.unshift(mapTeam(created))
     return created.id
   }
 
   async function updateTeam(id: string, input: TeamInput) {
-    replaceTeam(mapTeam(await teamService.update(id, { name: input.name })))
+    const current = getTeamById(id)
+    if (!current) throw new Error('Équipe introuvable.')
+    let updated = current
+    if (input.name.trim() !== current.name) {
+      updated = mapTeam(await teamService.update(id, { name: input.name.trim() }))
+    }
+    if (input.supervisorUserId !== current.supervisorUserId) {
+      updated = mapTeam(await teamService.assignSupervisor(id, { userId: input.supervisorUserId }))
+    }
+    replaceTeam(updated)
   }
 
   async function deleteTeam(id: string): Promise<boolean> {
@@ -307,6 +326,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   function resetData() {
     users.value = mockMode ? structuredClone(mockEnterpriseUsers) : []
+    supervisors.value = []
     teams.value = mockMode ? structuredClone(mockTeams) : []
     sites.value = structuredClone(mockSites)
     missions.value = []
@@ -321,7 +341,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   return {
-    users, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, canReactivateUsers, canImportUsers,
+    users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, canReactivateUsers, canImportUsers,
     userNextCursor, userCursorHistory, userPage, teamNextCursor, teamCursorHistory, teamPage,
     activeUsersCount, pendingDeviceActivationsCount, activeSitesCount, ongoingMissionsCount,
     getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission,
