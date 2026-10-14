@@ -42,7 +42,9 @@ export default defineConfig({
     trace: 'on-first-retry',
 
     /* Only on CI systems run the tests headless */
-    headless: !!process.env.CI,
+    headless:
+      process.env.PLAYWRIGHT_HEADLESS === 'true' ||
+      !!process.env.CI,
   },
 
   /* Configure projects for major browsers */

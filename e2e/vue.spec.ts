@@ -44,3 +44,29 @@ test('renders the operator company catalogue', async ({ page }) => {
   await expect(page.getByRole('table')).toContainText('Ageroute')
   await expect(page.getByText('Suspendue', { exact: true })).toBeVisible()
 })
+
+test('opens the agent directory from the administrator navigation', async ({ page }) => {
+  await loginAs(page, 'admin@entreprise.test')
+  await page.getByRole('link', { name: 'Agents', exact: true }).click()
+  await expect(page).toHaveURL(/\/admin\/users$/)
+  await expect(page.getByRole('heading', { name: 'Agents', exact: true })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Équipes', exact: true }).click()
+  await expect(page).toHaveURL(/\/admin\/teams$/)
+  await expect(page.getByRole('heading', { name: 'Équipes', exact: true })).toBeVisible()
+})
+
+test('shows assigned missions on the supervisor dashboard', async ({ page }) => {
+  await loginAs(page, 'superviseur@entreprise.test')
+  await expect(page.getByRole('heading', { name: 'Mes missions' })).toBeVisible()
+  await expect(page.getByRole('table')).toContainText('Inventaire mensuel Vridi')
+  await expect(page.getByRole('table')).toContainText('Contrôle dépôt Yopougon')
+
+  await page.getByRole('link', { name: 'Agents', exact: true }).click()
+  await expect(page).toHaveURL(/\/supervisor\/users$/)
+  await expect(page.getByRole('heading', { name: 'Agents', exact: true })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Équipes', exact: true }).click()
+  await expect(page).toHaveURL(/\/supervisor\/teams$/)
+  await expect(page.getByRole('heading', { name: 'Équipes', exact: true })).toBeVisible()
+})
