@@ -129,11 +129,11 @@ function getOfferName(offerId: string) {
                   <v-list-item prepend-icon="mdi-pencil-outline" title="Modifier" @click="emit('edit', company)" />
                   <v-divider class="my-1" />
                   <v-list-item
-                    :prepend-icon="company.status === 'suspended' ? 'mdi-play-circle-outline' : 'mdi-pause-circle-outline'"
-                    :title="company.status === 'suspended' ? 'Réactiver' : 'Suspendre'"
-                    :subtitle="company.status === 'pending' ? 'Disponible après activation' : undefined"
-                    :disabled="company.status === 'pending'"
-                    :class="company.status === 'suspended' ? 'text-success' : 'text-error'"
+                    :prepend-icon="company.status === 'active' ? 'mdi-pause-circle-outline' : 'mdi-play-circle-outline'"
+                    :title="company.status === 'pending' ? 'Activer' : company.status === 'suspended' ? 'Réactiver' : 'Suspendre'"
+                    :subtitle="company.status === 'pending' && !company.offerId ? 'Attribuez d’abord une offre' : undefined"
+                    :disabled="company.status === 'pending' && !company.offerId"
+                    :class="company.status === 'active' ? 'text-error' : 'text-success'"
                     @click="emit('changeStatus', company)"
                   />
                 </v-list>

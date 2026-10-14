@@ -7,24 +7,31 @@ import CompanyTable from '@/Components/CompanyTable.vue'
 import CompanyStatusDialog from '@/Components/companies/CompanyStatusDialog.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useOperatorStore } from '@/stores/operator.store'
+import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { Company } from '@/types/operator'
 
 const router = useRouter()
 const store = useOperatorStore()
+const feedback = useUiFeedbackStore()
 const { companies, offers, companyPage, companyNextCursor, companyCursorHistory } = storeToRefs(store)
 const selectedCompany = ref<Company>()
 const statusDialog = ref(false)
 
 function openStatusDialog(company: Company) {
-  if (company.status === 'pending') return
   selectedCompany.value = company
   statusDialog.value = true
 }
 
 async function updateStatus(reason: string) {
   if (!selectedCompany.value) return
-  if (selectedCompany.value.status === 'suspended') await store.reactivateCompany(selectedCompany.value.id)
-  else await store.suspendCompany(selectedCompany.value.id, reason)
+  const previousStatus = selectedCompany.value.status
+  try {
+    if (previousStatus === 'active') await store.suspendCompany(selectedCompany.value.id, reason)
+    else await store.reactivateCompany(selectedCompany.value.id)
+    feedback.success(previousStatus === 'active' ? 'Entreprise suspendue.' : 'Entreprise activée.')
+  } catch (error) {
+    feedback.error(error instanceof Error ? error.message : 'Impossible de modifier le statut de cette entreprise.')
+  }
 }
 </script>
 
@@ -53,7 +60,7 @@ async function updateStatus(reason: string) {
       v-if="selectedCompany"
       v-model="statusDialog"
       :company-name="selectedCompany.legalName"
-      :suspended="selectedCompany.status === 'suspended'"
+      :status="selectedCompany.status"
       @confirm="updateStatus"
     />
   </div>

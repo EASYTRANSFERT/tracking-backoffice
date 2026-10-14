@@ -10,22 +10,33 @@ import CompanyStatusIcon from '@/Components/companies/CompanyStatusIcon.vue'
 import CompanyAuditTimeline from '@/Components/companies/CompanyAuditTimeline.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useOperatorStore } from '@/stores/operator.store'
+import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
 const route = useRoute()
 const router = useRouter()
 const store = useOperatorStore()
+const feedback = useUiFeedbackStore()
 const companyId = computed(() => route.params.companyId as string)
 const company = computed(() => store.getCompanyById(companyId.value))
 const offer = computed(() => company.value ? store.getOfferById(company.value.offerId) : undefined)
 const statusDialog = ref(false)
-const showSuccess = ref(route.query.created === '1' || route.query.updated === '1')
-const successMessage = computed(() => route.query.created === '1' ? 'Entreprise créée avec succès.' : 'Entreprise mise à jour avec succès.')
+const showSuccess = ref(route.query.created === '1' || route.query.updated === '1' || route.query.adminCreated === '1')
+const successMessage = computed(() => {
+  if (route.query.adminCreated === '1') return 'Compte administrateur créé avec succès.'
+  return route.query.created === '1' ? 'Entreprise créée avec succès.' : 'Entreprise mise à jour avec succès.'
+})
 const formattedDate = computed(() => company.value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(company.value.createdAt)) : '')
 
 async function updateStatus(reason: string) {
-  if (!company.value || company.value.status === 'pending') return
-  if (company.value.status === 'suspended') await store.reactivateCompany(company.value.id)
-  else await store.suspendCompany(company.value.id, reason)
+  if (!company.value) return
+  const previousStatus = company.value.status
+  try {
+    if (previousStatus === 'active') await store.suspendCompany(company.value.id, reason)
+    else await store.reactivateCompany(company.value.id)
+    feedback.success(previousStatus === 'active' ? 'Entreprise suspendue.' : 'Entreprise activée.')
+  } catch (error) {
+    feedback.error(error instanceof Error ? error.message : 'Impossible de modifier le statut de cette entreprise.')
+  }
 }
 </script>
 
@@ -36,9 +47,10 @@ async function updateStatus(reason: string) {
         <template #title>{{ company.legalName }}</template>
         <template #description>Compte client créé le {{ formattedDate }}</template>
         <template #actions>
+          <v-btn variant="outlined" color="secondary" prepend-icon="mdi-account-key-outline" :to="{ name: 'company-admin-create', params: { companyId } }">Créer un administrateur</v-btn>
           <v-btn variant="outlined" color="secondary" prepend-icon="mdi-pencil-outline" :to="{ name: 'company-edit', params: { companyId } }">Modifier</v-btn>
-          <v-btn :color="company.status === 'suspended' ? 'success' : 'error'" variant="flat" :prepend-icon="company.status === 'suspended' ? 'mdi-play-circle-outline' : 'mdi-pause-circle-outline'" :disabled="company.status === 'pending'" :title="company.status === 'pending' ? 'Une entreprise en attente doit être activée avant de pouvoir être suspendue.' : undefined" @click="statusDialog = true">
-            {{ company.status === 'suspended' ? 'Réactiver' : 'Suspendre' }}
+          <v-btn :color="company.status === 'active' ? 'error' : 'success'" variant="flat" :prepend-icon="company.status === 'active' ? 'mdi-pause-circle-outline' : 'mdi-play-circle-outline'" :disabled="company.status === 'pending' && !company.offerId" :title="company.status === 'pending' && !company.offerId ? 'Attribuez une offre avant d’activer cette entreprise.' : undefined" @click="statusDialog = true">
+            {{ company.status === 'pending' ? 'Activer' : company.status === 'suspended' ? 'Réactiver' : 'Suspendre' }}
           </v-btn>
         </template>
       </PageHeader>
@@ -73,7 +85,7 @@ async function updateStatus(reason: string) {
         </v-col>
       </v-row>
 
-      <CompanyStatusDialog v-model="statusDialog" :company-name="company.legalName" :suspended="company.status === 'suspended'" @confirm="updateStatus" />
+      <CompanyStatusDialog v-model="statusDialog" :company-name="company.legalName" :status="company.status" @confirm="updateStatus" />
       <AppSnackbar v-model="showSuccess" :message="successMessage" />
     </template>
 

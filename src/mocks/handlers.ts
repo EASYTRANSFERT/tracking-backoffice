@@ -7,7 +7,7 @@ import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, L
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { CreateTeamRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
-import type { CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
+import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
 const mockQrCode = '/qrcode.png'
 const now = () => new Date().toISOString()
@@ -135,6 +135,25 @@ export const handlers = [
     tenant.updatedAt = now()
     return HttpResponse.json(tenant)
   }),
+  http.post(api('/platform/tenants/:id/users'), async ({ params, request }) => {
+    const tenant = tenants.find((item) => item.id === String(params.id))
+    if (!tenant) return problem(404, 'NOT_FOUND', "L’entreprise demandée n’existe pas.")
+    const payload = (await request.json()) as CreateTenantUserRequest
+    const timestamp = now()
+    const user: UserResponse = {
+      id: `user-${Date.now()}`,
+      matricule: payload.matricule,
+      names: payload.names,
+      email: payload.email,
+      phone: payload.phone,
+      roles: [payload.role],
+      status: 'ACTIVE',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    users.unshift(user)
+    return HttpResponse.json(user, { status: 201 })
+  }),
   http.get(api('/platform/offers'), ({ request }) => HttpResponse.json(page(request, offers))),
   http.post(api('/platform/offers'), async ({ request }) => {
     const payload = (await request.json()) as CreateOfferRequest
@@ -215,6 +234,12 @@ export const handlers = [
 function updateTenantStatus(id: string, status: TenantResponse['status'], reason?: string) {
   const tenant = tenants.find((item) => item.id === id)
   if (!tenant) return problem(404, 'NOT_FOUND', "L’entreprise demandée n’existe pas.")
+  if (status === 'ACTIVE' && !tenant.plan) {
+    return problem(409, 'TENANT_PLAN_REQUIRED', "Une offre doit être attribuée avant l’activation.")
+  }
+  if (status === 'SUSPENDED' && tenant.status !== 'ACTIVE') {
+    return problem(409, 'TENANT_STATUS_CONFLICT', "Seule une entreprise active peut être suspendue.")
+  }
   tenant.status = status
   tenant.activatedAt = status === 'ACTIVE' ? now() : tenant.activatedAt
   tenant.suspendedAt = status === 'SUSPENDED' ? now() : null
