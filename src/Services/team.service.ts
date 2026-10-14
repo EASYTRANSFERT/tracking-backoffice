@@ -1,7 +1,7 @@
 import { apiClient } from './api-client'
 import { idempotencyHeaders } from './request-headers'
 
-import type { AssignSupervisorRequest, CreateTeamRequest, TeamListQuery, TeamPageResponse, TeamResponse, UpdateTeamRequest } from '@/types/team'
+import type { AssignSupervisorRequest, CreateTeamRequest, TeamListQuery, TeamMembersRequest, TeamPageResponse, TeamResponse, UpdateTeamRequest } from '@/types/team'
 
 export const teamService = {
   async list(query: TeamListQuery = {}): Promise<TeamPageResponse> {
@@ -26,6 +26,16 @@ export const teamService = {
 
   async assignSupervisor(id: string, payload: AssignSupervisorRequest): Promise<TeamResponse> {
     const response = await apiClient.put<TeamResponse>(`/teams/${id}/supervisor`, payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  async addMembers(id: string, payload: TeamMembersRequest): Promise<TeamResponse> {
+    const response = await apiClient.post<TeamResponse>(`/teams/${id}/members`, payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  async removeMembers(id: string, payload: TeamMembersRequest): Promise<TeamResponse> {
+    const response = await apiClient.post<TeamResponse>(`/teams/${id}/members/remove`, payload, { headers: idempotencyHeaders() })
     return response.data
   },
 

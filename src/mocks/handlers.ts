@@ -7,7 +7,7 @@ import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, L
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
-import type { AssignSupervisorRequest, CreateTeamRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
+import type { AssignSupervisorRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
 const mockQrCode = '/qrcode.png'
@@ -298,6 +298,33 @@ export const handlers = [
     const supervisor = users.find((user) => user.id === payload.userId && user.status === 'ACTIVE' && user.roles.includes('SUPERVISOR'))
     if (!supervisor) return problem(409, 'TEAM_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
     team.supervisorUserId = payload.userId
+    team.updatedAt = now()
+    return HttpResponse.json(team)
+  }),
+  http.post(api('/teams/:id/members'), async ({ params, request }) => {
+    const team = teams.find((item) => item.id === String(params.id))
+    if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
+    const { userIds } = (await request.json()) as TeamMembersRequest
+    const selected = users.filter((user) => userIds.includes(user.id))
+    const invalid = selected.find((user) => !user.roles.includes('AGENT'))
+    if (invalid) return problem(409, 'TEAM_MEMBER_NOT_AGENT', `${invalid.names} n’est pas un agent.`)
+    const assigned = selected.find((user) => user.teamId && user.teamId !== team.id)
+    if (assigned) return problem(409, 'USER_ALREADY_IN_TEAM', `${assigned.names} appartient déjà à une équipe.`)
+    selected.forEach((user) => { user.teamId = team.id; user.updatedAt = now() })
+    team.updatedAt = now()
+    return HttpResponse.json(team)
+  }),
+  http.post(api('/teams/:id/members/remove'), async ({ params, request }) => {
+    const team = teams.find((item) => item.id === String(params.id))
+    if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
+    const { userIds } = (await request.json()) as TeamMembersRequest
+    if (team.leadUserId && userIds.includes(team.leadUserId)) {
+      return problem(409, 'TEAM_LEAD_REQUIRED', "Le chef d’équipe doit d’abord être remplacé.")
+    }
+    const selected = users.filter((user) => userIds.includes(user.id))
+    const absent = selected.find((user) => user.teamId !== team.id)
+    if (absent) return problem(409, 'USER_NOT_IN_TEAM', `${absent.names} n’appartient pas à cette équipe.`)
+    selected.forEach((user) => { user.teamId = undefined; user.updatedAt = now() })
     team.updatedAt = now()
     return HttpResponse.json(team)
   }),

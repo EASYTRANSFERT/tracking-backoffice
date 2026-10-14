@@ -22,5 +22,9 @@ export interface AssignSupervisorRequest {
   userId: string
 }
 
+export interface TeamMembersRequest {
+  userIds: string[]
+}
+
 export type TeamPageResponse = CursorPage<TeamResponse>
 export type TeamListQuery = CursorQuery

@@ -262,6 +262,33 @@ export const useAdministratorStore = defineStore('administrator', () => {
     return true
   }
 
+  async function loadTeamAgentDirectory(teamId: string) {
+    const result = await userService.list({ limit: 200 })
+    const directory = result.items.map(mapUser)
+    return {
+      members: directory.filter((user) => user.teamId === teamId && ['agent', 'teamLeader'].includes(user.role)),
+      available: directory.filter((user) => user.role === 'agent' && !user.teamId),
+    }
+  }
+
+  async function addTeamMembers(teamId: string, userIds: string[]) {
+    if (!userIds.length) return loadTeamAgentDirectory(teamId)
+    replaceTeam(mapTeam(await teamService.addMembers(teamId, { userIds })))
+    users.value.forEach((user) => {
+      if (userIds.includes(user.id)) user.teamId = teamId
+    })
+    return loadTeamAgentDirectory(teamId)
+  }
+
+  async function removeTeamMembers(teamId: string, userIds: string[]) {
+    if (!userIds.length) return loadTeamAgentDirectory(teamId)
+    replaceTeam(mapTeam(await teamService.removeMembers(teamId, { userIds })))
+    users.value.forEach((user) => {
+      if (userIds.includes(user.id)) user.teamId = undefined
+    })
+    return loadTeamAgentDirectory(teamId)
+  }
+
   function replaceTeam(team: Team) {
     const index = teams.value.findIndex((item) => item.id === team.id)
     if (index >= 0) teams.value[index] = team
@@ -349,7 +376,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     createUser, updateUser, toggleUserStatus, importUsers,
     createSite, updateSite, importSites, toggleSiteStatus, regenerateQrCode,
     createMission, updateMission, openMission, closeMission,
-    createTeam, updateTeam, deleteTeam,
+    createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }
 })
