@@ -48,7 +48,7 @@ async function submit() { const result = await form.value?.validate(); if (!resu
         <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :items="[{title:'Administrateur',value:'administrator'},{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
         <v-text-field v-else label="Rôle" model-value="Administrateur" readonly />
         <v-select v-if="roleNeedsTeam" v-model="data.teamId" label="Équipe" :items="teams" item-title="name" item-value="id" :rules="[required]" />
-        <v-alert v-else type="info" variant="tonal" class="md:col-span-2">Un administrateur ou un superviseur n’est pas rattaché à une équipe.</v-alert>
+        <v-alert v-else type="info" variant="tonal" class="md:col-span-2">Un administrateur n’est pas rattaché à une équipe.</v-alert>
       </v-card-text>
     </v-card>
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><v-btn variant="outlined" color="secondary" size="large" @click="emit('dirtyChange', false); emit('cancel')">Annuler</v-btn><v-btn type="submit" color="primary" size="large" prepend-icon="mdi-content-save-outline" :loading="loading">{{ submitLabel ?? (user ? 'Enregistrer les modifications' : 'Créer et inviter') }}</v-btn></div>
