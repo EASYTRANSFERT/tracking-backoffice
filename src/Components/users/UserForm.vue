@@ -25,7 +25,8 @@ const data = reactive<EnterpriseUserInput>({
   role: props.fixedRole ?? props.user?.role ?? 'agent', teamId: props.user?.teamId,
   password: '',
 })
-const roleNeedsTeam = computed(() => ['teamLeader', 'agent'].includes(data.role))
+const roleCanHaveTeam = computed(() => ['teamLeader', 'agent'].includes(data.role))
+const roleRequiresTeam = computed(() => data.role === 'teamLeader')
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
 const email = (value: string) => /.+@.+\..+/.test(value) || 'Adresse e-mail invalide'
 const normalizePhone = (value: string) => value.replace(/[\s().-]/g, '')
@@ -35,12 +36,16 @@ const internationalPhone = (value: string) =>
 const strongEnoughPassword = (value: string) =>
   value.length >= 13 || 'Le mot de passe doit contenir au moins 13 caractères'
 watch(data, () => emit('dirtyChange', true), { deep: true })
-watch(() => data.role, () => { if (!roleNeedsTeam.value) data.teamId = undefined })
+watch(() => data.role, () => { if (!roleCanHaveTeam.value) data.teamId = undefined })
 async function submit() {
   const result = await form.value?.validate()
   if (!result?.valid) return
   emit('dirtyChange', false)
-  emit('submit', { ...data, phone: normalizePhone(data.phone) })
+  emit('submit', {
+    ...data,
+    phone: normalizePhone(data.phone),
+    teamId: data.teamId || undefined,
+  })
 }
 </script>
 
@@ -58,8 +63,21 @@ async function submit() {
         <v-text-field v-if="!user" v-model="data.password" label="Mot de passe temporaire" type="password" autocomplete="new-password" hint="13 caractères minimum" persistent-hint counter :rules="[required,strongEnoughPassword]" />
         <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :items="[{title:'Administrateur',value:'administrator'},{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
         <v-text-field v-else label="Rôle" model-value="Administrateur" readonly />
-        <v-select v-if="roleNeedsTeam" v-model="data.teamId" label="Équipe" :items="teams" item-title="name" item-value="id" :rules="[required]" />
-        <v-alert v-else type="info" variant="tonal" class="md:col-span-2">Un administrateur n’est pas rattaché à une équipe.</v-alert>
+        <v-select
+          v-if="roleCanHaveTeam"
+          v-model="data.teamId"
+          label="Équipe"
+          :items="teams"
+          item-title="name"
+          item-value="id"
+          clearable
+          :rules="roleRequiresTeam ? [required] : []"
+          :hint="data.role === 'agent' ? 'Facultatif — l’agent pourra être ajouté à une équipe plus tard.' : undefined"
+          :persistent-hint="data.role === 'agent'"
+        />
+        <v-alert v-else type="info" variant="tonal" class="md:col-span-2">
+          {{ data.role === 'administrator' ? 'Un administrateur' : 'Un superviseur' }} n’est pas rattaché à une équipe.
+        </v-alert>
       </v-card-text>
     </v-card>
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><v-btn variant="outlined" color="secondary" size="large" @click="emit('dirtyChange', false); emit('cancel')">Annuler</v-btn><v-btn type="submit" color="primary" size="large" prepend-icon="mdi-content-save-outline" :loading="loading">{{ submitLabel ?? (user ? 'Enregistrer les modifications' : 'Créer et inviter') }}</v-btn></div>
