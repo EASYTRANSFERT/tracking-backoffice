@@ -22,8 +22,8 @@ export const mockSites: Site[] = [
 ]
 
 export const mockMissions: Mission[] = [
-  { id: 'mission-1', title: 'Inventaire mensuel Vridi', siteId: 'site-1', startAt: '2026-10-12T07:30', endAt: '2026-10-12T16:30', supervisorId: 'user-2', teamId: 'team-1', status: 'ongoing', notes: 'Contrôle des stocks et des mouvements.' },
-  { id: 'mission-2', title: 'Contrôle dépôt Yopougon', siteId: 'site-2', startAt: '2026-10-14T08:00', endAt: '2026-10-14T17:00', supervisorId: 'user-2', teamId: 'team-2', status: 'scheduled', notes: 'Vérification des entrées et sorties.' },
-  { id: 'mission-3', title: 'Audit agence Bouaké', siteId: 'site-3', startAt: '2026-10-02T08:00', endAt: '2026-10-03T16:00', supervisorId: 'user-2', teamId: 'team-1', status: 'completed', notes: 'Audit trimestriel.' },
-  { id: 'mission-4', title: 'Maintenance balises', siteId: 'site-1', startAt: '2026-10-18T09:00', endAt: '2026-10-18T13:00', supervisorId: 'user-2', teamId: 'team-1', status: 'cancelled', notes: 'Reportée à la demande du site.' },
+  { id: 'mission-1', code: 'INV-VRIDI-2026', title: 'Inventaire mensuel Vridi', siteId: 'site-1', startAt: '2026-10-12T07:30', endAt: '2026-10-12T16:30', supervisorId: 'user-2', teamId: 'team-1', status: 'ongoing', notes: 'Contrôle des stocks et des mouvements.' },
+  { id: 'mission-2', code: 'CTRL-YOP-2026', title: 'Contrôle dépôt Yopougon', siteId: 'site-2', startAt: '2026-10-14T08:00', endAt: '2026-10-14T17:00', supervisorId: 'user-2', teamId: 'team-2', status: 'scheduled', notes: 'Vérification des entrées et sorties.' },
+  { id: 'mission-3', code: 'AUD-BKE-2026', title: 'Audit agence Bouaké', siteId: 'site-3', startAt: '2026-10-02T08:00', endAt: '2026-10-03T16:00', supervisorId: 'user-2', teamId: 'team-1', status: 'completed', notes: 'Audit trimestriel.' },
+  { id: 'mission-4', code: 'MAINT-BAL-2026', title: 'Maintenance balises', siteId: 'site-1', startAt: '2026-10-18T09:00', endAt: '2026-10-18T13:00', supervisorId: 'user-2', teamId: 'team-1', status: 'cancelled', notes: 'Reportée à la demande du site.' },
 ]

@@ -48,14 +48,19 @@ export type SiteInput = Omit<Site, 'id' | 'qrCode' | 'status' | 'createdAt'>
 
 export interface Mission {
   id: string
+  code: string
   title: string
-  siteId: string
-  startAt: string
-  endAt: string
-  supervisorId: string
-  teamId: string
+  siteId?: string
+  startAt?: string
+  endAt?: string
+  supervisorId?: string
+  teamId?: string
   status: MissionStatus
   notes: string
+  openedAt?: string
+  closedAt?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
-export type MissionInput = Omit<Mission, 'id' | 'status'>
+export type MissionInput = Pick<Mission, 'code' | 'title' | 'startAt' | 'endAt' | 'notes'>

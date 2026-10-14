@@ -3,8 +3,10 @@ import { defineStore } from 'pinia'
 
 import { teamService } from '@/Services/team.service'
 import { userService } from '@/Services/user.service'
-import { mockEnterpriseUsers, mockMissions, mockSites, mockTeams } from '@/mocks/administrator-data'
-import type { EnterpriseUser, EnterpriseUserInput, MissionInput, SiteInput, Team, TeamInput } from '@/types/administrator'
+import { missionService } from '@/Services/mission.service'
+import { mockEnterpriseUsers, mockSites, mockTeams } from '@/mocks/administrator-data'
+import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, SiteInput, Team, TeamInput } from '@/types/administrator'
+import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { TeamResponse } from '@/types/team'
 import type { ApiUserRole, UserResponse } from '@/types/user'
 
@@ -44,13 +46,41 @@ function mapTeam(team: TeamResponse): Team {
   }
 }
 
+const missionStatusFromApi: Record<MissionResponse['status'], Mission['status']> = {
+  PLANNED: 'scheduled',
+  OPEN: 'ongoing',
+  CLOSED: 'completed',
+}
+
+function mapMission(mission: MissionResponse): Mission {
+  return {
+    id: mission.id,
+    code: mission.code,
+    title: mission.name,
+    notes: mission.description ?? '',
+    startAt: mission.startAt,
+    endAt: mission.endAt,
+    status: missionStatusFromApi[mission.status],
+    openedAt: mission.openedAt,
+    closedAt: mission.closedAt,
+    createdAt: mission.createdAt,
+    updatedAt: mission.updatedAt,
+  }
+}
+
+function toIso(value?: string) {
+  return value ? new Date(value).toISOString() : undefined
+}
+
 export const useAdministratorStore = defineStore('administrator', () => {
   const users = ref<EnterpriseUser[]>(mockMode ? structuredClone(mockEnterpriseUsers) : [])
   const teams = ref<Team[]>(mockMode ? structuredClone(mockTeams) : [])
   const sites = ref(structuredClone(mockSites))
-  const missions = ref(structuredClone(mockMissions))
+  const missions = ref<Mission[]>([])
   const isDirectoryLoading = ref(false)
   const hasLoadedDirectory = ref(false)
+  const isMissionsLoading = ref(false)
+  const hasLoadedMissions = ref(false)
   const canReactivateUsers = computed(() => mockMode)
   const canImportUsers = computed(() => mockMode)
 
@@ -90,6 +120,26 @@ export const useAdministratorStore = defineStore('administrator', () => {
     } finally {
       isDirectoryLoading.value = false
     }
+  }
+
+  async function loadMissions(force = false) {
+    if (hasLoadedMissions.value && !force) return
+    isMissionsLoading.value = true
+    try {
+      const result = await missionService.list({ limit: 200 })
+      missions.value = result.items.map(mapMission)
+      hasLoadedMissions.value = true
+    } finally {
+      isMissionsLoading.value = false
+    }
+  }
+
+  async function loadMission(id: string) {
+    const cached = getMissionById(id)
+    if (cached) return cached
+    const mission = mapMission(await missionService.findOne(id))
+    replaceMission(mission)
+    return mission
   }
 
   async function loadUserPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
@@ -204,15 +254,62 @@ export const useAdministratorStore = defineStore('administrator', () => {
   function importSites(count: number) { const now = Date.now(); for (let index = 0; index < count; index += 1) { const id = `site-imported-${now}-${index}`; sites.value.unshift({ id, name: `Site importé ${index + 1}`, qrCode: `KBA-${id.toUpperCase()}`, status: 'draft', createdAt: new Date().toISOString() }) } }
   function toggleSiteStatus(id: string) { const site = getSiteById(id); if (site) site.status = site.status === 'active' ? 'inactive' : 'active' }
   function regenerateQrCode(id: string) { const site = getSiteById(id); if (site) site.qrCode = `KBA-${id.toUpperCase()}-${Date.now()}` }
-  function createMission(input: MissionInput) { const id = `mission-${Date.now()}`; missions.value.unshift({ ...input, id, status: 'scheduled' }); return id }
-  function updateMission(id: string, input: MissionInput) { const mission = getMissionById(id); if (mission) Object.assign(mission, input) }
-  function cancelMission(id: string) { const mission = getMissionById(id); if (mission) mission.status = 'cancelled' }
+  async function createMission(input: MissionInput) {
+    const payload: CreateMissionRequest = {
+      code: input.code.trim(),
+      name: input.title.trim(),
+      description: input.notes?.trim() || undefined,
+      startAt: toIso(input.startAt),
+      endAt: toIso(input.endAt),
+    }
+    const created = mapMission(await missionService.create(payload))
+    missions.value.unshift(created)
+    return created.id
+  }
+
+  async function updateMission(id: string, input: MissionInput) {
+    const current = getMissionById(id)
+    if (!current) throw new Error('Mission introuvable.')
+    const payload: UpdateMissionRequest = {}
+    const code = input.code.trim()
+    const name = input.title.trim()
+    const description = input.notes?.trim() || undefined
+    const startAt = toIso(input.startAt)
+    const endAt = toIso(input.endAt)
+    if (code !== current.code) payload.code = code
+    if (name !== current.title) payload.name = name
+    if (description !== (current.notes || undefined)) payload.description = description
+    if (startAt !== current.startAt) payload.startAt = startAt
+    if (endAt !== current.endAt) payload.endAt = endAt
+    if (!Object.keys(payload).length) return current
+    const updated = mapMission(await missionService.update(id, payload))
+    replaceMission(updated)
+    return updated
+  }
+
+  async function openMission(id: string) {
+    const updated = mapMission(await missionService.open(id))
+    replaceMission(updated)
+    return updated
+  }
+
+  async function closeMission(id: string) {
+    const updated = mapMission(await missionService.close(id))
+    replaceMission(updated)
+    return updated
+  }
+
+  function replaceMission(mission: Mission) {
+    const index = missions.value.findIndex((item) => item.id === mission.id)
+    if (index >= 0) missions.value[index] = mission
+    else missions.value.unshift(mission)
+  }
 
   function resetData() {
     users.value = mockMode ? structuredClone(mockEnterpriseUsers) : []
     teams.value = mockMode ? structuredClone(mockTeams) : []
     sites.value = structuredClone(mockSites)
-    missions.value = structuredClone(mockMissions)
+    missions.value = []
     userNextCursor.value = null
     teamNextCursor.value = null
     userCursorHistory.value = []
@@ -220,17 +317,18 @@ export const useAdministratorStore = defineStore('administrator', () => {
     userPage.value = 1
     teamPage.value = 1
     hasLoadedDirectory.value = false
+    hasLoadedMissions.value = false
   }
 
   return {
-    users, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, canReactivateUsers, canImportUsers,
+    users, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, canReactivateUsers, canImportUsers,
     userNextCursor, userCursorHistory, userPage, teamNextCursor, teamCursorHistory, teamPage,
     activeUsersCount, pendingDeviceActivationsCount, activeSitesCount, ongoingMissionsCount,
-    getUserById, getSiteById, getMissionById, getTeamById, loadDirectory,
+    getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission,
     nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
     createUser, updateUser, toggleUserStatus, importUsers,
     createSite, updateSite, importSites, toggleSiteStatus, regenerateQrCode,
-    createMission, updateMission, cancelMission,
+    createMission, updateMission, openMission, closeMission,
     createTeam, updateTeam, deleteTeam,
     resetData,
   }
