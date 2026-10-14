@@ -54,7 +54,9 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const canReactivateUsers = computed(() => mockMode)
   const canImportUsers = computed(() => mockMode)
 
-  const activeUsersCount = computed(() => users.value.filter((user) => user.status === 'active').length)
+  const activeUsersCount = computed(() => users.value.filter(
+    (user) => user.role !== 'administrator' && user.status === 'active',
+  ).length)
   const pendingDeviceActivationsCount = computed(() => users.value.filter((user) => user.status === 'invited').length)
   const activeSitesCount = computed(() => sites.value.filter((site) => site.status === 'active').length)
   const ongoingMissionsCount = computed(() => missions.value.filter((mission) => mission.status === 'ongoing').length)

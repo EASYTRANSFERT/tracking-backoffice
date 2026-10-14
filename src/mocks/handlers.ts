@@ -11,6 +11,11 @@ import type { CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserR
 
 const mockQrCode = '/qrcode.png'
 const now = () => new Date().toISOString()
+const apiBaseUrl = (
+  import.meta.env.VITE_API_BASE_URL ??
+  'https://exercise-classical-travelers-luck.trycloudflare.com/api/v1'
+).replace(/\/$/, '')
+const api = (path: string) => `${apiBaseUrl}${path}`
 
 const offers: OfferResponse[] = mockOffers.map((offer) => ({
   id: offer.id, code: offer.code, name: offer.name, description: offer.description,
@@ -35,7 +40,9 @@ const tenants: TenantResponse[] = mockCompanies.map((company) => {
 
 let teams: TeamResponse[] = mockTeams.map((team) => ({ ...team, leadUserId: team.leadUserId ?? null }))
 const users: UserResponse[] = [
-  ...mockAuthUsers.map((entry) => structuredClone(entry.user)),
+  ...mockAuthUsers
+    .filter((entry) => entry.user.roles.includes('OPERATOR'))
+    .map((entry) => structuredClone(entry.user)),
   ...mockEnterpriseUsers.map((user) => ({
     id: user.id, matricule: user.employeeNumber, names: `${user.firstName} ${user.lastName}`,
     email: user.email, phone: user.phone,
@@ -61,37 +68,37 @@ function page<T>(request: Request, items: T[]) {
 }
 
 export const handlers = [
-  http.post('*/auth/login', async ({ request }) => {
+  http.post(api('/auth/login'), async ({ request }) => {
     const credentials = (await request.json()) as LoginRequest
     const mockUser = findMockAuthUserByCredentials(credentials.email, credentials.password)
     if (!mockUser) return problem(401, 'INVALID_CREDENTIALS', 'Adresse e-mail ou mot de passe incorrect.')
     const response: LoginChallengeResponse = { userId: mockUser.user.id, ...(mockUser.firstTotpSetup ? { qrCode: mockQrCode } : {}) }
     return HttpResponse.json(response)
   }),
-  http.post('*/auth/totp/confirm', async ({ request }) => {
+  http.post(api('/auth/totp/confirm'), async ({ request }) => {
     const payload = (await request.json()) as ConfirmTotpRequest
     const mockUser = findMockAuthUserById(payload.userId)
     if (!mockUser || payload.code !== mockUser.totpCode) return problem(401, 'TOTP_INVALID', 'Le code de vérification est incorrect.')
     return HttpResponse.json<SessionResponse>({ accessToken: `mock-access-token-${payload.userId}`, refreshToken: `mock-refresh-token-${payload.userId}`, tokenType: 'Bearer', expiresIn: 900 })
   }),
-  http.post('*/auth/refresh', async ({ request }) => {
+  http.post(api('/auth/refresh'), async ({ request }) => {
     const payload = (await request.json()) as RefreshRequest
     if (!payload.refreshToken.startsWith('mock-refresh-token')) return problem(401, 'REFRESH_TOKEN_INVALID', 'Le jeton de renouvellement est invalide.')
     return HttpResponse.json<SessionResponse>({ accessToken: `mock-access-token-${Date.now()}`, refreshToken: `mock-refresh-token-${Date.now()}`, tokenType: 'Bearer', expiresIn: 900 })
   }),
-  http.post('*/auth/logout', () => new HttpResponse(null, { status: 204 })),
-  http.post('*/auth/step-up', async ({ request }) => {
+  http.post(api('/auth/logout'), () => new HttpResponse(null, { status: 204 })),
+  http.post(api('/auth/step-up'), async ({ request }) => {
     const payload = (await request.json()) as TotpCodeRequest
     if (payload.code !== '123456') return problem(401, 'TOTP_INVALID', 'Le code de vérification est incorrect.')
     return HttpResponse.json<AccessTokenResponse>({ accessToken: `mock-elevated-token-${Date.now()}`, tokenType: 'Bearer', expiresIn: 300 })
   }),
 
-  http.get('*/platform/tenants', ({ request }) => HttpResponse.json(page(request, tenants))),
-  http.get('*/platform/tenants/:id', ({ params }) => {
+  http.get(api('/platform/tenants'), ({ request }) => HttpResponse.json(page(request, tenants))),
+  http.get(api('/platform/tenants/:id'), ({ params }) => {
     const item = tenants.find((tenant) => tenant.id === String(params.id))
     return item ? HttpResponse.json(item) : problem(404, 'NOT_FOUND', "L’entreprise demandée n’existe pas.")
   }),
-  http.post('*/platform/tenants', async ({ request }) => {
+  http.post(api('/platform/tenants'), async ({ request }) => {
     const payload = (await request.json()) as CreateTenantRequest
     const offer = offers.find((item) => item.id === payload.offerId)
     const timestamp = now()
@@ -107,19 +114,19 @@ export const handlers = [
     tenants.unshift(tenant)
     return HttpResponse.json(tenant, { status: 201 })
   }),
-  http.patch('*/platform/tenants/:id', async ({ params, request }) => {
+  http.patch(api('/platform/tenants/:id'), async ({ params, request }) => {
     const index = tenants.findIndex((item) => item.id === String(params.id))
     if (index < 0) return problem(404, 'NOT_FOUND', "L’entreprise demandée n’existe pas.")
     const payload = (await request.json()) as UpdateTenantRequest
     tenants[index] = { ...tenants[index]!, ...payload, updatedAt: now() }
     return HttpResponse.json(tenants[index])
   }),
-  http.post('*/platform/tenants/:id/activate', ({ params }) => updateTenantStatus(String(params.id), 'ACTIVE')),
-  http.post('*/platform/tenants/:id/suspend', async ({ params, request }) => {
+  http.post(api('/platform/tenants/:id/activate'), ({ params }) => updateTenantStatus(String(params.id), 'ACTIVE')),
+  http.post(api('/platform/tenants/:id/suspend'), async ({ params, request }) => {
     const payload = (await request.json()) as SuspendTenantRequest
     return updateTenantStatus(String(params.id), 'SUSPENDED', payload.reason)
   }),
-  http.put('*/platform/tenants/:id/plan', async ({ params, request }) => {
+  http.put(api('/platform/tenants/:id/plan'), async ({ params, request }) => {
     const tenant = tenants.find((item) => item.id === String(params.id))
     const payload = (await request.json()) as AssignTenantPlanRequest
     const offer = offers.find((item) => item.id === payload.offerId)
@@ -128,8 +135,8 @@ export const handlers = [
     tenant.updatedAt = now()
     return HttpResponse.json(tenant)
   }),
-  http.get('*/platform/offers', ({ request }) => HttpResponse.json(page(request, offers))),
-  http.post('*/platform/offers', async ({ request }) => {
+  http.get(api('/platform/offers'), ({ request }) => HttpResponse.json(page(request, offers))),
+  http.post(api('/platform/offers'), async ({ request }) => {
     const payload = (await request.json()) as CreateOfferRequest
     const timestamp = now()
     const offer: OfferResponse = { id: `offer-${Date.now()}`, ...payload, status: 'ACTIVE', createdAt: timestamp, updatedAt: timestamp }
@@ -137,7 +144,7 @@ export const handlers = [
     return HttpResponse.json(offer, { status: 201 })
   }),
 
-  http.get('*/users', ({ request }) => {
+  http.get(api('/users'), ({ request }) => {
     const url = new URL(request.url)
     const status = url.searchParams.get('status')
     const role = url.searchParams.get('role')
@@ -145,18 +152,18 @@ export const handlers = [
     const filtered = users.filter((user) => (!status || user.status === status) && (!role || user.roles.includes(role as UserResponse['roles'][number])) && (!teamId || user.teamId === teamId))
     return HttpResponse.json(page(request, filtered))
   }),
-  http.get('*/users/:userId', ({ params }) => {
+  http.get(api('/users/:userId'), ({ params }) => {
     const user = users.find((item) => item.id === String(params.userId))
     return user ? HttpResponse.json(user) : problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
   }),
-  http.post('*/users', async ({ request }) => {
+  http.post(api('/users'), async ({ request }) => {
     const payload = (await request.json()) as CreateUserRequest
     const timestamp = now()
     const user: UserResponse = { id: `user-${Date.now()}`, matricule: payload.matricule, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, status: 'PENDING_ACTIVATION', createdAt: timestamp, updatedAt: timestamp }
     users.unshift(user)
     return HttpResponse.json(user, { status: 201 })
   }),
-  http.patch('*/users/:userId/password', async ({ params, request }) => {
+  http.patch(api('/users/:userId/password'), async ({ params, request }) => {
     const payload = (await request.json()) as UpdatePasswordRequest
     const entry = findMockAuthUserById(String(params.userId))
     if (!entry) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
@@ -164,40 +171,40 @@ export const handlers = [
     entry.password = payload.newPassword
     return new HttpResponse(null, { status: 204 })
   }),
-  http.patch('*/users/:userId', async ({ params, request }) => {
+  http.patch(api('/users/:userId'), async ({ params, request }) => {
     const index = users.findIndex((item) => item.id === String(params.userId))
     if (index < 0) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
     const payload = (await request.json()) as UpdateUserRequest
     users[index] = { ...users[index]!, matricule: payload.matricule, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, updatedAt: now() }
     return HttpResponse.json(users[index])
   }),
-  http.delete('*/users/:userId', ({ params }) => {
+  http.delete(api('/users/:userId'), ({ params }) => {
     const user = users.find((item) => item.id === String(params.userId))
     if (!user) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
     user.status = 'DISABLED'; user.updatedAt = now()
     return HttpResponse.json(user)
   }),
 
-  http.get('*/teams', ({ request }) => HttpResponse.json(page(request, teams))),
-  http.get('*/teams/:id', ({ params }) => {
+  http.get(api('/teams'), ({ request }) => HttpResponse.json(page(request, teams))),
+  http.get(api('/teams/:id'), ({ params }) => {
     const team = teams.find((item) => item.id === String(params.id))
     return team ? HttpResponse.json(team) : problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
   }),
-  http.post('*/teams', async ({ request }) => {
+  http.post(api('/teams'), async ({ request }) => {
     const payload = (await request.json()) as CreateTeamRequest
     const timestamp = now()
     const team: TeamResponse = { id: `team-${Date.now()}`, name: payload.name, leadUserId: null, createdAt: timestamp, updatedAt: timestamp }
     teams.unshift(team)
     return HttpResponse.json(team, { status: 201 })
   }),
-  http.patch('*/teams/:id', async ({ params, request }) => {
+  http.patch(api('/teams/:id'), async ({ params, request }) => {
     const team = teams.find((item) => item.id === String(params.id))
     if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
     const payload = (await request.json()) as UpdateTeamRequest
     team.name = payload.name; team.updatedAt = now()
     return HttpResponse.json(team)
   }),
-  http.delete('*/teams/:id', ({ params }) => {
+  http.delete(api('/teams/:id'), ({ params }) => {
     const id = String(params.id)
     if (users.some((user) => user.teamId === id)) return problem(409, 'TEAM_NOT_EMPTY', "Cette équipe contient encore des utilisateurs.")
     teams = teams.filter((item) => item.id !== id)

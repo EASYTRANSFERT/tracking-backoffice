@@ -116,7 +116,7 @@ const router = createRouter({
           path: 'users',
           name: 'admin-users',
           component: () => import('@/pages/administrator/UsersPage.vue'),
-          meta: { title: 'Utilisateurs', allowedRoles: ['administrator'] },
+          meta: { title: 'Agents', allowedRoles: ['administrator'] },
         },
         {
           path: 'users/new',
@@ -243,7 +243,7 @@ const router = createRouter({
           path: 'users',
           name: 'supervisor-users',
           component: () => import('@/pages/ProfileDirectoryPage.vue'),
-          meta: { title: 'Utilisateurs', allowedRoles: ['supervisor'], directory: 'users' },
+          meta: { title: 'Agents', allowedRoles: ['supervisor'], directory: 'users' },
         },
         {
           path: 'teams',
@@ -274,7 +274,7 @@ const router = createRouter({
           path: 'users',
           name: 'team-leader-users',
           component: () => import('@/pages/ProfileDirectoryPage.vue'),
-          meta: { title: 'Utilisateurs', allowedRoles: ['teamLeader'], directory: 'users' },
+          meta: { title: 'Agents', allowedRoles: ['teamLeader'], directory: 'users' },
         },
         {
           path: 'teams',
