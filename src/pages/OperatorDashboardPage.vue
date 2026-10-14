@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import CompanyTable from '@/Components/CompanyTable.vue'
 import DashboardStatCard from '@/Components/DashboardStatCard.vue'
+import OfferDistributionCard from '@/Components/OfferDistributionCard.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import companyIcon from '@/assets/building (2).png'
 import offerIcon from '@/assets/coin (1).png'
@@ -10,7 +11,16 @@ import { useOperatorStore } from '@/stores/operator.store'
 
 const router = useRouter()
 const store = useOperatorStore()
-const { companies, offers, activeCompaniesCount, activeOffersCount, suspendedCompaniesCount } = storeToRefs(store)
+const {
+  companies,
+  offers,
+  activeCompaniesCount,
+  activeOffersCount,
+  suspendedCompaniesCount,
+  companyPage,
+  companyNextCursor,
+  companyCursorHistory,
+} = storeToRefs(store)
 </script>
 
 <template>
@@ -55,31 +65,19 @@ const { companies, offers, activeCompaniesCount, activeOffersCount, suspendedCom
           title="Entreprises récentes"
           description="Les derniers comptes ajoutés à la plateforme"
           :searchable="false"
-          :page-size="4"
+          :cursor-page="companyPage"
+          :has-next-page="Boolean(companyNextCursor)"
+          :has-previous-page="companyCursorHistory.length > 0"
           @view="router.push({ name: 'company-details', params: { companyId: $event.id } })"
           @edit="router.push({ name: 'company-edit', params: { companyId: $event.id } })"
           @change-status="router.push({ name: 'company-details', params: { companyId: $event.id } })"
+          @next-page="store.nextCompanyPage"
+          @previous-page="store.previousCompanyPage"
         />
       </v-col>
 
       <v-col cols="12" lg="4">
-        <div class="flex h-full flex-col gap-6">
-          <v-card>
-            <v-card-title class="px-5 pt-5">Catalogue disponible</v-card-title>
-            <v-card-subtitle class="px-5">Données fournies par l’API des offres</v-card-subtitle>
-            <v-list lines="two">
-              <v-list-item v-for="offer in offers.slice(0, 4)" :key="offer.id" :title="offer.name" :subtitle="`${offer.maxActiveAgents} agents maximum`" prepend-icon="mdi-cash-multiple" />
-            </v-list>
-            <v-card-actions><v-btn color="primary" variant="text" :to="{ name: 'offers' }">Voir les offres</v-btn></v-card-actions>
-          </v-card>
-          <v-card>
-            <v-card-title class="px-5 pt-5">Actions rapides</v-card-title>
-            <v-card-text class="grid gap-3">
-              <v-btn variant="tonal" color="primary" prepend-icon="mdi-domain-plus" class="justify-start" :to="{ name: 'company-create' }">Créer une entreprise</v-btn>
-              <v-btn variant="tonal" color="primary" prepend-icon="mdi-cash-plus" class="justify-start" :to="{ name: 'offer-create' }">Créer une offre</v-btn>
-            </v-card-text>
-          </v-card>
-        </div>
+        <OfferDistributionCard :companies="companies" :offers="offers" />
       </v-col>
     </v-row>
   </div>
