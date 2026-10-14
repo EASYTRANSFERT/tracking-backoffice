@@ -10,6 +10,7 @@ import type {
   TenantResponse,
   UpdateTenantRequest,
 } from '@/types/platform'
+import type { CreateTenantUserRequest, UserResponse } from '@/types/user'
 
 export const tenantService = {
   async list(query: CursorQuery = {}): Promise<CursorPage<TenantResponse>> {
@@ -44,6 +45,16 @@ export const tenantService = {
 
   async assignPlan(id: string, payload: AssignTenantPlanRequest): Promise<TenantResponse> {
     const response = await apiClient.put<TenantResponse>(`/platform/tenants/${id}/plan`, payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  async createUser(id: string, payload: CreateTenantUserRequest): Promise<UserResponse> {
+    const response = await apiClient.post<UserResponse>(
+      `/platform/tenants/${id}/users`,
+      payload,
+      { headers: idempotencyHeaders() },
+    )
+
     return response.data
   },
 }

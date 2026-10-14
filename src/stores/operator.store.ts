@@ -6,6 +6,7 @@ import { tenantService } from '@/Services/tenant.service'
 import { mockCompanies, mockOffers, mockPlatformActivities, mockSupportInterventions } from '@/mocks/operator-data'
 import type { OfferResponse, TenantResponse } from '@/types/platform'
 import type { Company, CompanyInput, Offer, OfferInput, SupportIntervention } from '@/types/operator'
+import type { EnterpriseUserInput } from '@/types/administrator'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const PAGE_SIZE = 10
@@ -38,6 +39,16 @@ function mapOffer(offer: OfferResponse): Offer {
     companyCount: 0,
     status: offer.status === 'ACTIVE' ? 'active' : 'inactive',
   }
+}
+
+function toIsoDate(value: string) {
+  return new Date(value).toISOString()
+}
+
+function sameCalendarDate(left?: string, right?: string) {
+  if (!left && !right) return true
+  if (!left || !right) return false
+  return left.slice(0, 10) === right.slice(0, 10)
 }
 
 export const useOperatorStore = defineStore('operator', () => {
@@ -165,17 +176,28 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   async function updateCompany(id: string, input: CompanyInput) {
-    let tenant = await tenantService.update(id, {
-      name: input.legalName,
-      country: input.country,
-      timezone: input.timezone,
-      contractFrom: new Date(input.contractFrom).toISOString(),
-      contractTo: input.contractTo ? new Date(input.contractTo).toISOString() : undefined,
-    })
-    if (input.offerId && input.offerId !== tenant.plan?.offerId) {
+    const current = getCompanyById(id)
+    if (!current) throw new Error("L’entreprise demandée n’est pas disponible.")
+
+    const changes: Parameters<typeof tenantService.update>[1] = {}
+    if (input.legalName !== current.legalName) changes.name = input.legalName
+    if (input.country !== current.country) changes.country = input.country
+    if (input.timezone !== current.timezone) changes.timezone = input.timezone
+    if (!sameCalendarDate(input.contractFrom, current.contractFrom)) {
+      changes.contractFrom = toIsoDate(input.contractFrom)
+    }
+    if (input.contractTo && !sameCalendarDate(input.contractTo, current.contractTo)) {
+      changes.contractTo = toIsoDate(input.contractTo)
+    }
+
+    let tenant: TenantResponse | undefined
+    if (Object.keys(changes).length > 0) {
+      tenant = await tenantService.update(id, changes)
+    }
+    if (input.offerId && input.offerId !== current.offerId) {
       tenant = await tenantService.assignPlan(id, { offerId: input.offerId })
     }
-    replaceCompany(mapTenant(tenant))
+    if (tenant) replaceCompany(mapTenant(tenant))
   }
 
   async function suspendCompany(id: string, reason: string) {
@@ -188,6 +210,21 @@ export const useOperatorStore = defineStore('operator', () => {
 
   async function reactivateCompany(id: string) {
     replaceCompany(mapTenant(await tenantService.activate(id)))
+  }
+
+  async function createCompanyAdministrator(id: string, input: EnterpriseUserInput) {
+    if (!input.password) {
+      throw new Error('Le mot de passe temporaire est requis.')
+    }
+
+    return tenantService.createUser(id, {
+      matricule: input.employeeNumber,
+      names: `${input.firstName} ${input.lastName}`.trim(),
+      email: input.email,
+      phone: input.phone,
+      role: 'ADMIN',
+      password: input.password,
+    })
   }
 
   async function createOffer(input: OfferInput) {
@@ -233,6 +270,7 @@ export const useOperatorStore = defineStore('operator', () => {
     getCompanyById, getOfferById, loadCatalog, loadCompany,
     nextCompanyPage, previousCompanyPage, nextOfferPage, previousOfferPage,
     createCompany, updateCompany, suspendCompany, reactivateCompany,
+    createCompanyAdministrator,
     createOffer, updateOffer, createSupportIntervention,
     resetData,
   }
