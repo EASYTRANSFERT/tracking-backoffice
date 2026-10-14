@@ -20,7 +20,7 @@ const feedback = useUiFeedbackStore()
 onMounted(async () => {
   try {
     if (auth.activeRole === 'operator') await operatorStore.loadCatalog()
-    if (auth.activeRole === 'administrator') await administratorStore.loadDirectory()
+    if (['administrator', 'supervisor', 'teamLeader'].includes(auth.activeRole ?? '')) await administratorStore.loadDirectory()
   } catch {
     feedback.error('Impossible de charger les données du tableau de bord.')
   }

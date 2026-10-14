@@ -82,6 +82,15 @@ const router = createRouter({
           meta: { title: 'Supervision', allowedRoles: ['operator'] },
         },
         {
+          path: 'account/password',
+          name: 'change-password',
+          component: () => import('@/pages/ChangePasswordPage.vue'),
+          meta: {
+            title: 'Changer le mot de passe',
+            allowedRoles: ['operator', 'administrator', 'supervisor', 'teamLeader'],
+          },
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/pages/SettingsPage.vue'),
@@ -231,6 +240,18 @@ const router = createRouter({
           meta: { title: 'Dashboard', allowedRoles: ['supervisor'] },
         },
         {
+          path: 'users',
+          name: 'supervisor-users',
+          component: () => import('@/pages/ProfileDirectoryPage.vue'),
+          meta: { title: 'Utilisateurs', allowedRoles: ['supervisor'], directory: 'users' },
+        },
+        {
+          path: 'teams',
+          name: 'supervisor-teams',
+          component: () => import('@/pages/ProfileDirectoryPage.vue'),
+          meta: { title: 'Équipes', allowedRoles: ['supervisor'], directory: 'teams' },
+        },
+        {
           path: 'settings',
           name: 'supervisor-settings',
           component: () => import('@/pages/SettingsPage.vue'),
@@ -248,6 +269,18 @@ const router = createRouter({
           name: 'team-leader-dashboard',
           component: () => import('@/pages/ProfileDashboardPage.vue'),
           meta: { title: 'Dashboard', allowedRoles: ['teamLeader'] },
+        },
+        {
+          path: 'users',
+          name: 'team-leader-users',
+          component: () => import('@/pages/ProfileDirectoryPage.vue'),
+          meta: { title: 'Utilisateurs', allowedRoles: ['teamLeader'], directory: 'users' },
+        },
+        {
+          path: 'teams',
+          name: 'team-leader-teams',
+          component: () => import('@/pages/ProfileDirectoryPage.vue'),
+          meta: { title: 'Équipes', allowedRoles: ['teamLeader'], directory: 'teams' },
         },
         {
           path: 'settings',

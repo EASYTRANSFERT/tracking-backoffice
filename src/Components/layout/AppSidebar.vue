@@ -10,13 +10,14 @@ const drawer = defineModel<boolean>({ default: true })
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const { activeRole, currentUser } = storeToRefs(authStore)
 
 const navigationItems = computed(() => {
   if (!activeRole.value) return []
 
   return dashboardNavigation.filter((item) =>
-    item.allowedRoles.includes(activeRole.value!),
+    item.allowedRoles.includes(activeRole.value!) && (mockMode || !item.prototypeOnly),
   )
 })
 

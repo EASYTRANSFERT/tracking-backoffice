@@ -9,6 +9,12 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
       <template #description>Préférences personnelles de votre espace de travail.</template>
       <template #actions><span /></template>
     </PageHeader>
-    <v-alert type="info" variant="tonal" title="Configuration à venir" text="Cette page sera connectée aux préférences utilisateur lorsque les points d’accès correspondants seront disponibles." />
+    <v-card>
+      <v-list lines="two">
+        <v-list-item prepend-icon="mdi-lock-outline" title="Mot de passe" subtitle="Modifiez le mot de passe utilisé pour vous connecter." :to="{ name: 'change-password' }">
+          <template #append><v-icon icon="mdi-chevron-right" /></template>
+        </v-list-item>
+      </v-list>
+    </v-card>
   </div>
 </template>
