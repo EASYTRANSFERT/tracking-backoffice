@@ -28,9 +28,20 @@ const data = reactive<EnterpriseUserInput>({
 const roleNeedsTeam = computed(() => ['teamLeader', 'agent'].includes(data.role))
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
 const email = (value: string) => /.+@.+\..+/.test(value) || 'Adresse e-mail invalide'
+const normalizePhone = (value: string) => value.replace(/[\s().-]/g, '')
+const internationalPhone = (value: string) =>
+  /^\+[1-9]\d{7,14}$/.test(normalizePhone(value)) ||
+  'Ajoutez l’indicatif pays, par exemple +2250700000000'
+const strongEnoughPassword = (value: string) =>
+  value.length >= 13 || 'Le mot de passe doit contenir au moins 13 caractères'
 watch(data, () => emit('dirtyChange', true), { deep: true })
 watch(() => data.role, () => { if (!roleNeedsTeam.value) data.teamId = undefined })
-async function submit() { const result = await form.value?.validate(); if (!result?.valid) return; emit('dirtyChange', false); emit('submit', { ...data }) }
+async function submit() {
+  const result = await form.value?.validate()
+  if (!result?.valid) return
+  emit('dirtyChange', false)
+  emit('submit', { ...data, phone: normalizePhone(data.phone) })
+}
 </script>
 
 <template>
@@ -43,8 +54,8 @@ async function submit() { const result = await form.value?.validate(); if (!resu
         <v-text-field v-model="data.lastName" label="Nom" :rules="[required]" />
         <v-text-field v-model="data.employeeNumber" label="Matricule" :rules="[required]" />
         <v-text-field v-model="data.email" label="E-mail professionnel" type="email" :rules="[required,email]" />
-        <v-text-field v-model="data.phone" label="Téléphone" :rules="[required]" />
-        <v-text-field v-if="!user" v-model="data.password" label="Mot de passe temporaire" type="password" autocomplete="new-password" :rules="[required]" />
+        <v-text-field v-model="data.phone" label="Téléphone" placeholder="+2250700000000" hint="Format international avec indicatif pays" persistent-hint inputmode="tel" autocomplete="tel" :rules="[required,internationalPhone]" />
+        <v-text-field v-if="!user" v-model="data.password" label="Mot de passe temporaire" type="password" autocomplete="new-password" hint="13 caractères minimum" persistent-hint counter :rules="[required,strongEnoughPassword]" />
         <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :items="[{title:'Administrateur',value:'administrator'},{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
         <v-text-field v-else label="Rôle" model-value="Administrateur" readonly />
         <v-select v-if="roleNeedsTeam" v-model="data.teamId" label="Équipe" :items="teams" item-title="name" item-value="id" :rules="[required]" />

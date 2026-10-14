@@ -213,15 +213,20 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   async function createCompanyAdministrator(id: string, input: EnterpriseUserInput) {
-    if (!input.password) {
-      throw new Error('Le mot de passe temporaire est requis.')
+    const phone = input.phone.replace(/[\s().-]/g, '')
+
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+      throw new Error('Le téléphone doit inclure un indicatif pays, par exemple +225.')
+    }
+    if (!input.password || input.password.length < 13) {
+      throw new Error('Le mot de passe temporaire doit contenir au moins 13 caractères.')
     }
 
     return tenantService.createUser(id, {
       matricule: input.employeeNumber,
       names: `${input.firstName} ${input.lastName}`.trim(),
       email: input.email,
-      phone: input.phone,
+      phone,
       role: 'ADMIN',
       password: input.password,
     })
