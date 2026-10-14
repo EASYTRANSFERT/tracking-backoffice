@@ -59,6 +59,8 @@ test('uses the authenticated operator name in the dashboard header', async ({ pa
 
 test('opens the agent directory from the administrator navigation', async ({ page }) => {
   await loginAs(page, 'admin@entreprise.test')
+  await expect(page.getByRole('heading', { name: 'Missions récentes' })).toBeVisible()
+  await expect(page.getByText('Actions rapides', { exact: true })).toHaveCount(0)
   await page.getByRole('link', { name: 'Agents', exact: true }).click()
   await expect(page).toHaveURL(/\/admin\/users$/)
   await expect(page.getByRole('heading', { name: 'Agents', exact: true })).toBeVisible()
