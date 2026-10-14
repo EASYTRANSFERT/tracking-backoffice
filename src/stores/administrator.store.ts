@@ -9,6 +9,7 @@ import type { TeamResponse } from '@/types/team'
 import type { ApiUserRole, UserResponse } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
+const PAGE_SIZE = 10
 const roleToApi: Record<EnterpriseUser['role'], ApiUserRole> = {
   administrator: 'ADMIN', supervisor: 'SUPERVISOR', teamLeader: 'TEAM_LEAD', agent: 'AGENT',
 }
@@ -49,12 +50,12 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const sites = ref(structuredClone(mockSites))
   const missions = ref(structuredClone(mockMissions))
   const isDirectoryLoading = ref(false)
-  const hasLoadedDirectory = ref(mockMode)
+  const hasLoadedDirectory = ref(false)
   const canReactivateUsers = computed(() => mockMode)
   const canImportUsers = computed(() => mockMode)
 
   const activeUsersCount = computed(() => users.value.filter((user) => user.status === 'active').length)
-  const pendingDeviceActivationsCount = ref(3)
+  const pendingDeviceActivationsCount = computed(() => users.value.filter((user) => user.status === 'invited').length)
   const activeSitesCount = computed(() => sites.value.filter((site) => site.status === 'active').length)
   const ongoingMissionsCount = computed(() => missions.value.filter((mission) => mission.status === 'ongoing').length)
 
@@ -62,29 +63,72 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const getSiteById = (id: string) => sites.value.find((site) => site.id === id)
   const getMissionById = (id: string) => missions.value.find((mission) => mission.id === id)
   const getTeamById = (id: string) => teams.value.find((team) => team.id === id)
+  const userNextCursor = ref<string | null>(null)
+  const userCursorHistory = ref<(string | undefined)[]>([])
+  const userPage = ref(1)
+  const teamNextCursor = ref<string | null>(null)
+  const teamCursorHistory = ref<(string | undefined)[]>([])
+  const teamPage = ref(1)
 
   async function loadDirectory(force = false) {
-    if (mockMode || (hasLoadedDirectory.value && !force)) return
+    if (hasLoadedDirectory.value && !force) return
     isDirectoryLoading.value = true
     try {
       const [userPage, teamPage] = await Promise.all([
-        userService.list({ limit: 200 }),
-        teamService.list({ limit: 200 }),
+        userService.list({ limit: PAGE_SIZE }),
+        teamService.list({ limit: PAGE_SIZE }),
       ])
       users.value = userPage.items.map(mapUser)
       teams.value = teamPage.items.map(mapTeam)
+      userNextCursor.value = userPage.nextCursor ?? null
+      teamNextCursor.value = teamPage.nextCursor ?? null
+      userCursorHistory.value = []
+      teamCursorHistory.value = []
       hasLoadedDirectory.value = true
     } finally {
       isDirectoryLoading.value = false
     }
   }
 
+  async function loadUserPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
+    isDirectoryLoading.value = true
+    try {
+      const result = await userService.list({ cursor, limit: PAGE_SIZE })
+      users.value = result.items.map(mapUser)
+      userNextCursor.value = result.nextCursor ?? null
+      if (direction === 'next') { userCursorHistory.value.push(cursor); userPage.value += 1 }
+      else if (direction === 'previous') userPage.value = Math.max(1, userPage.value - 1)
+      else { userCursorHistory.value = []; userPage.value = 1 }
+    } finally { isDirectoryLoading.value = false }
+  }
+
+  async function nextUserPage() { if (userNextCursor.value) await loadUserPage(userNextCursor.value, 'next') }
+  async function previousUserPage() {
+    if (!userCursorHistory.value.length) return
+    userCursorHistory.value.pop()
+    await loadUserPage(userCursorHistory.value.at(-1), 'previous')
+  }
+
+  async function loadTeamPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
+    isDirectoryLoading.value = true
+    try {
+      const result = await teamService.list({ cursor, limit: PAGE_SIZE })
+      teams.value = result.items.map(mapTeam)
+      teamNextCursor.value = result.nextCursor ?? null
+      if (direction === 'next') { teamCursorHistory.value.push(cursor); teamPage.value += 1 }
+      else if (direction === 'previous') teamPage.value = Math.max(1, teamPage.value - 1)
+      else { teamCursorHistory.value = []; teamPage.value = 1 }
+    } finally { isDirectoryLoading.value = false }
+  }
+
+  async function nextTeamPage() { if (teamNextCursor.value) await loadTeamPage(teamNextCursor.value, 'next') }
+  async function previousTeamPage() {
+    if (!teamCursorHistory.value.length) return
+    teamCursorHistory.value.pop()
+    await loadTeamPage(teamCursorHistory.value.at(-1), 'previous')
+  }
+
   async function createUser(input: EnterpriseUserInput) {
-    if (mockMode) {
-      const id = `user-${Date.now()}`
-      users.value.unshift({ ...input, id, status: 'invited', createdAt: new Date().toISOString() })
-      return id
-    }
     if (!input.password) throw new Error('Un mot de passe temporaire est requis.')
     const created = await userService.create({
       matricule: input.employeeNumber,
@@ -100,11 +144,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function updateUser(id: string, input: EnterpriseUserInput) {
-    if (mockMode) {
-      const user = getUserById(id)
-      if (user) Object.assign(user, input)
-      return
-    }
     replaceUser(mapUser(await userService.update(id, {
       matricule: input.employeeNumber,
       names: `${input.firstName} ${input.lastName}`.trim(),
@@ -118,10 +157,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   async function toggleUserStatus(id: string) {
     const user = getUserById(id)
     if (!user) return
-    if (mockMode) {
-      user.status = user.status === 'disabled' ? 'active' : 'disabled'
-      return
-    }
     if (user.status === 'disabled') throw new Error("L’API ne fournit pas d’endpoint de réactivation utilisateur.")
     replaceUser(mapUser(await userService.disable(id)))
   }
@@ -141,32 +176,17 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function createTeam(input: TeamInput) {
-    if (mockMode) {
-      const id = `team-${Date.now()}`
-      const now = new Date().toISOString()
-      teams.value.unshift({ ...input, id, createdAt: now, updatedAt: now })
-      return id
-    }
     const created = await teamService.create({ name: input.name })
     teams.value.unshift(mapTeam(created))
     return created.id
   }
 
   async function updateTeam(id: string, input: TeamInput) {
-    if (mockMode) {
-      const team = getTeamById(id)
-      if (team) Object.assign(team, input, { updatedAt: new Date().toISOString() })
-      return
-    }
     replaceTeam(mapTeam(await teamService.update(id, { name: input.name })))
   }
 
   async function deleteTeam(id: string): Promise<boolean> {
-    if (mockMode) {
-      if (users.value.some((user) => user.teamId === id) || missions.value.some((mission) => mission.teamId === id)) return false
-    } else {
-      await teamService.remove(id)
-    }
+    await teamService.remove(id)
     teams.value = teams.value.filter((team) => team.id !== id)
     return true
   }
@@ -186,13 +206,30 @@ export const useAdministratorStore = defineStore('administrator', () => {
   function updateMission(id: string, input: MissionInput) { const mission = getMissionById(id); if (mission) Object.assign(mission, input) }
   function cancelMission(id: string) { const mission = getMissionById(id); if (mission) mission.status = 'cancelled' }
 
+  function resetData() {
+    users.value = mockMode ? structuredClone(mockEnterpriseUsers) : []
+    teams.value = mockMode ? structuredClone(mockTeams) : []
+    sites.value = structuredClone(mockSites)
+    missions.value = structuredClone(mockMissions)
+    userNextCursor.value = null
+    teamNextCursor.value = null
+    userCursorHistory.value = []
+    teamCursorHistory.value = []
+    userPage.value = 1
+    teamPage.value = 1
+    hasLoadedDirectory.value = false
+  }
+
   return {
     users, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, canReactivateUsers, canImportUsers,
+    userNextCursor, userCursorHistory, userPage, teamNextCursor, teamCursorHistory, teamPage,
     activeUsersCount, pendingDeviceActivationsCount, activeSitesCount, ongoingMissionsCount,
     getUserById, getSiteById, getMissionById, getTeamById, loadDirectory,
+    nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
     createUser, updateUser, toggleUserStatus, importUsers,
     createSite, updateSite, importSites, toggleSiteStatus, regenerateQrCode,
     createMission, updateMission, cancelMission,
     createTeam, updateTeam, deleteTeam,
+    resetData,
   }
 })

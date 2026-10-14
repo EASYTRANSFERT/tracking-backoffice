@@ -8,6 +8,7 @@ export interface NavigationItem {
   icon?: string
   iconSrc?: string
   allowedRoles: UserRole[]
+  prototypeOnly?: boolean
 }
 
 const dashboardRoleByApiRole: Partial<Record<ApiUserRole, UserRole>> = {

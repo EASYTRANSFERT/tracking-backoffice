@@ -8,6 +8,7 @@ import type { OfferResponse, TenantResponse } from '@/types/platform'
 import type { Company, CompanyInput, Offer, OfferInput, SupportIntervention } from '@/types/operator'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
+const PAGE_SIZE = 10
 
 function mapTenant(tenant: TenantResponse): Company {
   const status = tenant.status === 'ACTIVE' ? 'active' : tenant.status === 'SUSPENDED' ? 'suspended' : 'pending'
@@ -42,11 +43,17 @@ function mapOffer(offer: OfferResponse): Offer {
 export const useOperatorStore = defineStore('operator', () => {
   const companies = ref<Company[]>(mockMode ? structuredClone(mockCompanies) : [])
   const offers = ref<Offer[]>(mockMode ? structuredClone(mockOffers) : [])
-  const activities = ref(structuredClone(mockPlatformActivities))
-  const supportInterventions = ref(structuredClone(mockSupportInterventions))
+  const activities = ref(mockMode ? structuredClone(mockPlatformActivities) : [])
+  const supportInterventions = ref(mockMode ? structuredClone(mockSupportInterventions) : [])
   const isLoading = ref(false)
-  const hasLoaded = ref(mockMode)
+  const hasLoaded = ref(false)
   const canUpdateOffers = computed(() => mockMode)
+  const companyNextCursor = ref<string | null>(null)
+  const companyCursorHistory = ref<(string | undefined)[]>([])
+  const companyPage = ref(1)
+  const offerNextCursor = ref<string | null>(null)
+  const offerCursorHistory = ref<(string | undefined)[]>([])
+  const offerPage = ref(1)
 
   const activeCompaniesCount = computed(() => companies.value.filter((company) => company.status === 'active').length)
   const suspendedCompaniesCount = computed(() => companies.value.filter((company) => company.status === 'suspended').length)
@@ -56,34 +63,95 @@ export const useOperatorStore = defineStore('operator', () => {
   const getOfferById = (id: string) => offers.value.find((offer) => offer.id === id)
 
   async function loadCatalog(force = false) {
-    if (mockMode || (hasLoaded.value && !force)) return
+    if (hasLoaded.value && !force) return
     isLoading.value = true
     try {
-      const [tenantPage, offerPage] = await Promise.all([
-        tenantService.list({ limit: 200 }),
-        offerService.list({ limit: 200 }),
+      const [tenantResult, offerResult] = await Promise.all([
+        tenantService.list({ limit: PAGE_SIZE }),
+        offerService.list({ limit: PAGE_SIZE }),
       ])
-      companies.value = tenantPage.items.map(mapTenant)
-      offers.value = offerPage.items.map(mapOffer)
+      companies.value = tenantResult.items.map(mapTenant)
+      offers.value = offerResult.items.map(mapOffer)
+      companyNextCursor.value = tenantResult.nextCursor ?? null
+      offerNextCursor.value = offerResult.nextCursor ?? null
+      companyCursorHistory.value = []
+      offerCursorHistory.value = []
+      companyPage.value = 1
+      offerPage.value = 1
       hasLoaded.value = true
     } finally {
       isLoading.value = false
     }
   }
 
+  async function loadCompanyPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
+    isLoading.value = true
+    try {
+      const result = await tenantService.list({ cursor, limit: PAGE_SIZE })
+      companies.value = result.items.map(mapTenant)
+      companyNextCursor.value = result.nextCursor ?? null
+      if (direction === 'next') {
+        companyCursorHistory.value.push(cursor)
+        companyPage.value += 1
+      } else if (direction === 'previous') {
+        companyPage.value = Math.max(1, companyPage.value - 1)
+      } else {
+        companyCursorHistory.value = []
+        companyPage.value = 1
+      }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function nextCompanyPage() {
+    if (companyNextCursor.value) await loadCompanyPage(companyNextCursor.value, 'next')
+  }
+
+  async function previousCompanyPage() {
+    if (!companyCursorHistory.value.length) return
+    companyCursorHistory.value.pop()
+    await loadCompanyPage(companyCursorHistory.value.at(-1), 'previous')
+  }
+
+  async function loadOfferPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
+    isLoading.value = true
+    try {
+      const result = await offerService.list({ cursor, limit: PAGE_SIZE })
+      offers.value = result.items.map(mapOffer)
+      offerNextCursor.value = result.nextCursor ?? null
+      if (direction === 'next') {
+        offerCursorHistory.value.push(cursor)
+        offerPage.value += 1
+      } else if (direction === 'previous') {
+        offerPage.value = Math.max(1, offerPage.value - 1)
+      } else {
+        offerCursorHistory.value = []
+        offerPage.value = 1
+      }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function nextOfferPage() {
+    if (offerNextCursor.value) await loadOfferPage(offerNextCursor.value, 'next')
+  }
+
+  async function previousOfferPage() {
+    if (!offerCursorHistory.value.length) return
+    offerCursorHistory.value.pop()
+    await loadOfferPage(offerCursorHistory.value.at(-1), 'previous')
+  }
+
   async function loadCompany(id: string) {
-    if (mockMode || getCompanyById(id)) return getCompanyById(id)
+    if (getCompanyById(id)) return getCompanyById(id)
     const company = mapTenant(await tenantService.findOne(id))
     companies.value.push(company)
     return company
   }
 
   async function createCompany(input: CompanyInput) {
-    if (mockMode) {
-      const id = `company-${Date.now()}`
-      companies.value.unshift({ ...input, id, activeAgents: 0, status: 'pending', createdAt: new Date().toISOString() })
-      return id
-    }
     const tenant = await tenantService.create({
       name: input.legalName,
       country: input.country,
@@ -97,11 +165,6 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   async function updateCompany(id: string, input: CompanyInput) {
-    if (mockMode) {
-      const company = getCompanyById(id)
-      if (company) Object.assign(company, input)
-      return
-    }
     let tenant = await tenantService.update(id, {
       name: input.legalName,
       country: input.country,
@@ -116,29 +179,14 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   async function suspendCompany(id: string, reason: string) {
-    if (mockMode) {
-      const company = getCompanyById(id)
-      if (company) Object.assign(company, { status: 'suspended', suspensionReason: reason })
-      return
-    }
     replaceCompany(mapTenant(await tenantService.suspend(id, { reason })))
   }
 
   async function reactivateCompany(id: string) {
-    if (mockMode) {
-      const company = getCompanyById(id)
-      if (company) Object.assign(company, { status: 'active', suspensionReason: undefined })
-      return
-    }
     replaceCompany(mapTenant(await tenantService.activate(id)))
   }
 
   async function createOffer(input: OfferInput) {
-    if (mockMode) {
-      const id = `offer-${Date.now()}`
-      offers.value.unshift({ ...input, id, price: 0, companyCount: 0, status: 'active' })
-      return id
-    }
     const offer = await offerService.create({ code: input.code, name: input.name, description: input.description, maxAgents: input.maxActiveAgents })
     offers.value.unshift(mapOffer(offer))
     return offer.id
@@ -160,11 +208,28 @@ export const useOperatorStore = defineStore('operator', () => {
     supportInterventions.value.unshift({ ...input, id: `support-${Date.now()}`, status: 'open', createdAt: new Date().toISOString() })
   }
 
+  function resetData() {
+    companies.value = mockMode ? structuredClone(mockCompanies) : []
+    offers.value = mockMode ? structuredClone(mockOffers) : []
+    activities.value = mockMode ? structuredClone(mockPlatformActivities) : []
+    supportInterventions.value = mockMode ? structuredClone(mockSupportInterventions) : []
+    companyNextCursor.value = null
+    offerNextCursor.value = null
+    companyCursorHistory.value = []
+    offerCursorHistory.value = []
+    companyPage.value = 1
+    offerPage.value = 1
+    hasLoaded.value = false
+  }
+
   return {
     companies, offers, activities, supportInterventions, isLoading, hasLoaded, canUpdateOffers,
+    companyNextCursor, companyCursorHistory, companyPage, offerNextCursor, offerCursorHistory, offerPage,
     activeCompaniesCount, suspendedCompaniesCount, activeOffersCount, activeAgentsCount,
     getCompanyById, getOfferById, loadCatalog, loadCompany,
+    nextCompanyPage, previousCompanyPage, nextOfferPage, previousOfferPage,
     createCompany, updateCompany, suspendCompany, reactivateCompany,
     createOffer, updateOffer, createSupportIntervention,
+    resetData,
   }
 })

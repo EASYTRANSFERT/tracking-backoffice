@@ -6,6 +6,8 @@ import { authService } from '@/Services/auth.service'
 import { authSessionStorage } from '@/Services/auth-session.storage'
 import { userService } from '@/Services/user.service'
 import { getDashboardRoles } from '@/types/roles'
+import { useAdministratorStore } from '@/stores/administrator.store'
+import { useOperatorStore } from '@/stores/operator.store'
 
 import type {
   LoginRequest,
@@ -14,6 +16,7 @@ import type {
 import type { ApiProblemDetails } from '@/types/api'
 import type { UserRole } from '@/types/roles'
 import type { UserResponse } from '@/types/user'
+import type { UpdatePasswordRequest } from '@/types/user'
 
 export type AuthStep =
   | 'credentials'
@@ -194,6 +197,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function changePassword(payload: UpdatePasswordRequest): Promise<boolean> {
+    if (!currentUser.value) return false
+    isLoading.value = true
+    errorMessage.value = null
+    try {
+      await userService.updatePassword(currentUser.value.id, payload)
+      return true
+    } catch (error) {
+      errorMessage.value = getErrorMessage(error)
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function restoreSession(): Promise<boolean> {
     const persistedSession = authSessionStorage.read()
 
@@ -278,6 +296,8 @@ export const useAuthStore = defineStore('auth', () => {
     activeRole.value = null
     step.value = 'credentials'
     authSessionStorage.clear()
+    useOperatorStore().resetData()
+    useAdministratorStore().resetData()
   }
 
   function resetAuthentication() {
@@ -360,6 +380,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshSession,
     restoreSession,
     stepUp,
+    changePassword,
     logout,
     resetAuthentication,
     clearSession,
