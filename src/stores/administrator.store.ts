@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import { teamService } from '@/Services/team.service'
 import { userService } from '@/Services/user.service'
 import { missionService } from '@/Services/mission.service'
-import { mockEnterpriseUsers, mockSites, mockTeams } from '@/mocks/administrator-data'
+import { mockEnterpriseUsers, mockMissions, mockSites, mockTeams } from '@/mocks/administrator-data'
 import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, SiteInput, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { TeamResponse } from '@/types/team'
@@ -54,6 +54,10 @@ const missionStatusFromApi: Record<MissionResponse['status'], Mission['status']>
 }
 
 function mapMission(mission: MissionResponse): Mission {
+  const mockScope = mockMode
+    ? mockMissions.find((item) => item.id === mission.id)
+    : undefined
+
   return {
     id: mission.id,
     code: mission.code,
@@ -66,6 +70,9 @@ function mapMission(mission: MissionResponse): Mission {
     closedAt: mission.closedAt,
     createdAt: mission.createdAt,
     updatedAt: mission.updatedAt,
+    siteId: mockScope?.siteId,
+    supervisorId: mockScope?.supervisorId,
+    teamId: mockScope?.teamId,
   }
 }
 

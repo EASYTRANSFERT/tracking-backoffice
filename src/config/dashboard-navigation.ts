@@ -72,10 +72,13 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['supervisor'],
   },
   {
-    title: 'Agents', routeName: 'supervisor-users', icon: 'mdi-account-group-outline', allowedRoles: ['supervisor'],
+    title: 'Mes missions', routeName: 'supervisor-missions', icon: 'mdi-clipboard-text-clock-outline', allowedRoles: ['supervisor'],
   },
   {
-    title: 'Équipes', routeName: 'supervisor-teams', icon: 'mdi-account-multiple-outline', allowedRoles: ['supervisor'],
+    title: 'Mes équipes', routeName: 'supervisor-teams', icon: 'mdi-account-multiple-outline', allowedRoles: ['supervisor'],
+  },
+  {
+    title: 'Pointages', routeName: 'supervisor-attendance', icon: 'mdi-clock-check-outline', allowedRoles: ['supervisor'],
   },
   {
     title: 'Dashboard',
@@ -84,9 +87,6 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['teamLeader'],
   },
   {
-    title: 'Agents', routeName: 'team-leader-users', icon: 'mdi-account-group-outline', allowedRoles: ['teamLeader'],
-  },
-  {
-    title: 'Équipes', routeName: 'team-leader-teams', icon: 'mdi-account-multiple-outline', allowedRoles: ['teamLeader'],
+    title: 'Mes missions', routeName: 'team-leader-missions', icon: 'mdi-clipboard-text-clock-outline', allowedRoles: ['teamLeader'],
   },
 ]

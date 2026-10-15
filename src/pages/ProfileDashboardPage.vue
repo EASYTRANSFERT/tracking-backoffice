@@ -1,87 +1,87 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 
-import AppSectionCard from '@/Components/common/AppSectionCard.vue'
 import DashboardStatCard from '@/Components/DashboardStatCard.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import MissionTable from '@/Components/missions/MissionTable.vue'
-import { useAuthStore } from '@/stores/auth.store'
-import { useAdministratorStore } from '@/stores/administrator.store'
+import { useProfileScope } from '@/composables/useProfileScope'
+import type { Mission } from '@/types/administrator'
 
-const authStore = useAuthStore()
-const directoryStore = useAdministratorStore()
-const { activeRole, currentUser } = storeToRefs(authStore)
-const { users, teams, missions, isMissionsLoading } = storeToRefs(directoryStore)
+const router = useRouter()
+const {
+  activeRole,
+  currentUser,
+  supervisedTeams,
+  scopedMissions,
+  missionDetailsRoute,
+} = useProfileScope()
 
-const agents = computed(() => {
-  return users.value.filter((user) => user.role === 'agent')
-})
+const firstName = computed(() =>
+  currentUser.value?.names.split(/\s+/)[0] ?? 'Utilisateur',
+)
 
-// L’API retourne déjà les missions autorisées pour l’utilisateur connecté.
-// Aucun filtrage client ne doit inventer une affectation absente du DTO MissionResponse.
-const assignedMissions = computed(() => missions.value)
+const ongoingCount = computed(() =>
+  scopedMissions.value.filter((mission) => mission.status === 'ongoing').length,
+)
+const scheduledCount = computed(() =>
+  scopedMissions.value.filter((mission) => mission.status === 'scheduled').length,
+)
+const completedCount = computed(() =>
+  scopedMissions.value.filter((mission) => mission.status === 'completed').length,
+)
 
-const firstName = computed(() => {
-  return currentUser.value?.names.split(/\s+/)[0] ?? 'Utilisateur'
-})
+const description = computed(() => activeRole.value === 'supervisor'
+  ? 'Suivez vos missions, vos équipes supervisées et les pointages à valider.'
+  : "Consultez les missions affectées à votre équipe et leurs informations.")
 
-const content = computed(() => {
-  if (activeRole.value === 'supervisor') {
-    return {
-      title: 'Espace superviseur',
-      description:
-        'La navigation est limitée au suivi et à la validation des missions autorisées.',
-      icon: 'mdi-account-tie-outline',
-    }
-  }
-
-  return {
-    title: "Espace chef d'équipe",
-    description:
-      "La navigation est limitée aux missions et aux agents de l'équipe autorisée.",
-    icon: 'mdi-account-group-outline',
-  }
-})
-
-const routes = computed(() => activeRole.value === 'supervisor'
-  ? { users: 'supervisor-users', teams: 'supervisor-teams' }
-  : { users: 'team-leader-users', teams: 'team-leader-teams' })
+function viewMission(mission: Mission) {
+  void router.push({
+    name: missionDetailsRoute.value,
+    params: { missionId: mission.id },
+  })
+}
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1100px]">
+  <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
       <template #title>Bonjour {{ firstName }}</template>
-      <template #description>{{ content.description }}</template>
-      <template #actions><span /></template>
+      <template #description>{{ description }}</template>
+      <template #actions>
+        <v-btn
+          v-if="activeRole === 'supervisor'"
+          color="primary"
+          prepend-icon="mdi-clock-check-outline"
+          :to="{ name: 'supervisor-attendance' }"
+        >
+          Valider les pointages
+        </v-btn>
+        <span v-else />
+      </template>
     </PageHeader>
 
-    <div class="mb-6 grid gap-4 sm:grid-cols-3">
-      <DashboardStatCard title="Agents affichés" :value="agents.length" icon="mdi-account-group-outline" change="Page API chargée" />
-      <DashboardStatCard title="Équipes affichées" :value="teams.length" icon="mdi-account-multiple-outline" change="Page API chargée" />
-      <DashboardStatCard title="Missions affectées" :value="assignedMissions.length" icon="mdi-clipboard-text-clock-outline" change="Selon votre périmètre" />
+    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <DashboardStatCard title="Missions planifiées" :value="scheduledCount" icon="mdi-calendar-clock-outline" change="À venir" />
+      <DashboardStatCard title="Missions en cours" :value="ongoingCount" icon="mdi-progress-clock" change="À suivre" change-color="warning" />
+      <DashboardStatCard title="Missions terminées" :value="completedCount" icon="mdi-check-circle-outline" change="Clôturées" />
+      <DashboardStatCard
+        v-if="activeRole === 'supervisor'"
+        title="Équipes supervisées"
+        :value="supervisedTeams.length"
+        icon="mdi-account-multiple-outline"
+        change="Votre périmètre"
+      />
+      <DashboardStatCard v-else title="Total des missions" :value="scopedMissions.length" icon="mdi-clipboard-text-clock-outline" change="Votre périmètre" />
     </div>
 
-    <AppSectionCard
-      :title="content.title"
-      description="Les listes sont limitées automatiquement au périmètre autorisé par l’API."
-      :icon="content.icon"
-    >
-      <div class="grid gap-3 sm:grid-cols-2">
-        <v-btn size="large" variant="tonal" color="primary" prepend-icon="mdi-account-group-outline" :to="{ name: routes.users }">Consulter les agents</v-btn>
-        <v-btn size="large" variant="tonal" color="primary" prepend-icon="mdi-account-multiple-outline" :to="{ name: routes.teams }">Consulter les équipes</v-btn>
-      </div>
-    </AppSectionCard>
-
     <MissionTable
-      class="mt-6"
-      :missions="assignedMissions"
-      :loading="isMissionsLoading"
+      :missions="scopedMissions"
       title="Mes missions"
-      description="Missions comprises dans votre périmètre d’intervention."
+      description="Ouvrez une mission pour consulter toutes les informations disponibles."
       :show-actions="false"
-      :row-clickable="false"
+      row-clickable
+      @view="viewMission"
     />
   </div>
 </template>

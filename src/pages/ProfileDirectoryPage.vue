@@ -4,24 +4,23 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import TeamTable from '@/Components/teams/TeamTable.vue'
-import UserTable from '@/Components/users/UserTable.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { useProfileScope } from '@/composables/useProfileScope'
 
 const route = useRoute()
 const store = useAdministratorStore()
-const { users, teamDirectoryUsers, teams, userPage, userNextCursor, userCursorHistory, teamPage, teamNextCursor, teamCursorHistory } = storeToRefs(store)
-const directory = computed(() => route.meta.directory ?? 'users')
-const agents = computed(() => users.value.filter((user) => user.role === 'agent'))
+const { teamDirectoryUsers, teamPage, teamNextCursor, teamCursorHistory } = storeToRefs(store)
+const { supervisedTeams } = useProfileScope()
+const directory = computed(() => route.meta.directory ?? 'teams')
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
-      <template #title>{{ directory === 'users' ? 'Agents' : 'Équipes' }}</template>
-      <template #description>Consultation des données autorisées par votre profil et votre périmètre.</template>
+      <template #title>Mes équipes</template>
+      <template #description>Équipes dont vous êtes le superviseur désigné.</template>
       <template #actions><v-chip color="secondary" variant="tonal" prepend-icon="mdi-eye-outline">Lecture seule</v-chip></template>
     </PageHeader>
-    <UserTable v-if="directory === 'users'" :users="agents" :teams="teams" readonly :cursor-page="userPage" :has-next-page="Boolean(userNextCursor)" :has-previous-page="userCursorHistory.length > 0" @next-page="store.nextUserPage" @previous-page="store.previousUserPage" />
-    <TeamTable v-else :teams="teams" :users="teamDirectoryUsers" readonly :cursor-page="teamPage" :has-next-page="Boolean(teamNextCursor)" :has-previous-page="teamCursorHistory.length > 0" @next-page="store.nextTeamPage" @previous-page="store.previousTeamPage" />
+    <TeamTable v-if="directory === 'teams'" :teams="supervisedTeams" :users="teamDirectoryUsers" readonly :cursor-page="teamPage" :has-next-page="Boolean(teamNextCursor)" :has-previous-page="teamCursorHistory.length > 0" @next-page="store.nextTeamPage" @previous-page="store.previousTeamPage" />
   </div>
 </template>

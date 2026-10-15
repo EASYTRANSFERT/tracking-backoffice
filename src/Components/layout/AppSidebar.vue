@@ -59,8 +59,8 @@ const routeGroups: Record<string, string[]> = {
   'admin-teams': ['admin-teams', 'admin-team-create', 'admin-team-edit'],
   'admin-sites': ['admin-sites', 'admin-site-create', 'admin-site-import', 'admin-site-details', 'admin-site-edit'],
   'admin-missions': ['admin-missions', 'admin-mission-create', 'admin-mission-details', 'admin-mission-edit'],
-  'supervisor-users': ['supervisor-users'],
-  'team-leader-users': ['team-leader-users'],
+  'supervisor-missions': ['supervisor-missions', 'supervisor-mission-details'],
+  'team-leader-missions': ['team-leader-missions', 'team-leader-mission-details'],
 }
 
 function isItemActive(routeName: string) {
