@@ -345,6 +345,13 @@ export const useAdministratorStore = defineStore('administrator', () => {
     return updated
   }
 
+  function assignMissionSite(id: string, siteId: string) {
+    const mission = getMissionById(id)
+    if (!mission) throw new Error('Mission introuvable.')
+    mission.siteId = siteId
+    return mission
+  }
+
   function replaceMission(mission: Mission) {
     const index = missions.value.findIndex((item) => item.id === mission.id)
     if (index >= 0) missions.value[index] = mission
@@ -375,7 +382,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
     createUser, updateUser, toggleUserStatus, importUsers,
     createSite, updateSite, importSites, toggleSiteStatus, regenerateQrCode,
-    createMission, updateMission, openMission, closeMission,
+    createMission, updateMission, openMission, closeMission, assignMissionSite,
     createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }

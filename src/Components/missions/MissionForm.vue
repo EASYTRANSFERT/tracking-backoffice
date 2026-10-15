@@ -51,7 +51,7 @@ async function submit() {
         <v-text-field v-model="data.endAt" label="Fin prévisionnelle" type="datetime-local" :rules="[validPeriod]" />
         <v-textarea v-model="data.notes" label="Description" rows="4" class="md:col-span-2" />
         <v-alert class="md:col-span-2" type="info" variant="tonal">
-          Les affectations de site, d’équipe et de superviseur ne sont pas proposées ici car elles ne font pas partie du contrat actuel de l’API Missions.
+          Après la création, vous pourrez affecter un site depuis la fiche de la mission. Son périmètre et son encadrement seront alors affichés avec la mission.
         </v-alert>
       </v-card-text>
     </v-card>
