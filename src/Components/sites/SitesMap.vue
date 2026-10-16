@@ -142,15 +142,18 @@ onBeforeUnmount(() => {
       title="Aucun site géolocalisé"
       text="Ajoutez des coordonnées GPS pour afficher les sites sur la carte."
     />
-    <v-chip
+    <div
       v-else-if="missingLocationCount"
       class="absolute left-4 top-4 z-[500]"
+    >
+      <v-chip
       color="warning"
       variant="elevated"
       prepend-icon="mdi-map-marker-alert-outline"
     >
       {{ missingLocationCount }} site{{ missingLocationCount > 1 ? 's' : '' }} sans position
     </v-chip>
+  </div>
   </div>
 </template>
 
