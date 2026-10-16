@@ -38,7 +38,8 @@ async function submit(payload: MissionInput) {
 
 <template>
   <div class="mx-auto w-full max-w-[1050px]">
-    <PageHeader><template #title>{{ id ? 'Modifier la mission' : 'Nouvelle mission' }}</template><template #description>Renseignez les informations prévues par l’API Missions.</template><template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-missions' }">Retour</v-btn></template></PageHeader>
+    <PageHeader><template #title>{{ id ? 'Modifier la mission' : 'Nouvelle mission' }}</template><template #description>Renseignez les informations de la mission.</template>
+      <template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-missions' }">Retour</v-btn></template></PageHeader>
     <v-alert v-if="id && !mission && !loading" type="error" variant="tonal" title="Mission introuvable" />
     <MissionForm v-else :mission="mission" :loading="loading" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" />
   </div>
