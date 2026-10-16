@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
     />
     <div
       v-else-if="missingLocationCount"
-      class="absolute left-4 top-4 z-[500]"
+      class="absolute left-4 bottom-4 z-[500]"
     >
       <v-chip
       color="warning"
