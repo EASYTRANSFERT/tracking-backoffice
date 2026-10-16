@@ -16,8 +16,8 @@ const { activeRole, currentUser } = storeToRefs(authStore)
 const navigationItems = computed(() => {
   if (!activeRole.value) return []
 
-  return dashboardNavigation.filter((item) =>
-    item.allowedRoles.includes(activeRole.value!) && (mockMode || !item.prototypeOnly),
+  return dashboardNavigation.filter(
+    (item) => item.allowedRoles.includes(activeRole.value!) && (mockMode || !item.prototypeOnly),
   )
 })
 
@@ -46,19 +46,40 @@ const profile = computed(() => {
   return {
     initials,
     name,
-    label: activeRole.value
-      ? roleLabelByRole[activeRole.value]
-      : 'Profil indisponible',
+    label: activeRole.value ? roleLabelByRole[activeRole.value] : 'Profil indisponible',
   }
 })
 
 const routeGroups: Record<string, string[]> = {
-  companies: ['companies', 'company-create', 'company-details', 'company-edit', 'company-admin-create'],
+  companies: [
+    'companies',
+    'company-create',
+    'company-details',
+    'company-edit',
+    'company-admin-create',
+  ],
   offers: ['offers', 'offer-create', 'offer-details', 'offer-edit'],
-  'admin-users': ['admin-users', 'admin-user-create', 'admin-user-import', 'admin-user-details', 'admin-user-edit'],
+  'admin-users': [
+    'admin-users',
+    'admin-user-create',
+    'admin-user-import',
+    'admin-user-details',
+    'admin-user-edit',
+  ],
   'admin-teams': ['admin-teams', 'admin-team-create', 'admin-team-edit'],
-  'admin-sites': ['admin-sites', 'admin-site-create', 'admin-site-import', 'admin-site-details', 'admin-site-edit'],
-  'admin-missions': ['admin-missions', 'admin-mission-create', 'admin-mission-details', 'admin-mission-edit'],
+  'admin-sites': [
+    'admin-sites',
+    'admin-site-create',
+    'admin-site-import',
+    'admin-site-details',
+    'admin-site-edit',
+  ],
+  'admin-missions': [
+    'admin-missions',
+    'admin-mission-create',
+    'admin-mission-details',
+    'admin-mission-edit',
+  ],
   'supervisor-missions': ['supervisor-missions', 'supervisor-mission-details'],
   'team-leader-missions': ['team-leader-missions', 'team-leader-mission-details'],
 }
@@ -80,23 +101,27 @@ async function handleLogout() {
     app
     width="272"
     color="surface"
-    class="app-sidebar border-e-sm"
+    class="!fixed !h-dvh !max-h-dvh border-e-sm font-sans [&_.v-navigation-drawer__content]:!h-full [&_.v-navigation-drawer__content]:!overflow-hidden"
   >
     <div class="flex h-full min-h-0 flex-col overflow-hidden">
-      <div class="flex h-[108px] items-center px-7"><img src="@/assets/kaybiclogo.png" alt="Kaybic Africa" class="h-16 w-auto object-contain" /></div>
+      <div class="flex h-[108px] items-center px-7">
+        <img src="@/assets/kaybiclogo.png" alt="Kaybic Africa" class="h-16 w-auto object-contain" />
+      </div>
       <v-divider />
 
       <div class="shrink-0 px-4 pt-7">
-        <p class="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#848484]">Menu principal</p>
+        <p class="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#848484]">
+          Menu principal
+        </p>
         <nav aria-label="Menu principal" class="space-y-2">
           <RouterLink
             v-for="item in navigationItems"
             :key="item.routeName"
             :to="{ name: item.routeName }"
             class="relative flex min-h-[52px] items-center rounded-2xl px-3 text-[15px] font-medium text-[#3f434d] no-underline transition-colors hover:bg-[#f7f7f8]"
-            :class="isItemActive(item.routeName)
-              ? 'bg-[#FDE9EA] font-semibold !text-[#D80F16]'
-              : ''"
+            :class="
+              isItemActive(item.routeName) ? 'bg-[#FDE9EA] font-semibold !text-[#D80F16]' : ''
+            "
           >
             <span
               class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full"
@@ -110,15 +135,17 @@ async function handleLogout() {
                 alt=""
                 aria-hidden="true"
                 class="h-[22px] w-[22px] object-contain transition"
-                :class="isItemActive(item.routeName)
-                  ? 'sidebar-nav-icon--active'
-                  : 'sidebar-nav-icon--inactive'"
+                :class="
+                  isItemActive(item.routeName)
+                    ? 'opacity-100 [filter:brightness(0)_saturate(100%)_invert(13%)_sepia(94%)_saturate(5223%)_hue-rotate(351deg)_brightness(93%)_contrast(101%)]'
+                    : 'opacity-60 grayscale'
+                "
               />
               <v-icon
                 v-else
                 :icon="item.icon"
                 :color="isItemActive(item.routeName) ? 'primary' : undefined"
-                class="sidebar-nav-mdi"
+                class="[-webkit-text-stroke:0.35px_currentColor]"
                 size="24"
               />
             </span>
@@ -130,9 +157,21 @@ async function handleLogout() {
       <v-spacer />
 
       <div class="shrink-0 px-4 pb-4">
-        <p class="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#848484]">Mon compte</p>
-        <v-list nav density="default" class="account-navigation space-y-1 bg-transparent pa-0">
-          <v-list-item prepend-icon="mdi-cog-outline" title="Paramètres" value="settings" :to="{ name: settingsRoute }" rounded="lg" />
+        <p class="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#848484]">
+          Mon compte
+        </p>
+        <v-list
+          nav
+          density="default"
+          class="space-y-1 bg-transparent pa-0 [&_.v-icon]:text-[25px] [&_.v-icon]:[-webkit-text-stroke:0.35px_currentColor] [&_.v-list-item]:min-h-[52px] [&_.v-list-item]:text-[15px] [&_.v-list-item]:font-medium [&_.v-list-item]:text-[#3f434d]"
+        >
+          <v-list-item
+            prepend-icon="mdi-cog-outline"
+            title="Paramètres"
+            value="settings"
+            :to="{ name: settingsRoute }"
+            rounded="lg"
+          />
           <v-list-item
             prepend-icon="mdi-logout"
             title="Se déconnecter"
@@ -144,51 +183,15 @@ async function handleLogout() {
         </v-list>
         <v-divider class="my-4" />
         <div class="flex items-center gap-3 px-3 py-2">
-          <v-avatar color="primary" size="38"><span class="text-xs font-bold text-white">{{ profile.initials }}</span></v-avatar>
-          <div class="min-w-0"><p class="truncate text-xs font-bold text-[#292d38]">{{ profile.name }}</p><p class="text-[10px] text-[#848484]">{{ profile.label }}</p></div>
+          <v-avatar color="primary" size="38"
+            ><span class="text-xs font-bold text-white">{{ profile.initials }}</span></v-avatar
+          >
+          <div class="min-w-0">
+            <p class="truncate text-xs font-bold text-[#292d38]">{{ profile.name }}</p>
+            <p class="text-[10px] text-[#848484]">{{ profile.label }}</p>
+          </div>
         </div>
       </div>
     </div>
   </v-navigation-drawer>
 </template>
-
-<style scoped>
-:deep(.v-navigation-drawer__content) {
-  height: 100% !important;
-  overflow: hidden !important;
-}
-
-.app-sidebar {
-  position: fixed !important;
-  height: 100dvh !important;
-  max-height: 100dvh !important;
-  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
-}
-
-.sidebar-nav-mdi,
-:deep(.account-navigation .v-icon) {
-  -webkit-text-stroke: 0.35px currentColor;
-}
-
-:deep(.account-navigation .v-list-item) {
-  min-height: 52px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #3f434d;
-}
-
-:deep(.account-navigation .v-icon) {
-  font-size: 25px;
-}
-
-.sidebar-nav-icon--active {
-  filter: brightness(0) saturate(100%) invert(13%) sepia(94%) saturate(5223%)
-    hue-rotate(351deg) brightness(93%) contrast(101%);
-  opacity: 1;
-}
-
-.sidebar-nav-icon--inactive {
-  filter: grayscale(1);
-  opacity: 0.6;
-}
-</style>

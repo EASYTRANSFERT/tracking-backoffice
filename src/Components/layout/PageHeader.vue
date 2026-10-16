@@ -23,7 +23,9 @@ const displayName = computed(() => {
       </p>
     </div>
 
-    <div class="page-header-actions flex flex-wrap items-center gap-3">
+    <div
+      class="flex flex-wrap items-center gap-3 [&_.v-btn.bg-primary]:min-h-11 [&_.v-btn.bg-primary]:rounded-[10px] [&_.v-btn.bg-primary]:px-5 [&_.v-btn.bg-primary]:font-semibold [&_.v-btn.bg-primary]:normal-case [&_.v-btn.bg-primary]:tracking-normal [&_.v-btn.bg-primary]:shadow-[0_8px_18px_rgb(216_15_22_/_18%)]"
+    >
       <slot name="actions">
         <v-btn color="primary" prepend-icon="mdi-plus" size="large" class="w-full sm:w-auto">
           Nouvelle entreprise
@@ -32,15 +34,3 @@ const displayName = computed(() => {
     </div>
   </header>
 </template>
-
-<style scoped>
-.page-header-actions :deep(.v-btn.bg-primary) {
-  min-height: 44px;
-  padding-inline: 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
-  box-shadow: 0 8px 18px rgb(216 15 22 / 18%);
-}
-</style>

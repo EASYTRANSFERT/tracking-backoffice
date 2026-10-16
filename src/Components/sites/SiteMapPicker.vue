@@ -6,17 +6,20 @@ import * as L from 'leaflet'
 import { useGeocodingStore } from '@/stores/geocoding.store'
 import type { GeocodingResult } from '@/types/geocoding'
 
-const props = withDefaults(defineProps<{
-  latitude?: string
-  longitude?: string
-  radiusM?: number
-  address?: string
-}>(), {
-  latitude: '',
-  longitude: '',
-  radiusM: 100,
-  address: '',
-})
+const props = withDefaults(
+  defineProps<{
+    latitude?: string
+    longitude?: string
+    radiusM?: number
+    address?: string
+  }>(),
+  {
+    latitude: '',
+    longitude: '',
+    radiusM: 100,
+    address: '',
+  },
+)
 
 const emit = defineEmits<{
   'update:latitude': [value: string]
@@ -41,8 +44,8 @@ let marker: L.Marker | null = null
 let radiusCircle: L.Circle | null = null
 
 const siteIcon = L.divIcon({
-  className: 'site-map-marker',
-  html: '<span class="mdi mdi-map-marker"></span>',
+  className: '!border-0 !bg-transparent',
+  html: '<span class="mdi mdi-map-marker text-[42px] leading-[42px] text-[#d80f16] drop-shadow-[0_2px_2px_rgb(0_0_0_/_25%)]"></span>',
   iconSize: [42, 42],
   iconAnchor: [21, 40],
 })
@@ -153,7 +156,8 @@ onMounted(async () => {
 
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map)
 
   map.on('click', (event: L.LeafletMouseEvent) => selectPosition(event.latlng))
@@ -164,9 +168,12 @@ onMounted(async () => {
 })
 
 watch(() => [props.latitude, props.longitude, props.radiusM], refreshSiteLayers)
-watch(() => props.address, (address) => {
-  if (!searchQuery.value) searchQuery.value = address
-})
+watch(
+  () => props.address,
+  (address) => {
+    if (!searchQuery.value) searchQuery.value = address
+  },
+)
 
 onBeforeUnmount(() => {
   geocodingStore.clearResults()
@@ -232,34 +239,23 @@ onBeforeUnmount(() => {
     <div class="overflow-hidden rounded-xl border border-[#d9dce2] bg-[#eef1f4]">
       <div
         ref="mapElement"
-        class="site-map h-[420px] w-full"
+        class="z-0 h-[420px] w-full"
         role="application"
         aria-label="Carte de sélection de la position du site"
         tabindex="0"
       />
     </div>
 
-    <div class="flex flex-col gap-2 text-xs text-[#747985] sm:flex-row sm:items-center sm:justify-between">
-      <p><v-icon icon="mdi-gesture-tap" size="18" class="mr-1" />Touchez la carte ou déplacez le marqueur pour ajuster la position.</p>
-      <p v-if="latitude && longitude" class="font-medium text-[#535865]">{{ latitude }}, {{ longitude }}</p>
+    <div
+      class="flex flex-col gap-2 text-xs text-[#747985] sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p>
+        <v-icon icon="mdi-gesture-tap" size="18" class="mr-1" />Touchez la carte ou déplacez le
+        marqueur pour ajuster la position.
+      </p>
+      <p v-if="latitude && longitude" class="font-medium text-[#535865]">
+        {{ latitude }}, {{ longitude }}
+      </p>
     </div>
   </div>
 </template>
-
-<style scoped>
-.site-map {
-  z-index: 0;
-}
-
-:deep(.site-map-marker) {
-  background: transparent;
-  border: 0;
-}
-
-:deep(.site-map-marker .mdi) {
-  color: #d80f16;
-  font-size: 42px;
-  line-height: 42px;
-  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 25%));
-}
-</style>
