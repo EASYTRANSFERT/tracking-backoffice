@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import '@mdi/font/css/materialdesignicons.css'
+import 'leaflet/dist/leaflet.css'
 import './main.css'
 
 import App from './App.vue'
