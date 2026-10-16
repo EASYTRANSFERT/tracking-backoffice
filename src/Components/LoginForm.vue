@@ -66,8 +66,9 @@ function handleSubmit() {
       label="E-mail"
       type="email"
       name="email"
-      autocomplete="email"
+      autocomplete="username"
       placeholder="xxx@yahoo.fr"
+      persistent-placeholder
       prepend-inner-icon="mdi-email-outline"
       :disabled="loading"
       hide-details="auto"
@@ -80,6 +81,7 @@ function handleSubmit() {
       name="password"
       autocomplete="current-password"
       placeholder="••••••••"
+      persistent-placeholder
       prepend-inner-icon="mdi-lock-outline"
       :append-inner-icon="
         voirPassword
