@@ -1,14 +1,32 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+
 import UserMenu from '@/Components/layout/UserMenu.vue'
+import { useAuthStore } from '@/stores/auth.store'
+import { dashboardRouteByRole } from '@/types/roles'
 
 const emit = defineEmits<{
   toggleNavigation: []
 }>()
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const { activeRole } = storeToRefs(authStore)
 const pageTitle = computed(() => String(route.meta.title ?? 'Dashboard'))
+
+function goBack() {
+  if (window.history.state.back) {
+    router.back()
+    return
+  }
+
+  if (activeRole.value) {
+    void router.push({ name: dashboardRouteByRole[activeRole.value] })
+  }
+}
 </script>
 
 <template>
@@ -25,7 +43,15 @@ const pageTitle = computed(() => String(route.meta.title ?? 'Dashboard'))
       @click="emit('toggleNavigation')"
     />
 
-    <v-toolbar-title class="ml-2 text-[22px] font-bold text-[#252830] md:ml-7">
+    <v-btn
+      icon="mdi-arrow-left"
+      variant="text"
+      aria-label="Revenir à la page précédente"
+      title="Retour"
+      @click="goBack"
+    />
+
+    <v-toolbar-title class="ml-1 text-[22px] font-bold text-[#252830] md:ml-4">
       {{ pageTitle }}
     </v-toolbar-title>
 
