@@ -72,7 +72,7 @@ const formatDate = (value?: string) => value
     <v-progress-linear v-if="loading" indeterminate color="primary" />
     <div v-if="displayed.length" class="overflow-x-auto">
       <v-table hover class="min-w-[940px]">
-        <thead><tr><th>Référence</th><th>Mission</th><th>Début prévu</th><th>Fin prévue</th><th>Statut</th><th v-if="showActions" class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>Code</th><th>Mission</th><th>Début prévu</th><th>Fin prévue</th><th>Statut</th><th v-if="showActions" class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>
           <tr v-for="mission in displayed" :key="mission.id" :class="rowClickable ? 'cursor-pointer' : ''" @click="rowClickable && emit('view', mission)">
             <td class="text-sm font-medium text-[#535865]">{{ mission.code }}</td>
