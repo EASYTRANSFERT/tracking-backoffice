@@ -37,7 +37,7 @@ const cardDescription = computed(() => {
     return 'Configurez votre authentification à deux facteurs'
   }
 
-  return 'Confirmez votre identité pour continuer'
+  return 'Un instant vous allez accéder à la d\'acceuil...'
 })
 
 async function handleLogin(credentials: LoginRequest) {
