@@ -14,7 +14,8 @@ const { scopedMissions, missionsRoute } = useProfileScope()
 
 const missionId = computed(() => String(route.params.missionId))
 const mission = computed(() => scopedMissions.value.find((item) => item.id === missionId.value))
-const site = computed(() => mission.value?.siteId ? store.getSiteById(mission.value.siteId) : undefined)
+// Côté API, c'est le site qui porte sa mission (site.missionId).
+const site = computed(() => mission.value?.siteId ? store.getSiteById(mission.value.siteId) : store.sites.find((item) => item.missionId === mission.value?.id))
 const team = computed(() => mission.value?.teamId ? store.getTeamById(mission.value.teamId) : undefined)
 const supervisor = computed(() => {
   const id = mission.value?.supervisorId ?? team.value?.supervisorUserId
@@ -22,6 +23,7 @@ const supervisor = computed(() => {
 })
 
 onMounted(async () => {
+  store.loadSites().catch(() => undefined)
   if (store.getMissionById(missionId.value)) return
   await store.loadMission(missionId.value)
 })

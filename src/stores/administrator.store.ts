@@ -4,20 +4,45 @@ import { defineStore } from 'pinia'
 import { teamService } from '@/Services/team.service'
 import { userService } from '@/Services/user.service'
 import { missionService } from '@/Services/mission.service'
-import { mockEnterpriseUsers, mockMissions, mockSites, mockTeams } from '@/mocks/administrator-data'
-import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, SiteInput, Team, TeamInput } from '@/types/administrator'
+import { siteService } from '@/Services/site.service'
+import { mockEnterpriseUsers, mockMissions, mockTeams } from '@/mocks/administrator-data'
+import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
+import type { CreateSiteRequest, SiteLocation, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { TeamResponse } from '@/types/team'
 import type { ApiUserRole, UserResponse } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const PAGE_SIZE = 10
-// Le centre des trois points sert de position du site sur les cartes et listes existantes.
-function withPerimeterCenter(input: SiteInput): SiteInput {
-  if (!input.points?.length) return input
-  const latitude = input.points.reduce((sum, point) => sum + point.latitude, 0) / input.points.length
-  const longitude = input.points.reduce((sum, point) => sum + point.longitude, 0) / input.points.length
-  return { ...input, latitude: latitude.toFixed(6), longitude: longitude.toFixed(6) }
+// L'API n'accepte qu'un point : on envoie le centre des trois points du périmètre.
+function perimeterLocation(points: SitePoint[]): SiteLocation {
+  const latitude = points.reduce((sum, point) => sum + point.latitude, 0) / points.length
+  const longitude = points.reduce((sum, point) => sum + point.longitude, 0) / points.length
+  return { type: 'Point', coordinates: [Number(longitude.toFixed(6)), Number(latitude.toFixed(6))] }
+}
+
+// Points, ville et image du QR n'existent pas côté API : on conserve la copie locale existante.
+function mapSite(site: SiteResponse, previous?: Site): Site {
+  const [longitude, latitude] = site.location.coordinates
+  return {
+    id: site.id,
+    name: site.name,
+    address: site.address,
+    locationDescription: site.locationDescription,
+    city: previous?.city,
+    latitude: latitude.toFixed(6),
+    longitude: longitude.toFixed(6),
+    radiusM: site.radiusM,
+    points: previous?.points,
+    missionId: site.missionId,
+    teamId: site.teamId,
+    managerId: site.managerId,
+    qrCode: '',
+    qrImage: previous?.qrImage,
+    qrRotatedAt: site.qrRotatedAt,
+    status: site.status === 'ACTIVE' ? 'active' : 'inactive',
+    createdAt: site.createdAt,
+  }
 }
 const roleToApi: Record<EnterpriseUser['role'], ApiUserRole> = {
   administrator: 'ADMIN', supervisor: 'SUPERVISOR', teamLeader: 'TEAM_LEAD', agent: 'AGENT',
@@ -91,12 +116,15 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const users = ref<EnterpriseUser[]>(mockMode ? structuredClone(mockEnterpriseUsers) : [])
   const supervisors = ref<EnterpriseUser[]>([])
   const teams = ref<Team[]>(mockMode ? structuredClone(mockTeams) : [])
-  const sites = ref(structuredClone(mockSites))
+  const sites = ref<Site[]>([])
   const missions = ref<Mission[]>([])
   const isDirectoryLoading = ref(false)
   const hasLoadedDirectory = ref(false)
   const isMissionsLoading = ref(false)
   const hasLoadedMissions = ref(false)
+  const isSitesLoading = ref(false)
+  const hasLoadedSites = ref(false)
+  const canImportSites = computed(() => mockMode)
   const canReactivateUsers = computed(() => mockMode)
   const canImportUsers = computed(() => mockMode)
 
@@ -309,11 +337,89 @@ export const useAdministratorStore = defineStore('administrator', () => {
     else teams.value.unshift(team)
   }
 
-  function createSite(input: SiteInput) { const id = `site-${Date.now()}`; const site = withPerimeterCenter(input); const isComplete = Boolean(site.address && site.city && site.managerId && site.points?.length === 3); sites.value.unshift({ ...site, id, qrCode: `KBA-${id.toUpperCase()}`, status: isComplete ? 'active' : 'draft', createdAt: new Date().toISOString() }); return id }
-  function updateSite(id: string, input: SiteInput) { const site = getSiteById(id); if (site) Object.assign(site, withPerimeterCenter(input)) }
-  function importSites(count: number) { const now = Date.now(); for (let index = 0; index < count; index += 1) { const id = `site-imported-${now}-${index}`; sites.value.unshift({ id, name: `Site importé ${index + 1}`, qrCode: `KBA-${id.toUpperCase()}`, status: 'draft', createdAt: new Date().toISOString() }) } }
-  function toggleSiteStatus(id: string) { const site = getSiteById(id); if (site) site.status = site.status === 'active' ? 'inactive' : 'active' }
-  function regenerateQrCode(id: string) { const site = getSiteById(id); if (site) site.qrCode = `KBA-${id.toUpperCase()}-${Date.now()}` }
+  async function loadSites(force = false) {
+    if (hasLoadedSites.value && !force) return
+    isSitesLoading.value = true
+    try {
+      const result = await siteService.list({ limit: 200 })
+      sites.value = result.items.map((site) => mapSite(site, getSiteById(site.id)))
+      hasLoadedSites.value = true
+    } finally {
+      isSitesLoading.value = false
+    }
+  }
+
+  async function loadSite(id: string) {
+    const cached = getSiteById(id)
+    if (cached) return cached
+    const site = mapSite(await siteService.findOne(id))
+    replaceSite(site)
+    return site
+  }
+
+  async function createSite(input: SiteInput) {
+    if (!input.missionId || !input.managerId || input.points?.length !== 3) throw new Error('Mission, responsable et périmètre sont obligatoires.')
+    const payload: CreateSiteRequest = {
+      name: input.name.trim(),
+      address: input.address?.trim() || undefined,
+      locationDescription: input.locationDescription?.trim() || undefined,
+      location: perimeterLocation(input.points),
+      responsibleId: input.managerId,
+      missionId: input.missionId,
+    }
+    const created = mapSite(await siteService.create(payload), { ...input, id: '', qrCode: '', status: 'active', createdAt: '' })
+    sites.value.unshift(created)
+    return created.id
+  }
+
+  async function updateSite(id: string, input: SiteInput) {
+    const current = getSiteById(id)
+    if (!current) throw new Error('Site introuvable.')
+    const payload: UpdateSiteRequest = {}
+    const name = input.name.trim()
+    const address = input.address?.trim() || undefined
+    const locationDescription = input.locationDescription?.trim() || undefined
+    if (name !== current.name) payload.name = name
+    if (address !== (current.address || undefined)) payload.address = address
+    if (locationDescription !== (current.locationDescription || undefined)) payload.locationDescription = locationDescription
+    if (input.managerId && input.managerId !== current.managerId) payload.responsibleId = input.managerId
+    if (input.points?.length === 3) {
+      const location = perimeterLocation(input.points)
+      if (location.coordinates.join() !== [Number(current.longitude), Number(current.latitude)].join()) payload.location = location
+    }
+    const local = { ...current, city: input.city, points: input.points }
+    const updated = Object.keys(payload).length ? mapSite(await siteService.update(id, payload), local) : local
+    replaceSite(updated)
+    return updated
+  }
+
+  async function archiveSite(id: string) {
+    const updated = mapSite(await siteService.archive(id), getSiteById(id))
+    replaceSite(updated)
+    return updated
+  }
+
+  async function regenerateQrCode(id: string) {
+    const result = await siteService.generateQrCode(id)
+    const site = getSiteById(id)
+    if (site) Object.assign(site, { qrImage: result.qrCode, qrRotatedAt: result.rotatedAt })
+  }
+
+  function importSites(count: number) {
+    if (!mockMode) throw new Error("L’API ne fournit pas encore d’endpoint d’import de sites.")
+    const now = Date.now()
+    for (let index = 0; index < count; index += 1) {
+      const id = `site-imported-${now}-${index}`
+      sites.value.unshift({ id, name: `Site importé ${index + 1}`, qrCode: `KBA-${id.toUpperCase()}`, status: 'draft', createdAt: new Date().toISOString() })
+    }
+  }
+
+  function replaceSite(site: Site) {
+    const index = sites.value.findIndex((item) => item.id === site.id)
+    if (index >= 0) sites.value[index] = site
+    else sites.value.unshift(site)
+  }
+
   async function createMission(input: MissionInput) {
     const payload: CreateMissionRequest = {
       code: input.code.trim(),
@@ -376,7 +482,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     users.value = mockMode ? structuredClone(mockEnterpriseUsers) : []
     supervisors.value = []
     teams.value = mockMode ? structuredClone(mockTeams) : []
-    sites.value = structuredClone(mockSites)
+    sites.value = []
     missions.value = []
     userNextCursor.value = null
     teamNextCursor.value = null
@@ -386,16 +492,17 @@ export const useAdministratorStore = defineStore('administrator', () => {
     teamPage.value = 1
     hasLoadedDirectory.value = false
     hasLoadedMissions.value = false
+    hasLoadedSites.value = false
   }
 
   return {
-    users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, canReactivateUsers, canImportUsers,
+    users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportUsers, canImportSites,
     userNextCursor, userCursorHistory, userPage, teamNextCursor, teamCursorHistory, teamPage,
     activeUsersCount, pendingDeviceActivationsCount, activeSitesCount, ongoingMissionsCount,
-    getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission,
+    getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
     nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
     createUser, updateUser, toggleUserStatus, importUsers,
-    createSite, updateSite, importSites, toggleSiteStatus, regenerateQrCode,
+    createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     createMission, updateMission, openMission, closeMission, assignMissionSite,
     createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,

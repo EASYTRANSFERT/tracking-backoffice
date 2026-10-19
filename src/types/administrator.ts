@@ -46,13 +46,19 @@ export interface Site {
   longitude?: string
   radiusM?: number
   points?: SitePoint[]
+  locationDescription?: string
+  missionId?: string
+  teamId?: string
   managerId?: string
   qrCode: string
+  /** Image PNG (URI de données) renvoyée à la génération : l'API ne permet pas de la relire. */
+  qrImage?: string
+  qrRotatedAt?: string
   status: SiteStatus
   createdAt: string
 }
 
-export type SiteInput = Omit<Site, 'id' | 'qrCode' | 'status' | 'createdAt'>
+export type SiteInput = Omit<Site, 'id' | 'qrCode' | 'qrImage' | 'qrRotatedAt' | 'status' | 'createdAt'>
 
 export interface Mission {
   id: string

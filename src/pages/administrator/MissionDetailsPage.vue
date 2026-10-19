@@ -13,7 +13,8 @@ const store = useAdministratorStore()
 const feedback = useUiFeedbackStore()
 const id = computed(() => route.params.missionId as string)
 const mission = computed(() => store.getMissionById(id.value))
-const site = computed(() => mission.value?.siteId ? store.getSiteById(mission.value.siteId) : undefined)
+// Côté API, c'est le site qui porte sa mission (site.missionId).
+const site = computed(() => mission.value?.siteId ? store.getSiteById(mission.value.siteId) : store.sites.find((item) => item.missionId === mission.value?.id))
 const supervisor = computed(() => site.value?.managerId ? store.getUserById(site.value.managerId) : undefined)
 const siteDialog = ref(false)
 const selectedSiteId = ref<string>()
@@ -22,6 +23,7 @@ const formatDate = (value?: string) => value
   : 'Non renseignée'
 
 onMounted(async () => {
+  store.loadSites().catch(() => undefined)
   if (mission.value) return
   try { await store.loadMission(id.value) }
   catch { feedback.error('Impossible de charger cette mission.') }
