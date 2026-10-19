@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
@@ -7,14 +7,47 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
 import QrCodeCard from '@/Components/sites/QrCodeCard.vue'
 import SiteAgentsCard from '@/Components/sites/SiteAgentsCard.vue'
 import SiteGovernanceCard from '@/Components/sites/SiteGovernanceCard.vue'
+import { useSiteQrCode } from '@/composables/useSiteQrCode'
+import { getApiErrorMessage } from '@/Services/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { EnterpriseUser } from '@/types/administrator'
 
 const route = useRoute()
 const store = useAdministratorStore()
+const feedback = useUiFeedbackStore()
+const { generatingId, generate } = useSiteQrCode()
+const loading = ref(true)
+const archiving = ref(false)
 const site = computed(() => store.getSiteById(route.params.siteId as string))
+const mission = computed(() => site.value?.missionId ? store.getMissionById(site.value.missionId) : undefined)
+
+onMounted(async () => {
+  try {
+    await Promise.all([store.loadSite(route.params.siteId as string), store.loadDirectory(), store.loadMissions()])
+  } catch {
+    feedback.error('Impossible de charger ce site.')
+  } finally {
+    loading.value = false
+  }
+})
+
+async function archive() {
+  if (!site.value) return
+  const confirmed = await feedback.askConfirmation({ title: 'Archiver ce site ?', message: `Le site « ${site.value.name} » ne pourra plus être modifié ni recevoir de pointage.`, confirmText: 'Archiver', color: 'error' })
+  if (!confirmed) return
+  archiving.value = true
+  try {
+    await store.archiveSite(site.value.id)
+    feedback.success('Site archivé.')
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible d’archiver le site.'))
+  } finally {
+    archiving.value = false
+  }
+}
 const supervisor = computed(() => site.value?.managerId
-  ? store.getUserById(site.value.managerId)
+  ? store.teamDirectoryUsers.find((user) => user.id === site.value?.managerId)
   : undefined)
 
 // Ces relations restent volontairement visuelles tant que les endpoints
@@ -30,11 +63,12 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
       <template #description>Configuration, périmètre, encadrement et personnel affecté.</template>
       <template #actions>
         <v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-sites' }">Retour</v-btn>
-        <v-btn v-if="site" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-site-edit', params: { siteId: site.id } }">Modifier</v-btn>
+        <v-btn v-if="site && site.status !== 'inactive'" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-site-edit', params: { siteId: site.id } }">Modifier</v-btn>
       </template>
     </PageHeader>
 
-    <v-alert v-if="!site" type="error" variant="tonal" title="Site introuvable" />
+    <v-progress-linear v-if="loading && !site" indeterminate color="primary" />
+    <v-alert v-else-if="!site" type="error" variant="tonal" title="Site introuvable" />
 
     <div v-else class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div class="space-y-6">
@@ -56,12 +90,12 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
             <div><p class="text-xs text-[#848484]">Nom</p><p class="mt-1 font-medium">{{ site.name }}</p></div>
             <div><p class="text-xs text-[#848484]">Ville</p><p class="mt-1 font-medium">{{ site.city || 'À compléter' }}</p></div>
             <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Adresse</p><p class="mt-1 font-medium">{{ site.address || 'À compléter' }}</p></div>
+            <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Description de l’emplacement</p><p class="mt-1 font-medium">{{ site.locationDescription || '—' }}</p></div>
+            <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Mission</p><p class="mt-1 font-medium">{{ mission ? `${mission.code} · ${mission.title}` : site.missionId || '—' }}</p></div>
           </v-card-text>
           <v-divider />
-          <v-card-actions class="px-6 py-4">
-            <v-btn variant="tonal" :color="site.status === 'active' ? 'error' : 'success'" @click="store.toggleSiteStatus(site.id)">
-              {{ site.status === 'active' ? 'Désactiver le site' : 'Activer le site' }}
-            </v-btn>
+          <v-card-actions v-if="site.status !== 'inactive'" class="px-6 py-4">
+            <v-btn variant="tonal" color="error" prepend-icon="mdi-archive-outline" :loading="archiving" @click="archive">Archiver le site</v-btn>
           </v-card-actions>
         </v-card>
 
@@ -95,7 +129,7 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
 
       <div class="space-y-6">
         <SiteGovernanceCard :supervisor="supervisor" :project-lead="projectLead" />
-        <QrCodeCard :site="site" @details="() => {}" @regenerate="store.regenerateQrCode($event.id)" />
+        <QrCodeCard :site="site" :loading="generatingId === site.id" @details="() => {}" @regenerate="generate" />
       </div>
     </div>
   </div>
