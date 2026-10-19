@@ -4,16 +4,17 @@ import LocationAutocomplete from '@/Components/sites/LocationAutocomplete.vue'
 import SitePerimeterMap from '@/Components/sites/SitePerimeterMap.vue'
 import SitePointMapDialog from '@/Components/sites/SitePointMapDialog.vue'
 import { formatCoordinates, SITE_POINT_COUNT } from '@/Components/sites/site-map'
-import type { EnterpriseUser, Site, SiteInput, SitePoint } from '@/types/administrator'
+import type { EnterpriseUser, Mission, Site, SiteInput, SitePoint } from '@/types/administrator'
 import type { GeocodingResult } from '@/types/geocoding'
 
-const props = defineProps<{ site?: Site; managers: EnterpriseUser[] }>()
+const props = defineProps<{ site?: Site; managers: EnterpriseUser[]; missions: Mission[]; loading?: boolean }>()
 const emit = defineEmits<{ submit: [payload: SiteInput]; cancel: []; dirtyChange: [dirty: boolean] }>()
 const form = ref()
 const data = reactive<SiteInput>({
   name: props.site?.name ?? '', address: props.site?.address ?? '', city: props.site?.city ?? '',
+  locationDescription: props.site?.locationDescription ?? '',
   latitude: props.site?.latitude ?? '', longitude: props.site?.longitude ?? '',
-  managerId: props.site?.managerId ?? undefined,
+  missionId: props.site?.missionId ?? undefined, managerId: props.site?.managerId ?? undefined,
 })
 const points = ref<(SitePoint | null)[]>(Array.from({ length: SITE_POINT_COUNT }, (_, index) => props.site?.points?.[index] ?? null))
 const placedCount = computed(() => points.value.filter(Boolean).length)
@@ -21,7 +22,13 @@ const mapDialogOpen = ref(false)
 const mapPointIndex = ref(0)
 const perimeterError = ref<string | null>(null)
 const required = (value: string) => Boolean(String(value ?? '').trim()) || 'Ce champ est obligatoire'
+const requiredChoice = (value?: string) => Boolean(value) || 'Ce champ est obligatoire'
+// L'API refuse un site sans adresse ni description de l'emplacement.
+const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim()) || 'Renseignez l’adresse ou la description de l’emplacement'
 const managerName = (item: EnterpriseUser) => `${item.firstName} ${item.lastName}`
+const missionTitle = (item: Mission) => `${item.code} · ${item.title}`
+// Un site existant garde sa position tant que le périmètre n'est pas redessiné.
+const keepsCurrentLocation = computed(() => Boolean(props.site?.latitude) && placedCount.value === 0)
 // Un point se débloque quand le précédent est placé.
 const isPointEnabled = (index: number) => index === 0 || Boolean(points.value[index - 1] || points.value[index])
 const pointAsResult = (point: SitePoint | null, index: number): GeocodingResult | null => point
@@ -43,8 +50,8 @@ function openMap(index: number) {
 }
 async function submit() {
   const result = await form.value?.validate()
-  if (placedCount.value > 0 && placedCount.value < SITE_POINT_COUNT) {
-    perimeterError.value = `Ajoutez les ${SITE_POINT_COUNT} points du périmètre, ou retirez-les pour le compléter plus tard.`
+  if (placedCount.value < SITE_POINT_COUNT && !keepsCurrentLocation.value) {
+    perimeterError.value = `Ajoutez les ${SITE_POINT_COUNT} points du périmètre pour positionner le site.`
     return
   }
   if (!result?.valid) return
@@ -65,9 +72,10 @@ async function submit() {
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
           <v-text-field v-model="data.name" label="Nom du site" :rules="[required]" />
           <v-text-field v-model="data.city" label="Ville (facultatif)" />
-          <v-text-field v-model="data.address" label="Adresse (facultatif)" class="md:col-span-2" />
-          <v-select v-model="data.managerId" label="Superviseur responsable (facultatif)" :items="managers" :item-title="managerName" item-value="id" placeholder="Dérouler la liste"/>
-          <v-alert class="md:col-span-2" type="info" variant="tonal">Vous pouvez enregistrer le site maintenant et compléter sa configuration plus tard.</v-alert>
+          <v-text-field v-model="data.address" label="Adresse" class="md:col-span-2" :rules="[addressOrDescription]" />
+          <v-textarea v-model="data.locationDescription" label="Description de l’emplacement" placeholder="Ex. : entrée principale, près de la réception" persistent-placeholder rows="2" auto-grow counter="500" maxlength="500" class="md:col-span-2" :rules="[addressOrDescription]" />
+          <v-select v-model="data.missionId" label="Mission" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Dérouler la liste" persistent-placeholder :disabled="Boolean(site)" :hint="site ? 'La mission d’un site ne peut pas être modifiée.' : undefined" :persistent-hint="Boolean(site)" :rules="[requiredChoice]" />
+          <v-select v-model="data.managerId" label="Responsable du site" :items="managers" :item-title="managerName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
         </v-card-text>
       </v-card>
       <v-card>
@@ -80,6 +88,7 @@ async function submit() {
           <v-alert type="warning" variant="tonal" density="compact" icon="mdi-alert-outline">
             Pour positionner le site sur la carte, vous devez renseigner trois points délimitant son périmètre.
           </v-alert>
+          <v-alert v-if="keepsCurrentLocation" type="info" variant="tonal" density="compact" text="La position actuelle du site est conservée tant que vous ne placez pas de nouveaux points." />
           <div class="space-y-3">
             <div v-for="(point, index) in points" :key="index" class="flex items-start gap-3">
               <span
@@ -125,7 +134,7 @@ async function submit() {
     <SitePointMapDialog v-model="mapDialogOpen" :point-index="mapPointIndex" :points="points" @confirm="setPoint(mapPointIndex, $event)" />
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <v-btn variant="outlined" color="secondary" size="large" @click="emit('dirtyChange', false); emit('cancel')">Annuler</v-btn>
-      <v-btn type="submit" color="primary" size="large" prepend-icon="mdi-content-save-outline">{{ site ? 'Enregistrer les modifications' : 'Créer le site' }}</v-btn>
+      <v-btn type="submit" color="primary" size="large" :loading="loading" prepend-icon="mdi-content-save-outline">{{ site ? 'Enregistrer les modifications' : 'Créer le site' }}</v-btn>
     </div>
   </v-form>
 </template>

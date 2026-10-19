@@ -1,12 +1,13 @@
 import { http, HttpResponse, type DefaultBodyType } from 'msw'
 
-import { mockEnterpriseUsers, mockMissions, mockTeams } from '@/mocks/administrator-data'
+import { mockEnterpriseUsers, mockMissions, mockSites, mockTeams } from '@/mocks/administrator-data'
 import { mockAuthUsers, findMockAuthUserByCredentials, findMockAuthUserById } from '@/mocks/auth-users'
 import { mockCompanies, mockOffers } from '@/mocks/operator-data'
 import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, LoginRequest, RefreshRequest, SessionResponse, TotpCodeRequest } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
+import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { AssignSupervisorRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -70,6 +71,21 @@ const users: UserResponse[] = [
   } satisfies UserResponse)),
 ]
 
+const sites: SiteResponse[] = mockSites.map((site) => ({
+  id: site.id,
+  missionId: mockMissions.find((mission) => mission.siteId === site.id)?.id ?? mockMissions[0]!.id,
+  name: site.name,
+  address: site.address,
+  location: { type: 'Point', coordinates: [Number(site.longitude ?? -5.0301), Number(site.latitude ?? 7.6899)] },
+  radiusM: site.radiusM ?? 100,
+  managerId: site.managerId,
+  status: 'ACTIVE',
+  createdAt: site.createdAt,
+  updatedAt: site.createdAt,
+}))
+// QR factice (PNG 1×1) : le vrai visuel est produit par l'API.
+const mockQrImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+
 function problem(status: number, code: string, detail: string): HttpResponse<DefaultBodyType> {
   const body: ApiProblemDetails = { title: code, status, detail, code }
   return HttpResponse.json(body, { status, headers: { 'Content-Type': 'application/problem+json' } })
@@ -85,6 +101,51 @@ function page<T>(request: Request, items: T[]) {
 }
 
 export const handlers = [
+  http.get(api('/sites'), ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const filtered = sites.filter((site) => (['status', 'missionId', 'teamId', 'managerId'] as const)
+      .every((key) => !params.get(key) || site[key] === params.get(key)))
+    return HttpResponse.json(page(request, filtered))
+  }),
+  http.get(api('/sites/:id'), ({ params }) => {
+    const site = sites.find((item) => item.id === String(params.id))
+    return site ? HttpResponse.json(site) : problem(404, 'NOT_FOUND', 'Site introuvable ou hors périmètre.')
+  }),
+  http.post(api('/sites'), async ({ request }) => {
+    const payload = (await request.json()) as CreateSiteRequest
+    if (!payload.address && !payload.locationDescription) return problem(400, 'VALIDATION_FAILED', 'Renseignez l’adresse ou la description de l’emplacement.')
+    const timestamp = now()
+    const site: SiteResponse = {
+      id: `sit_${Date.now()}`, missionId: payload.missionId, teamId: payload.teamId, name: payload.name,
+      address: payload.address, locationDescription: payload.locationDescription, location: payload.location,
+      radiusM: payload.toleranceRadius ?? 100, managerId: payload.responsibleId, status: 'ACTIVE', createdAt: timestamp, updatedAt: timestamp,
+    }
+    sites.unshift(site)
+    return HttpResponse.json(site, { status: 201 })
+  }),
+  http.patch(api('/sites/:id'), async ({ params, request }) => {
+    const site = sites.find((item) => item.id === String(params.id))
+    if (!site) return problem(404, 'NOT_FOUND', 'Site introuvable.')
+    if (site.status === 'ARCHIVED') return problem(409, 'SITE_ARCHIVED', 'Ce site est archivé.')
+    const { responsibleId, toleranceRadius, ...payload } = (await request.json()) as UpdateSiteRequest
+    Object.assign(site, payload, { updatedAt: now() })
+    if (responsibleId) site.managerId = responsibleId
+    if (toleranceRadius) site.radiusM = toleranceRadius
+    return HttpResponse.json(site)
+  }),
+  http.post(api('/sites/:id/archive'), ({ params }) => {
+    const site = sites.find((item) => item.id === String(params.id))
+    if (!site) return problem(404, 'NOT_FOUND', 'Site introuvable.')
+    Object.assign(site, { status: 'ARCHIVED', updatedAt: now() })
+    return HttpResponse.json(site)
+  }),
+  http.post(api('/sites/:id/qr-code'), ({ params }) => {
+    const site = sites.find((item) => item.id === String(params.id))
+    if (!site) return problem(404, 'NOT_FOUND', 'Site introuvable ou hors périmètre.')
+    if (site.status === 'ARCHIVED') return problem(409, 'SITE_ARCHIVED', 'Ce site est archivé.')
+    site.qrRotatedAt = now()
+    return HttpResponse.json({ siteId: site.id, qrCode: mockQrImage, rotatedAt: site.qrRotatedAt })
+  }),
   http.post(api('/auth/login'), async ({ request }) => {
     const credentials = (await request.json()) as LoginRequest
     const mockUser = findMockAuthUserByCredentials(credentials.email, credentials.password)
