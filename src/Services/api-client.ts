@@ -11,6 +11,14 @@ export interface ApiAuthProvider {
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
+  skipAuthRefresh?: boolean
+}
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** A 401 on this request is returned as-is: no refresh, no forced logout. */
+    skipAuthRefresh?: boolean
+  }
 }
 
 const baseConfig = {
@@ -66,6 +74,7 @@ apiClient.interceptors.response.use(
       error.response?.status === 401 &&
       originalRequest !== undefined &&
       originalRequest._retry !== true &&
+      originalRequest.skipAuthRefresh !== true &&
       provider !== null
 
     if (!shouldTryRefresh || !provider || !originalRequest) {

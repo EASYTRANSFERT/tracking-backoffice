@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/auth.store'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const { activeRole, currentUser } = storeToRefs(authStore)
+const { activeRole, currentUser, tenant } = storeToRefs(authStore)
 
 const profile = computed(() => {
   const name = currentUser.value?.names ?? 'Utilisateur'
@@ -31,6 +31,7 @@ const profile = computed(() => {
     label: activeRole.value
       ? roleLabelByRole[activeRole.value]
       : 'Profil indisponible',
+    company: tenant.value?.name ?? null,
     settingsRoute: activeRole.value
       ? settingsRoutes[activeRole.value]
       : 'settings',
@@ -68,6 +69,10 @@ async function handleLogout() {
 
           <p class="text-xs text-gray-500">
             {{ profile.label }}
+          </p>
+
+          <p v-if="profile.company" class="max-w-[220px] truncate text-xs font-medium text-gray-600">
+            {{ profile.company }}
           </p>
         </div>
 

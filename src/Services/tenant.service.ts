@@ -23,6 +23,12 @@ export const tenantService = {
     return response.data
   },
 
+  // Lecture d'affichage (nom de l'entreprise) : un refus ne doit pas fermer la session.
+  async findForProfile(id: string): Promise<TenantResponse> {
+    const response = await apiClient.get<TenantResponse>(`/platform/tenants/${id}`, { skipAuthRefresh: true })
+    return response.data
+  },
+
   async create(payload: CreateTenantRequest): Promise<TenantResponse> {
     const response = await apiClient.post<TenantResponse>('/platform/tenants', payload, { headers: idempotencyHeaders() })
     return response.data

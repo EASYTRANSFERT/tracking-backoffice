@@ -4,6 +4,8 @@ import { isAxiosError } from 'axios'
 
 import { authService } from '@/Services/auth.service'
 import { authSessionStorage } from '@/Services/auth-session.storage'
+import { readAccessTokenClaims } from '@/Services/access-token'
+import { tenantService } from '@/Services/tenant.service'
 import { userService } from '@/Services/user.service'
 import { getDashboardRoles } from '@/types/roles'
 import { useAdministratorStore } from '@/stores/administrator.store'
@@ -14,6 +16,7 @@ import type {
   SessionResponse,
 } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
+import type { TenantResponse } from '@/types/platform'
 import type { UserRole } from '@/types/roles'
 import type { UserResponse } from '@/types/user'
 import type { UpdatePasswordRequest } from '@/types/user'
@@ -30,6 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
   const qrCode = ref<string | null>(null)
   const currentUser = shallowRef<UserResponse | null>(null)
   const activeRole = ref<UserRole | null>(null)
+  const tenant = shallowRef<TenantResponse | null>(null)
 
   const session = shallowRef<SessionResponse | null>(null)
   const accessTokenExpiresAt = ref<number | null>(null)
@@ -116,6 +120,7 @@ export const useAuthStore = defineStore('auth', () => {
       qrCode.value = null
       userId.value = null
       step.value = 'authenticated'
+      void loadTenant()
 
       return true
     } catch (error) {
@@ -241,12 +246,26 @@ export const useAuthStore = defineStore('auth', () => {
       userId.value = null
       qrCode.value = null
       step.value = 'authenticated'
+      void loadTenant()
       return true
     } catch {
       clearSession()
       return false
     } finally {
       isRestoringSession.value = false
+    }
+  }
+
+  // L'identifiant de l'entreprise (tid) est porté par le jeton d'accès.
+  async function loadTenant() {
+    const tenantId = readAccessTokenClaims(accessToken.value)?.tid
+    if (!tenantId || activeRole.value === 'operator') return
+
+    try {
+      tenant.value = await tenantService.findForProfile(tenantId)
+    } catch {
+      // Le nom de l'entreprise est un complément d'affichage : son absence ne bloque pas la session.
+      tenant.value = null
     }
   }
 
@@ -298,6 +317,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessTokenExpiresAt.value = null
     currentUser.value = null
     activeRole.value = null
+    tenant.value = null
     step.value = 'credentials'
     authSessionStorage.clear()
     useOperatorStore().resetData()
@@ -369,6 +389,7 @@ export const useAuthStore = defineStore('auth', () => {
     qrCode,
     currentUser,
     activeRole,
+    tenant,
     session,
     accessTokenExpiresAt,
     isLoading,

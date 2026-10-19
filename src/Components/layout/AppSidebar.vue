@@ -11,7 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
-const { activeRole, currentUser } = storeToRefs(authStore)
+const { activeRole, currentUser, tenant } = storeToRefs(authStore)
 
 const navigationItems = computed(() => {
   if (!activeRole.value) return []
@@ -47,6 +47,7 @@ const profile = computed(() => {
     initials,
     name,
     label: activeRole.value ? roleLabelByRole[activeRole.value] : 'Profil indisponible',
+    company: tenant.value?.name ?? null,
   }
 })
 
@@ -189,6 +190,7 @@ async function handleLogout() {
           <div class="min-w-0">
             <p class="truncate text-xs font-bold text-[#292d38]">{{ profile.name }}</p>
             <p class="text-[10px] text-[#848484]">{{ profile.label }}</p>
+            <p v-if="profile.company" class="truncate text-[10px] font-medium text-[#535865]">{{ profile.company }}</p>
           </div>
         </div>
       </div>
