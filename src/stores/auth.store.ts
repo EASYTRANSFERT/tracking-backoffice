@@ -369,16 +369,21 @@ export const useAuthStore = defineStore('auth', () => {
     qrCode,
     currentUser,
     activeRole,
-    availableRoles,
     session,
-    accessToken,
-    refreshToken,
     accessTokenExpiresAt,
     isLoading,
+
+    //computed
     isRestoringSession,
+    refreshToken,
     errorMessage,
     isAuthenticated,
     isFirstMfaSetup,
+    accessToken,
+    availableRoles,
+    
+
+    //methods
     login,
     confirmTotp,
     refreshSession,

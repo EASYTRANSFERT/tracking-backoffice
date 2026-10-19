@@ -5,9 +5,30 @@ export interface GeocodingResult {
   longitude: number
 }
 
-export interface NominatimSearchResult {
-  place_id: number
-  display_name: string
-  lat: string
-  lon: string
+export interface GeoPosition {
+  latitude: number
+  longitude: number
+}
+
+export interface PhotonFeature {
+  properties: {
+    osm_type?: string
+    osm_id?: number
+    name?: string
+    housenumber?: string
+    street?: string
+    locality?: string
+    district?: string
+    city?: string
+    state?: string
+    country?: string
+  }
+  geometry: {
+    type: 'Point'
+    coordinates: [number, number]
+  }
+}
+
+export interface PhotonResponse {
+  features: PhotonFeature[]
 }

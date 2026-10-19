@@ -12,6 +12,13 @@ import type { ApiUserRole, UserResponse } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const PAGE_SIZE = 10
+// Le centre des trois points sert de position du site sur les cartes et listes existantes.
+function withPerimeterCenter(input: SiteInput): SiteInput {
+  if (!input.points?.length) return input
+  const latitude = input.points.reduce((sum, point) => sum + point.latitude, 0) / input.points.length
+  const longitude = input.points.reduce((sum, point) => sum + point.longitude, 0) / input.points.length
+  return { ...input, latitude: latitude.toFixed(6), longitude: longitude.toFixed(6) }
+}
 const roleToApi: Record<EnterpriseUser['role'], ApiUserRole> = {
   administrator: 'ADMIN', supervisor: 'SUPERVISOR', teamLeader: 'TEAM_LEAD', agent: 'AGENT',
 }
@@ -302,8 +309,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
     else teams.value.unshift(team)
   }
 
-  function createSite(input: SiteInput) { const id = `site-${Date.now()}`; const isComplete = Boolean(input.address && input.city && input.managerId); sites.value.unshift({ ...input, id, qrCode: `KBA-${id.toUpperCase()}`, status: isComplete ? 'active' : 'draft', createdAt: new Date().toISOString() }); return id }
-  function updateSite(id: string, input: SiteInput) { const site = getSiteById(id); if (site) Object.assign(site, input) }
+  function createSite(input: SiteInput) { const id = `site-${Date.now()}`; const site = withPerimeterCenter(input); const isComplete = Boolean(site.address && site.city && site.managerId && site.points?.length === 3); sites.value.unshift({ ...site, id, qrCode: `KBA-${id.toUpperCase()}`, status: isComplete ? 'active' : 'draft', createdAt: new Date().toISOString() }); return id }
+  function updateSite(id: string, input: SiteInput) { const site = getSiteById(id); if (site) Object.assign(site, withPerimeterCenter(input)) }
   function importSites(count: number) { const now = Date.now(); for (let index = 0; index < count; index += 1) { const id = `site-imported-${now}-${index}`; sites.value.unshift({ id, name: `Site importé ${index + 1}`, qrCode: `KBA-${id.toUpperCase()}`, status: 'draft', createdAt: new Date().toISOString() }) } }
   function toggleSiteStatus(id: string) { const site = getSiteById(id); if (site) site.status = site.status === 'active' ? 'inactive' : 'active' }
   function regenerateQrCode(id: string) { const site = getSiteById(id); if (site) site.qrCode = `KBA-${id.toUpperCase()}-${Date.now()}` }

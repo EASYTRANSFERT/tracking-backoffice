@@ -1,77 +1,96 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { searchLocations } from '@/Services/geocoding.service'
-import type { GeocodingResult } from '@/types/geocoding'
+import { getCurrentPosition, reverseGeocode, suggestLocations } from '@/Services/geocoding.service'
+import type { GeocodingResult, GeoPosition } from '@/types/geocoding'
 
-const MIN_REQUEST_INTERVAL_MS = 1_000
+const MIN_QUERY_LENGTH = 3
+const DEBOUNCE_MS = 350
 
 export const useGeocodingStore = defineStore('geocoding', () => {
-  const results = ref<GeocodingResult[]>([])
-  const isSearching = ref(false)
-  const errorMessage = ref<string | null>(null)
+  // Chaque champ de recherche a sa propre clé pour ne pas mélanger les suggestions.
+  const suggestions = ref<Record<string, GeocodingResult[]>>({})
+  const loading = ref<Record<string, boolean>>({})
+  const errors = ref<Record<string, string | null>>({})
   const cache = new Map<string, GeocodingResult[]>()
+  const timers = new Map<string, number>()
+  const controllers = new Map<string, AbortController>()
 
-  let lastRequestAt = 0
-  let activeController: AbortController | null = null
+  function cancel(key: string) {
+    window.clearTimeout(timers.get(key))
+    timers.delete(key)
+    controllers.get(key)?.abort()
+    controllers.delete(key)
+    loading.value[key] = false
+  }
 
-  async function search(query: string) {
+  function requestSuggestions(key: string, query: string) {
     const normalizedQuery = query.trim().replace(/\s+/g, ' ')
-    errorMessage.value = null
+    cancel(key)
+    errors.value[key] = null
 
-    if (normalizedQuery.length < 3) {
-      results.value = []
-      errorMessage.value = 'Saisissez au moins 3 caractères.'
+    if (normalizedQuery.length < MIN_QUERY_LENGTH) {
+      suggestions.value[key] = []
       return
     }
 
-    activeController?.abort()
-    activeController = null
-    isSearching.value = false
-
-    const cacheKey = normalizedQuery.toLocaleLowerCase('fr')
-    const cachedResults = cache.get(cacheKey)
-    if (cachedResults) {
-      results.value = cachedResults
+    const cached = cache.get(normalizedQuery.toLocaleLowerCase('fr'))
+    if (cached) {
+      suggestions.value[key] = cached
       return
     }
 
+    loading.value[key] = true
+    timers.set(key, window.setTimeout(() => void fetchSuggestions(key, normalizedQuery), DEBOUNCE_MS))
+  }
+
+  async function fetchSuggestions(key: string, query: string) {
     const controller = new AbortController()
-    activeController = controller
-    isSearching.value = true
+    controllers.set(key, controller)
 
     try {
-      const waitTime = Math.max(0, MIN_REQUEST_INTERVAL_MS - (Date.now() - lastRequestAt))
-      if (waitTime > 0) {
-        await new Promise((resolve) => window.setTimeout(resolve, waitTime))
-      }
-
-      lastRequestAt = Date.now()
-      const foundLocations = await searchLocations(normalizedQuery, controller.signal)
-      cache.set(cacheKey, foundLocations)
-      results.value = foundLocations
-
-      if (!foundLocations.length) {
-        errorMessage.value = 'Aucun lieu ne correspond à cette recherche.'
-      }
+      const results = await suggestLocations(query, controller.signal)
+      cache.set(query.toLocaleLowerCase('fr'), results)
+      suggestions.value[key] = results
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
-      results.value = []
-      errorMessage.value = error instanceof Error
-        ? error.message
-        : 'La recherche du lieu a échoué.'
+      suggestions.value[key] = []
+      errors.value[key] = error instanceof Error ? error.message : 'La recherche du lieu a échoué.'
     } finally {
-      if (activeController === controller) isSearching.value = false
+      if (controllers.get(key) === controller) {
+        controllers.delete(key)
+        loading.value[key] = false
+      }
     }
   }
 
-  function clearResults() {
-    activeController?.abort()
-    activeController = null
-    isSearching.value = false
-    results.value = []
-    errorMessage.value = null
+  function clearSuggestions(key: string) {
+    cancel(key)
+    delete suggestions.value[key]
+    delete errors.value[key]
+    delete loading.value[key]
   }
 
-  return { results, isSearching, errorMessage, search, clearResults }
+  async function findAddress(position: GeoPosition): Promise<string | null> {
+    try {
+      const result = await reverseGeocode(position)
+      return result?.displayName ?? null
+    } catch {
+      return null
+    }
+  }
+
+  function locateCurrentPosition(): Promise<GeoPosition> {
+    return getCurrentPosition()
+  }
+
+  return {
+    suggestions,
+    loading,
+    errors,
+    requestSuggestions,
+    clearSuggestions,
+    findAddress,
+    locateCurrentPosition,
+  }
 })

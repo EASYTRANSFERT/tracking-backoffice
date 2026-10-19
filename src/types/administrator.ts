@@ -31,6 +31,12 @@ export interface Team {
 
 export type TeamInput = Pick<Team, 'name' | 'supervisorUserId'>
 
+export interface SitePoint {
+  latitude: number
+  longitude: number
+  address?: string
+}
+
 export interface Site {
   id: string
   name: string
@@ -39,6 +45,7 @@ export interface Site {
   latitude?: string
   longitude?: string
   radiusM?: number
+  points?: SitePoint[]
   managerId?: string
   qrCode: string
   status: SiteStatus
