@@ -9,7 +9,7 @@ const form = ref()
 const data = reactive<SiteInput>({
   name: props.site?.name ?? '', address: props.site?.address ?? '', city: props.site?.city ?? '',
   latitude: props.site?.latitude ?? '', longitude: props.site?.longitude ?? '',
-  radiusM: props.site?.radiusM ?? 100, managerId: props.site?.managerId ?? '',
+  radiusM: props.site?.radiusM ?? 100, managerId: props.site?.managerId ?? undefined,
 })
 const required = (value: string) => Boolean(String(value ?? '').trim()) || 'Ce champ est obligatoire'
 const validRadius = (value?: number) => !value || (value >= 30 && value <= 1000) || 'Le rayon doit être compris entre 30 et 1 000 mètres'
@@ -38,7 +38,7 @@ async function submit() {
           <v-text-field v-model="data.name" label="Nom du site" :rules="[required]" />
           <v-text-field v-model="data.city" label="Ville (facultatif)" />
           <v-text-field v-model="data.address" label="Adresse (facultatif)" class="md:col-span-2" />
-          <v-select v-model="data.managerId" label="Superviseur responsable (facultatif)" :items="managers" :item-title="managerName" item-value="id" clearable />
+          <v-select v-model="data.managerId" label="Superviseur responsable (facultatif)" :items="managers" :item-title="managerName" item-value="id" placeholder="Dérouler la liste"/>
           <v-alert class="md:col-span-2" type="info" variant="tonal">Vous pouvez enregistrer le site maintenant et compléter sa configuration plus tard.</v-alert>
         </v-card-text>
       </v-card>
