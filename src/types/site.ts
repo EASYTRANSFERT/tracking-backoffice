@@ -1,9 +1,8 @@
 export type ApiSiteStatus = 'ACTIVE' | 'ARCHIVED'
 
-/** Point GeoJSON : [longitude, latitude]. */
-export interface SiteLocation {
-  type: 'Point'
-  coordinates: [number, number]
+export interface SiteCoordinate {
+  latitude: number
+  longitude: number
 }
 
 export interface SiteResponse {
@@ -13,7 +12,9 @@ export interface SiteResponse {
   name: string
   address?: string
   locationDescription?: string
-  location: SiteLocation
+  /** Contour du site, dans l'ordre du tracé. */
+  area: SiteCoordinate[]
+  /** Tolérance autour du contour, en mètres. */
   radiusM: number
   managerId?: string
   status: ApiSiteStatus
@@ -26,7 +27,8 @@ export interface CreateSiteRequest {
   name: string
   address?: string
   locationDescription?: string
-  location: SiteLocation
+  /** 3 à 50 points délimitant une surface. */
+  area: SiteCoordinate[]
   toleranceRadius?: number
   responsibleId: string
   missionId: string

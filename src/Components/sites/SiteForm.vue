@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import LocationAutocomplete from '@/Components/sites/LocationAutocomplete.vue'
 import SitePerimeterMap from '@/Components/sites/SitePerimeterMap.vue'
 import SitePointMapDialog from '@/Components/sites/SitePointMapDialog.vue'
-import { formatCoordinates, SITE_POINT_COUNT } from '@/Components/sites/site-map'
+import { delimitsSurface, formatCoordinates, SITE_POINT_COUNT } from '@/Components/sites/site-map'
 import type { EnterpriseUser, Mission, Site, SiteInput, SitePoint } from '@/types/administrator'
 import type { GeocodingResult } from '@/types/geocoding'
 
@@ -16,7 +16,7 @@ const data = reactive<SiteInput>({
   latitude: props.site?.latitude ?? '', longitude: props.site?.longitude ?? '',
   missionId: props.site?.missionId ?? undefined, managerId: props.site?.managerId ?? undefined,
 })
-const points = ref<(SitePoint | null)[]>(Array.from({ length: SITE_POINT_COUNT }, (_, index) => props.site?.points?.[index] ?? null))
+const points = ref<(SitePoint | null)[]>(Array.from({ length: Math.max(SITE_POINT_COUNT, props.site?.points?.length ?? 0) }, (_, index) => props.site?.points?.[index] ?? null))
 const placedCount = computed(() => points.value.filter(Boolean).length)
 const mapDialogOpen = ref(false)
 const mapPointIndex = ref(0)
@@ -27,8 +27,8 @@ const requiredChoice = (value?: string) => Boolean(value) || 'Ce champ est oblig
 const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim()) || 'Renseignez l’adresse ou la description de l’emplacement'
 const managerName = (item: EnterpriseUser) => `${item.firstName} ${item.lastName}`
 const missionTitle = (item: Mission) => `${item.code} · ${item.title}`
-// Un site existant garde sa position tant que le périmètre n'est pas redessiné.
-const keepsCurrentLocation = computed(() => Boolean(props.site?.latitude) && placedCount.value === 0)
+const placedPoints = computed(() => points.value.filter((point): point is SitePoint => Boolean(point)))
+const isFlatPerimeter = computed(() => placedCount.value >= SITE_POINT_COUNT && !delimitsSurface(placedPoints.value))
 // Un point se débloque quand le précédent est placé.
 const isPointEnabled = (index: number) => index === 0 || Boolean(points.value[index - 1] || points.value[index])
 const pointAsResult = (point: SitePoint | null, index: number): GeocodingResult | null => point
@@ -50,13 +50,14 @@ function openMap(index: number) {
 }
 async function submit() {
   const result = await form.value?.validate()
-  if (placedCount.value < SITE_POINT_COUNT && !keepsCurrentLocation.value) {
+  if (placedCount.value < SITE_POINT_COUNT) {
     perimeterError.value = `Ajoutez les ${SITE_POINT_COUNT} points du périmètre pour positionner le site.`
     return
   }
+  if (isFlatPerimeter.value) return
   if (!result?.valid) return
   emit('dirtyChange', false)
-  emit('submit', { ...data, points: points.value.filter((point): point is SitePoint => Boolean(point)) })
+  emit('submit', { ...data, points: placedPoints.value })
 }
 </script>
 
@@ -88,7 +89,6 @@ async function submit() {
           <v-alert type="warning" variant="tonal" density="compact" icon="mdi-alert-outline">
             Pour positionner le site sur la carte, vous devez renseigner trois points délimitant son périmètre.
           </v-alert>
-          <v-alert v-if="keepsCurrentLocation" type="info" variant="tonal" density="compact" text="La position actuelle du site est conservée tant que vous ne placez pas de nouveaux points." />
           <div class="space-y-3">
             <div v-for="(point, index) in points" :key="index" class="flex items-start gap-3">
               <span
@@ -119,11 +119,12 @@ async function submit() {
               </v-tooltip>
             </div>
           </div>
+          <v-alert v-if="isFlatPerimeter" type="error" variant="tonal" density="compact" text="Les points sont alignés ou confondus : ils doivent délimiter une surface, pas une ligne." />
           <v-alert v-if="perimeterError" type="error" variant="tonal" density="compact" :text="perimeterError" />
           <div class="space-y-2">
             <div class="flex items-center justify-between text-xs text-[#747985]">
               <p>Aperçu du périmètre</p>
-              <p class="font-medium" :class="placedCount === SITE_POINT_COUNT ? 'text-[#2e7d4f]' : 'text-[#535865]'">{{ placedCount }} / {{ SITE_POINT_COUNT }} points</p>
+              <p class="font-medium" :class="placedCount === points.length ? 'text-[#2e7d4f]' : 'text-[#535865]'">{{ placedCount }} / {{ points.length }} points</p>
             </div>
             <SitePerimeterMap :points="points" @select="openMap" />
           </div>

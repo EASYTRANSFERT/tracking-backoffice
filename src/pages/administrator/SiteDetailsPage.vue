@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import QrCodeCard from '@/Components/sites/QrCodeCard.vue'
+import { formatCoordinates } from '@/Components/sites/site-map'
 import SiteAgentsCard from '@/Components/sites/SiteAgentsCard.vue'
 import SiteGovernanceCard from '@/Components/sites/SiteGovernanceCard.vue'
 import { useSiteQrCode } from '@/composables/useSiteQrCode'
@@ -111,15 +112,20 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
           </v-card-title>
           <v-divider />
           <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-3">
-            <div><p class="text-xs text-[#848484]">Latitude</p><p class="mt-1 font-medium">{{ site.latitude || 'À compléter' }}</p></div>
-            <div><p class="text-xs text-[#848484]">Longitude</p><p class="mt-1 font-medium">{{ site.longitude || 'À compléter' }}</p></div>
-            <div><p class="text-xs text-[#848484]">Rayon</p><p class="mt-1 font-medium">{{ site.radiusM ? `${site.radiusM} mètres` : 'À compléter' }}</p></div>
+            <div class="sm:col-span-2">
+              <p class="text-xs text-[#848484]">Contour ({{ site.points?.length ?? 0 }} points)</p>
+              <ol v-if="site.points?.length" class="mt-1 space-y-1 text-sm font-medium">
+                <li v-for="(point, index) in site.points" :key="index">{{ index + 1 }}. {{ point.address || formatCoordinates(point) }}</li>
+              </ol>
+              <p v-else class="mt-1 font-medium">À compléter</p>
+            </div>
+            <div><p class="text-xs text-[#848484]">Tolérance GPS</p><p class="mt-1 font-medium">{{ site.radiusM ? `${site.radiusM} mètres` : 'À compléter' }}</p></div>
           </v-card-text>
           <v-divider />
           <v-card-text class="px-6 py-4">
             <div class="flex items-center gap-3 rounded-xl bg-[#f6f6f7] px-4 py-4">
               <v-icon icon="mdi-map-marker-radius-outline" color="primary" size="28" />
-              <div><p class="text-sm font-semibold">Zone de contrôle</p><p class="mt-1 text-xs text-[#747985]">Les contrôles de présence s’appliqueront à l’intérieur du rayon défini.</p></div>
+              <div><p class="text-sm font-semibold">Zone de contrôle</p><p class="mt-1 text-xs text-[#747985]">Les contrôles de présence s’appliqueront à l’intérieur du contour, avec la tolérance GPS autour.</p></div>
             </div>
           </v-card-text>
         </v-card>

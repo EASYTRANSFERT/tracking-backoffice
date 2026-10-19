@@ -44,3 +44,21 @@ export function perimeterLayer(positions: L.LatLng[]) {
 export function formatCoordinates(point: SitePoint) {
   return `${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}`
 }
+
+// L'API refuse des points alignés : ils doivent délimiter une surface (aire approchée en m², projection locale).
+const MIN_SURFACE_M2 = 1
+
+export function delimitsSurface(points: SitePoint[]) {
+  if (points.length < 3) return false
+  const reference = points[0]!
+  const metersPerLongitude = 111_320 * Math.cos((reference.latitude * Math.PI) / 180)
+  const projected = points.map((point) => ({
+    x: (point.longitude - reference.longitude) * metersPerLongitude,
+    y: (point.latitude - reference.latitude) * 110_540,
+  }))
+  const doubledArea = projected.reduce((sum, point, index) => {
+    const next = projected[(index + 1) % projected.length]!
+    return sum + point.x * next.y - next.x * point.y
+  }, 0)
+  return Math.abs(doubledArea) / 2 >= MIN_SURFACE_M2
+}

@@ -76,7 +76,11 @@ const sites: SiteResponse[] = mockSites.map((site) => ({
   missionId: mockMissions.find((mission) => mission.siteId === site.id)?.id ?? mockMissions[0]!.id,
   name: site.name,
   address: site.address,
-  location: { type: 'Point', coordinates: [Number(site.longitude ?? -5.0301), Number(site.latitude ?? 7.6899)] },
+  // Petit triangle autour de la position du site fictif.
+  area: [[0, 0], [0.0006, 0.0004], [0.0002, 0.0011]].map(([lat, lng]) => ({
+    latitude: Number((Number(site.latitude ?? 7.6899) + lat!).toFixed(6)),
+    longitude: Number((Number(site.longitude ?? -5.0301) + lng!).toFixed(6)),
+  })),
   radiusM: site.radiusM ?? 100,
   managerId: site.managerId,
   status: 'ACTIVE',
@@ -113,11 +117,12 @@ export const handlers = [
   }),
   http.post(api('/sites'), async ({ request }) => {
     const payload = (await request.json()) as CreateSiteRequest
+    if (!payload.area || payload.area.length < 3) return problem(400, 'VALIDATION_FAILED', 'Le contour du site doit compter au moins 3 points.')
     if (!payload.address && !payload.locationDescription) return problem(400, 'VALIDATION_FAILED', 'Renseignez l’adresse ou la description de l’emplacement.')
     const timestamp = now()
     const site: SiteResponse = {
       id: `sit_${Date.now()}`, missionId: payload.missionId, teamId: payload.teamId, name: payload.name,
-      address: payload.address, locationDescription: payload.locationDescription, location: payload.location,
+      address: payload.address, locationDescription: payload.locationDescription, area: payload.area,
       radiusM: payload.toleranceRadius ?? 100, managerId: payload.responsibleId, status: 'ACTIVE', createdAt: timestamp, updatedAt: timestamp,
     }
     sites.unshift(site)

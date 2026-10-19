@@ -8,32 +8,39 @@ import { siteService } from '@/Services/site.service'
 import { mockEnterpriseUsers, mockMissions, mockTeams } from '@/mocks/administrator-data'
 import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
-import type { CreateSiteRequest, SiteLocation, SiteResponse, UpdateSiteRequest } from '@/types/site'
+import type { CreateSiteRequest, SiteCoordinate, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { TeamResponse } from '@/types/team'
 import type { ApiUserRole, UserResponse } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const PAGE_SIZE = 10
-// L'API n'accepte qu'un point : on envoie le centre des trois points du périmètre.
-function perimeterLocation(points: SitePoint[]): SiteLocation {
-  const latitude = points.reduce((sum, point) => sum + point.latitude, 0) / points.length
-  const longitude = points.reduce((sum, point) => sum + point.longitude, 0) / points.length
-  return { type: 'Point', coordinates: [Number(longitude.toFixed(6)), Number(latitude.toFixed(6))] }
+function toArea(points: SitePoint[]): SiteCoordinate[] {
+  return points.map(({ latitude, longitude }) => ({ latitude, longitude }))
 }
 
-// Points, ville et image du QR n'existent pas côté API : on conserve la copie locale existante.
+const sameArea = (a: SiteCoordinate[], b: SiteCoordinate[]) => JSON.stringify(toArea(a)) === JSON.stringify(toArea(b))
+
+// Ville, adresses des points et image du QR n'existent pas côté API : on conserve la copie locale existante.
 function mapSite(site: SiteResponse, previous?: Site): Site {
-  const [longitude, latitude] = site.location.coordinates
+  // Un point incomplet renvoyé par l'API est ignoré plutôt que de bloquer toute la liste.
+  const validArea = (site.area ?? []).filter((point) => Number.isFinite(point?.latitude) && Number.isFinite(point?.longitude))
+  const points: SitePoint[] = validArea.map((point, index) => {
+    const known = previous?.points?.[index]
+    const address = known?.latitude === point.latitude && known.longitude === point.longitude ? known.address : undefined
+    return { latitude: point.latitude, longitude: point.longitude, address }
+  })
+  // Le premier point du contour sert de repère sur la carte des sites.
+  const [anchor] = points
   return {
     id: site.id,
     name: site.name,
     address: site.address,
     locationDescription: site.locationDescription,
     city: previous?.city,
-    latitude: latitude.toFixed(6),
-    longitude: longitude.toFixed(6),
+    latitude: anchor?.latitude.toFixed(6),
+    longitude: anchor?.longitude.toFixed(6),
     radiusM: site.radiusM,
-    points: previous?.points,
+    points,
     missionId: site.missionId,
     teamId: site.teamId,
     managerId: site.managerId,
@@ -358,12 +365,12 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function createSite(input: SiteInput) {
-    if (!input.missionId || !input.managerId || input.points?.length !== 3) throw new Error('Mission, responsable et périmètre sont obligatoires.')
+    if (!input.missionId || !input.managerId || !input.points || input.points.length < 3) throw new Error('Mission, responsable et périmètre sont obligatoires.')
     const payload: CreateSiteRequest = {
       name: input.name.trim(),
       address: input.address?.trim() || undefined,
       locationDescription: input.locationDescription?.trim() || undefined,
-      location: perimeterLocation(input.points),
+      area: toArea(input.points),
       responsibleId: input.managerId,
       missionId: input.missionId,
     }
@@ -383,10 +390,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (address !== (current.address || undefined)) payload.address = address
     if (locationDescription !== (current.locationDescription || undefined)) payload.locationDescription = locationDescription
     if (input.managerId && input.managerId !== current.managerId) payload.responsibleId = input.managerId
-    if (input.points?.length === 3) {
-      const location = perimeterLocation(input.points)
-      if (location.coordinates.join() !== [Number(current.longitude), Number(current.latitude)].join()) payload.location = location
-    }
+    if (input.points && input.points.length >= 3 && !sameArea(input.points, current.points ?? [])) payload.area = toArea(input.points)
     const local = { ...current, city: input.city, points: input.points }
     const updated = Object.keys(payload).length ? mapSite(await siteService.update(id, payload), local) : local
     replaceSite(updated)
