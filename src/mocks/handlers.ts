@@ -8,6 +8,8 @@ import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
+import type { AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
+import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
 import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
 import type { AssignSupervisorRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
@@ -84,6 +86,8 @@ const sites: SiteResponse[] = mockSites.map((site) => ({
   })),
   radiusM: site.radiusM ?? 100,
   managerId: site.managerId,
+  // Une équipe par site fictif : Vridi pour l'équipe Nord, Yopougon pour l'équipe Sud.
+  teamId: ({ 'site-1': 'team-1', 'site-2': 'team-2' } as Record<string, string>)[site.id],
   status: 'ACTIVE',
   createdAt: site.createdAt,
   updatedAt: site.createdAt,
@@ -100,6 +104,41 @@ const devices: DeviceResponse[] = [
   { id: 'dev_mock_005', userId: 'user-6', publicKeyHash: 'e47b6a02', platform: 'android', model: 'Itel A70', osVersion: '13', appVersion: '0.9.4', status: 'REVOKED', lastIntegrityVerdict: 'PLAY_BASIC', lastIntegrityAt: '2026-10-05T08:00:00.000Z', hasKeyAttestation: false, enrolledAt: '2026-10-03T15:30:00.000Z', lastSeenAt: '2026-10-05T08:01:00.000Z', revokedAt: '2026-10-12T09:20:00.000Z', revokedReason: 'Téléphone déclaré perdu par l’agent le 12/10/2026.' },
   { id: 'dev_mock_006', userId: 'user-8', publicKeyHash: '9f3c1e58', platform: 'android', model: 'Tecno Camon 20', osVersion: '13', appVersion: '1.0.0', status: 'PENDING_ENROLLMENT', lastIntegrityVerdict: null, lastIntegrityAt: null, hasKeyAttestation: false, enrolledAt: null, lastSeenAt: null, revokedAt: null, revokedReason: null },
 ]
+
+// Créneaux fictifs sur la semaine en cours, dont un poste de nuit.
+const mockWeek = startOfWeek()
+function mockAssignment(index: number, userId: string, siteId: string, dayOffset: number, start: string, end: string): AssignmentResponse {
+  const day = addDays(mockWeek, dayOffset)
+  const startAt = new Date(`${day}T${start}:00`)
+  const endAt = new Date(`${day}T${end}:00`)
+  if (endAt <= startAt) endAt.setDate(endAt.getDate() + 1)
+  return {
+    id: `asg_mock_${index}`, userId, siteId, startAt: startAt.toISOString(), endAt: endAt.toISOString(), day,
+    durationMin: (endAt.getTime() - startAt.getTime()) / 60_000, status: 'PLANNED',
+    createdAt: '2026-10-15T08:00:00.000Z', updatedAt: '2026-10-15T08:00:00.000Z',
+  }
+}
+const assignments: AssignmentResponse[] = [
+  ...[0, 1, 2, 3, 4].map((day) => ['user-4', 'site-1', day, '07:00', '15:00'] as const),
+  ...[0, 2, 4].map((day) => ['user-3', 'site-1', day, '15:00', '23:00'] as const),
+  ...[1, 3].map((day) => ['user-7', 'site-2', day, '22:00', '06:00'] as const),
+].map(([userId, siteId, day, start, end], index) => mockAssignment(index + 1, userId, siteId, day, start, end))
+
+function assignmentProblem(status: number, code: string, detail: string, location: { userId?: string; slotIndex?: number } = {}) {
+  return HttpResponse.json({ title: code, status, detail, code, ...location }, { status, headers: { 'Content-Type': 'application/problem+json' } })
+}
+
+const overlaps = (a: { startAt: string; endAt: string }, b: { startAt: string; endAt: string }) =>
+  new Date(a.startAt) < new Date(b.endAt) && new Date(b.startAt) < new Date(a.endAt)
+
+// Mêmes contrôles que l'API : site actif avec une équipe, agents actifs de cette équipe, aucun chevauchement tous sites confondus.
+function checkSiteForPlanning(siteId: string) {
+  const site = sites.find((item) => item.id === siteId)
+  if (!site) return problem(404, 'NOT_FOUND', 'Site introuvable.')
+  if (site.status === 'ARCHIVED') return problem(409, 'SITE_ARCHIVED', 'Ce site est archivé.')
+  if (!site.teamId) return problem(409, 'ASSIGNMENT_SITE_WITHOUT_TEAM', 'Ce site n’a pas d’équipe.')
+  return site
+}
 
 function problem(status: number, code: string, detail: string): HttpResponse<DefaultBodyType> {
   const body: ApiProblemDetails = { title: code, status, detail, code }
@@ -184,6 +223,81 @@ export const handlers = [
     // Idempotent : une seconde révocation ne déplace pas l'horodatage.
     if (device.status !== 'REVOKED') Object.assign(device, { status: 'REVOKED', revokedAt: now(), revokedReason: reason.trim() })
     return HttpResponse.json(device)
+  }),
+
+  http.get(api('/assignments'), ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const from = params.get('from')
+    const to = params.get('to')
+    const filtered = assignments
+      .filter((item) => (['userId', 'siteId', 'status', 'day'] as const).every((key) => !params.get(key) || item[key] === params.get(key)))
+      .filter((item) => (!from || item.startAt >= from) && (!to || item.startAt < to))
+      .sort((a, b) => a.startAt.localeCompare(b.startAt))
+    return HttpResponse.json(page(request, filtered))
+  }),
+  http.get(api('/assignments/:id'), ({ params }) => {
+    const assignment = assignments.find((item) => item.id === String(params.id))
+    return assignment ? HttpResponse.json(assignment) : problem(404, 'NOT_FOUND', 'Créneau introuvable.')
+  }),
+  http.post(api('/assignments'), async ({ request }) => {
+    const payload = (await request.json()) as CreateAssignmentsRequest
+    const site = checkSiteForPlanning(payload.siteId)
+    if (site instanceof Response) return site
+    const userIds = [...new Set(payload.userIds)]
+    if (!userIds.length || !payload.slots?.length) return problem(400, 'VALIDATION_FAILED', 'Choisissez au moins un agent et une vacation.')
+    for (const [slotIndex, slot] of payload.slots.entries()) {
+      const minutes = (new Date(slot.endAt).getTime() - new Date(slot.startAt).getTime()) / 60_000
+      if (!(minutes >= 30 && minutes <= 24 * 60)) return assignmentProblem(400, 'VALIDATION_FAILED', 'Une vacation doit durer entre 30 minutes et 24 heures.', { slotIndex })
+    }
+    const created: AssignmentResponse[] = []
+    for (const userId of userIds) {
+      const user = users.find((item) => item.id === userId)
+      if (!user || user.status !== 'ACTIVE' || !user.roles.some((role) => ['AGENT', 'TEAM_LEAD'].includes(role))) {
+        return assignmentProblem(409, 'ASSIGNMENT_AGENT_INVALID', 'Ce compte n’est pas un agent actif.', { userId })
+      }
+      if (user.teamId !== site.teamId) return assignmentProblem(409, 'ASSIGNMENT_AGENT_NOT_IN_SITE_TEAM', 'Cet agent n’appartient pas à l’équipe du site.', { userId })
+      for (const [slotIndex, slot] of payload.slots.entries()) {
+        const busy = [...assignments, ...created].some((item) => item.userId === userId && item.status === 'PLANNED' && overlaps(item, slot))
+        if (busy) return assignmentProblem(409, 'ASSIGNMENT_OVERLAP', 'Cet agent a déjà un créneau sur cette plage.', { userId, slotIndex })
+        const timestamp = now()
+        created.push({
+          id: `asg_${Date.now()}_${created.length}`, userId, siteId: site.id, startAt: slot.startAt, endAt: slot.endAt,
+          day: toDayKey(new Date(slot.startAt)), durationMin: (new Date(slot.endAt).getTime() - new Date(slot.startAt).getTime()) / 60_000,
+          status: 'PLANNED', createdAt: timestamp, updatedAt: timestamp,
+        })
+      }
+    }
+    // Tout ou rien : rien n'est écrit avant que tout soit vérifié.
+    assignments.push(...created)
+    return HttpResponse.json({ count: created.length, items: created }, { status: 201 })
+  }),
+  http.patch(api('/assignments/:id'), async ({ params, request }) => {
+    const assignment = assignments.find((item) => item.id === String(params.id))
+    if (!assignment) return problem(404, 'NOT_FOUND', 'Créneau introuvable.')
+    if (assignment.status === 'CANCELLED') return problem(409, 'ASSIGNMENT_CANCELLED', 'Ce créneau est annulé.')
+    const payload = (await request.json()) as UpdateAssignmentRequest
+    const next = { ...assignment, ...payload }
+    const site = checkSiteForPlanning(next.siteId)
+    if (site instanceof Response) return site
+    if (users.find((item) => item.id === next.userId)?.teamId !== site.teamId) {
+      return assignmentProblem(409, 'ASSIGNMENT_AGENT_NOT_IN_SITE_TEAM', 'Cet agent n’appartient pas à l’équipe du site.', { userId: next.userId })
+    }
+    if (assignments.some((item) => item.id !== assignment.id && item.userId === next.userId && item.status === 'PLANNED' && overlaps(item, next))) {
+      return assignmentProblem(409, 'ASSIGNMENT_OVERLAP', 'Cet agent a déjà un créneau sur cette plage.', { userId: next.userId })
+    }
+    Object.assign(assignment, next, {
+      day: toDayKey(new Date(next.startAt)),
+      durationMin: (new Date(next.endAt).getTime() - new Date(next.startAt).getTime()) / 60_000,
+      updatedAt: now(),
+    })
+    return HttpResponse.json(assignment)
+  }),
+  http.post(api('/assignments/:id/cancel'), ({ params }) => {
+    const assignment = assignments.find((item) => item.id === String(params.id))
+    if (!assignment) return problem(404, 'NOT_FOUND', 'Créneau introuvable.')
+    // Idempotent : le créneau reste, il ne réserve simplement plus l'agent.
+    if (assignment.status !== 'CANCELLED') Object.assign(assignment, { status: 'CANCELLED', updatedAt: now() })
+    return HttpResponse.json(assignment)
   }),
 
   http.post(api('/auth/login'), async ({ request }) => {

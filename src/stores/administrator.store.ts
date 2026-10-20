@@ -58,7 +58,7 @@ const roleFromApi: Partial<Record<ApiUserRole, EnterpriseUser['role']>> = {
   ADMIN: 'administrator', SUPERVISOR: 'supervisor', TEAM_LEAD: 'teamLeader', AGENT: 'agent',
 }
 
-function mapUser(user: UserResponse): EnterpriseUser {
+export function mapUser(user: UserResponse): EnterpriseUser {
   const [firstName = '', ...lastNameParts] = user.names.trim().split(/\s+/)
   const apiRole = user.roles.find((role) => roleFromApi[role])
   return {
@@ -363,6 +363,21 @@ export const useAdministratorStore = defineStore('administrator', () => {
     return site
   }
 
+  /** Toutes les équipes (200 au plus), pour les listes de choix. */
+  const teamOptions = ref<Team[]>([])
+  async function loadTeamOptions() {
+    teamOptions.value = (await teamService.list({ limit: 200 })).items.map(mapTeam)
+    return teamOptions.value
+  }
+
+  async function loadTeam(id: string) {
+    const cached = getTeamById(id) ?? teamOptions.value.find((team) => team.id === id)
+    if (cached) return cached
+    const team = mapTeam(await teamService.findOne(id))
+    teamOptions.value = [...teamOptions.value, team]
+    return team
+  }
+
   async function createSite(input: SiteInput) {
     if (!input.missionId || !input.managerId || !input.points || input.points.length < 3) throw new Error('Mission, responsable et périmètre sont obligatoires.')
     const payload: CreateSiteRequest = {
@@ -372,6 +387,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
       area: toArea(input.points),
       responsibleId: input.managerId,
       missionId: input.missionId,
+      teamId: input.teamId || undefined,
     }
     const created = mapSite(await siteService.create(payload), { ...input, id: '', qrCode: '', status: 'active', createdAt: '' })
     sites.value.unshift(created)
@@ -389,6 +405,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (address !== (current.address || undefined)) payload.address = address
     if (locationDescription !== (current.locationDescription || undefined)) payload.locationDescription = locationDescription
     if (input.managerId && input.managerId !== current.managerId) payload.responsibleId = input.managerId
+    // L'API ne permet pas de retirer l'équipe d'un site, seulement d'en désigner une autre.
+    if (input.teamId && input.teamId !== current.teamId) payload.teamId = input.teamId
     if (input.points && input.points.length >= 3 && !sameArea(input.points, current.points ?? [])) payload.area = toArea(input.points)
     const local = { ...current, city: input.city, points: input.points }
     const updated = Object.keys(payload).length ? mapSite(await siteService.update(id, payload), local) : local
@@ -506,6 +524,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
     createUser, updateUser, toggleUserStatus, importUsers,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
+    teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, openMission, closeMission, assignMissionSite,
     createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,

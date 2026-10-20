@@ -4,10 +4,10 @@ import LocationAutocomplete from '@/Components/sites/LocationAutocomplete.vue'
 import SitePerimeterMap from '@/Components/sites/SitePerimeterMap.vue'
 import SitePointMapDialog from '@/Components/sites/SitePointMapDialog.vue'
 import { delimitsSurface, formatCoordinates, SITE_POINT_COUNT } from '@/Components/sites/site-map'
-import type { EnterpriseUser, Mission, Site, SiteInput, SitePoint } from '@/types/administrator'
+import type { EnterpriseUser, Mission, Site, SiteInput, SitePoint, Team } from '@/types/administrator'
 import type { GeocodingResult } from '@/types/geocoding'
 
-const props = defineProps<{ site?: Site; managers: EnterpriseUser[]; missions: Mission[]; loading?: boolean }>()
+const props = defineProps<{ site?: Site; managers: EnterpriseUser[]; missions: Mission[]; teams: Team[]; loading?: boolean }>()
 const emit = defineEmits<{ submit: [payload: SiteInput]; cancel: []; dirtyChange: [dirty: boolean] }>()
 const form = ref()
 const data = reactive<SiteInput>({
@@ -15,6 +15,7 @@ const data = reactive<SiteInput>({
   locationDescription: props.site?.locationDescription ?? '',
   latitude: props.site?.latitude ?? '', longitude: props.site?.longitude ?? '',
   missionId: props.site?.missionId ?? undefined, managerId: props.site?.managerId ?? undefined,
+  teamId: props.site?.teamId ?? undefined,
 })
 const points = ref<(SitePoint | null)[]>(Array.from({ length: Math.max(SITE_POINT_COUNT, props.site?.points?.length ?? 0) }, (_, index) => props.site?.points?.[index] ?? null))
 const placedCount = computed(() => points.value.filter(Boolean).length)
@@ -77,6 +78,7 @@ async function submit() {
           <v-textarea v-model="data.locationDescription" label="Description de l’emplacement" placeholder="Ex. : entrée principale, près de la réception" persistent-placeholder rows="2" auto-grow counter="500" maxlength="500" class="md:col-span-2" :rules="[addressOrDescription]" />
           <v-select v-model="data.missionId" label="Mission" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Dérouler la liste" persistent-placeholder :disabled="Boolean(site)" :hint="site ? 'La mission d’un site ne peut pas être modifiée.' : undefined" :persistent-hint="Boolean(site)" :rules="[requiredChoice]" />
           <v-select v-model="data.managerId" label="Responsable du site" :items="managers" :item-title="managerName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
+          <v-select v-model="data.teamId" label="Équipe (facultatif)" :items="teams" item-title="name" item-value="id" placeholder="Aucune équipe pour l’instant" persistent-placeholder :clearable="!site?.teamId" class="md:col-span-2" :hint="site?.teamId ? 'L’équipe peut être remplacée, pas retirée. Les créneaux déjà planifiés restent à leurs agents.' : 'L’équipe affectée au site est celle dont les agents pourront y être planifiés.'" persistent-hint />
         </v-card-text>
       </v-card>
       <v-card>

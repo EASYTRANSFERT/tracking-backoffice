@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import QrCodeCard from '@/Components/sites/QrCodeCard.vue'
 import { formatCoordinates } from '@/Components/sites/site-map'
-import SiteAgentsCard from '@/Components/sites/SiteAgentsCard.vue'
 import SiteGovernanceCard from '@/Components/sites/SiteGovernanceCard.vue'
 import SitePerimeterMap from '@/Components/sites/SitePerimeterMap.vue'
+import SiteScheduleCard from '@/Components/sites/SiteScheduleCard.vue'
 import { useSiteQrCode } from '@/composables/useSiteQrCode'
 import { getApiErrorMessage } from '@/Services/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import type { EnterpriseUser } from '@/types/administrator'
+import type { EnterpriseUser, Team } from '@/types/administrator'
 
 const route = useRoute()
 const store = useAdministratorStore()
@@ -52,14 +52,18 @@ const supervisor = computed(() => site.value?.managerId
   ? store.teamDirectoryUsers.find((user) => user.id === site.value?.managerId)
   : undefined)
 
-// Ces relations restent volontairement visuelles tant que les endpoints
-// d’affectation d’un chef de projet et des agents au site n’existent pas.
+// Pas encore d’endpoint pour désigner un chef de projet sur un site.
 const projectLead = computed<EnterpriseUser | undefined>(() => undefined)
-const siteAgents = computed<EnterpriseUser[]>(() => [])
+const team = ref<Team>()
+watch(() => site.value?.teamId, async (teamId) => {
+  team.value = undefined
+  if (!teamId) return
+  try { team.value = await store.loadTeam(teamId) } catch { team.value = undefined }
+}, { immediate: true })
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1180px]">
+  <div class="mx-auto w-full max-w-[1280px]">
     <PageHeader>
       <template #title>{{ site?.name ?? 'Site introuvable' }}</template>
       <template #description>Configuration, périmètre, encadrement et personnel affecté.</template>
@@ -93,7 +97,8 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
             <div><p class="text-xs text-[#848484]">Ville</p><p class="mt-1 font-medium">{{ site.city || 'À compléter' }}</p></div>
             <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Adresse</p><p class="mt-1 font-medium">{{ site.address || 'À compléter' }}</p></div>
             <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Description de l’emplacement</p><p class="mt-1 font-medium">{{ site.locationDescription || '—' }}</p></div>
-            <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Mission</p><p class="mt-1 font-medium">{{ mission ? `${mission.code} · ${mission.title}` : site.missionId || '—' }}</p></div>
+            <div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-medium">{{ team?.name ?? (site.teamId ? '…' : 'Aucune équipe affectée') }}</p></div>
+            <div><p class="text-xs text-[#848484]">Mission</p><p class="mt-1 font-medium">{{ mission ? `${mission.code} · ${mission.title}` : site.missionId || '—' }}</p></div>
           </v-card-text>
           <v-divider />
           <v-card-actions v-if="site.status !== 'inactive'" class="px-6 py-4">
@@ -134,7 +139,6 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
           </v-card-text>
         </v-card>
 
-        <SiteAgentsCard :agents="siteAgents" />
       </div>
 
       <div class="space-y-6">
@@ -142,5 +146,6 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
         <QrCodeCard :site="site" :loading="generatingId === site.id" @details="() => {}" @regenerate="generate" />
       </div>
     </div>
+    <SiteScheduleCard v-if="site" :site="site" :team="team" class="mt-6" />
   </div>
 </template>
