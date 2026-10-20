@@ -52,7 +52,7 @@ const supervisor = computed(() => site.value?.managerId
   ? store.teamDirectoryUsers.find((user) => user.id === site.value?.managerId)
   : undefined)
 
-// Pas encore d’endpoint pour désigner un chef de projet sur un site.
+// Pas encore d’endpoint pour désigner un chef d'équipe sur un site.
 const projectLead = computed<EnterpriseUser | undefined>(() => undefined)
 const team = ref<Team>()
 watch(() => site.value?.teamId, async (teamId) => {

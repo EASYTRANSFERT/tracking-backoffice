@@ -31,7 +31,7 @@ const fullName = (user?: EnterpriseUser) => user
       />
       <v-list-item
         prepend-icon="mdi-briefcase-account-outline"
-        title="Chef de projet"
+        title="Chef d'équipe"
         :subtitle="fullName(projectLead)"
       />
     </v-list>
