@@ -5,7 +5,7 @@ import * as L from 'leaflet'
 import { addTileLayer, DEFAULT_CENTER, DEFAULT_ZOOM, perimeterLayer, POINT_ZOOM, pointIcon, toLatLng } from '@/Components/sites/site-map'
 import type { SitePoint } from '@/types/administrator'
 
-const props = defineProps<{ points: (SitePoint | null)[] }>()
+const props = withDefaults(defineProps<{ points: (SitePoint | null)[]; emptyText?: string }>(), { emptyText: 'Les points ajoutés apparaîtront ici.' })
 const emit = defineEmits<{ select: [index: number] }>()
 
 const mapElement = ref<HTMLElement | null>(null)
@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
       class="pointer-events-none absolute inset-0 z-[500] grid place-items-center bg-white/60 px-6 text-center"
     >
       <p class="flex items-center gap-2 text-sm font-medium text-[#535865]">
-        <v-icon icon="mdi-vector-triangle" size="20" />Les points ajoutés apparaîtront ici.
+        <v-icon icon="mdi-vector-triangle" size="20" />{{ emptyText }}
       </p>
     </div>
   </div>

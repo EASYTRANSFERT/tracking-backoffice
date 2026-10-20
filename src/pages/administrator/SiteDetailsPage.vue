@@ -8,6 +8,7 @@ import QrCodeCard from '@/Components/sites/QrCodeCard.vue'
 import { formatCoordinates } from '@/Components/sites/site-map'
 import SiteAgentsCard from '@/Components/sites/SiteAgentsCard.vue'
 import SiteGovernanceCard from '@/Components/sites/SiteGovernanceCard.vue'
+import SitePerimeterMap from '@/Components/sites/SitePerimeterMap.vue'
 import { useSiteQrCode } from '@/composables/useSiteQrCode'
 import { getApiErrorMessage } from '@/Services/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
@@ -111,6 +112,9 @@ const siteAgents = computed<EnterpriseUser[]>(() => [])
             </div>
           </v-card-title>
           <v-divider />
+          <v-card-text class="px-6 pt-6 pb-0">
+            <SitePerimeterMap :points="site.points ?? []" empty-text="Aucun contour enregistré pour ce site." />
+          </v-card-text>
           <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-3">
             <div class="sm:col-span-2">
               <p class="text-xs text-[#848484]">Contour ({{ site.points?.length ?? 0 }} points)</p>
