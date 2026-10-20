@@ -57,7 +57,7 @@ function goBack() {
 
     <v-spacer />
 
-    <v-text-field
+    <!--<v-text-field
       prepend-inner-icon="mdi-magnify"
       placeholder="Rechercher"
       variant="outlined"
@@ -72,7 +72,7 @@ function goBack() {
       variant="text"
       color="secondary"
       aria-label="Notifications"
-    />
+    />-->
 
     <UserMenu />
 
