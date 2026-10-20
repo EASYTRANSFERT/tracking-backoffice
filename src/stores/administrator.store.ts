@@ -138,7 +138,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const activeUsersCount = computed(() => users.value.filter(
     (user) => user.role !== 'administrator' && user.status === 'active',
   ).length)
-  const pendingDeviceActivationsCount = computed(() => users.value.filter((user) => user.status === 'invited').length)
   const activeSitesCount = computed(() => sites.value.filter((site) => site.status === 'active').length)
   const ongoingMissionsCount = computed(() => missions.value.filter((mission) => mission.status === 'ongoing').length)
   const teamDirectoryUsers = computed(() => [
@@ -502,7 +501,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   return {
     users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportUsers, canImportSites,
     userNextCursor, userCursorHistory, userPage, teamNextCursor, teamCursorHistory, teamPage,
-    activeUsersCount, pendingDeviceActivationsCount, activeSitesCount, ongoingMissionsCount,
+    activeUsersCount, activeSitesCount, ongoingMissionsCount,
     getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
     nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
     createUser, updateUser, toggleUserStatus, importUsers,

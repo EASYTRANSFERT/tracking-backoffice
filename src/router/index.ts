@@ -221,6 +221,18 @@ const router = createRouter({
           meta: { title: 'Modifier la mission', allowedRoles: ['administrator'] },
         },
         {
+          path: 'devices',
+          name: 'admin-devices',
+          component: () => import('@/pages/administrator/DevicesPage.vue'),
+          meta: { title: 'Appareils', allowedRoles: ['administrator'] },
+        },
+        {
+          path: 'devices/:deviceId',
+          name: 'admin-device-details',
+          component: () => import('@/pages/administrator/DeviceDetailsPage.vue'),
+          meta: { title: 'Détail appareil', allowedRoles: ['administrator'] },
+        },
+        {
           path: 'qr-codes',
           name: 'admin-qr-codes',
           component: () => import('@/pages/administrator/QrCodesPage.vue'),

@@ -8,6 +8,7 @@ import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
+import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
 import type { AssignSupervisorRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -90,6 +91,16 @@ const sites: SiteResponse[] = mockSites.map((site) => ({
 // QR factice (PNG 1×1) : le vrai visuel est produit par l'API.
 const mockQrImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
 
+// Appareils fictifs : un par état pour couvrir l'affichage.
+const devices: DeviceResponse[] = [
+  { id: 'dev_mock_001', userId: 'user-4', publicKeyHash: 'a3f1c9e2', platform: 'android', model: 'Tecno Spark 10', osVersion: '14', appVersion: '1.0.0', status: 'ACTIVE', lastIntegrityVerdict: 'PLAY_STRONG', lastIntegrityAt: '2026-10-20T07:58:00.000Z', hasKeyAttestation: true, enrolledAt: '2026-09-13T08:10:00.000Z', lastSeenAt: '2026-10-20T08:02:00.000Z', revokedAt: null, revokedReason: null },
+  { id: 'dev_mock_002', userId: 'user-3', publicKeyHash: '7be04d11', platform: 'android', model: 'Samsung Galaxy A15', osVersion: '14', appVersion: '1.0.0', status: 'ACTIVE', lastIntegrityVerdict: 'PLAY_DEVICE', lastIntegrityAt: '2026-10-19T17:40:00.000Z', hasKeyAttestation: true, enrolledAt: '2026-09-09T09:00:00.000Z', lastSeenAt: '2026-10-19T17:42:00.000Z', revokedAt: null, revokedReason: null },
+  { id: 'dev_mock_003', userId: 'user-5', publicKeyHash: 'c51a8f30', platform: 'android', model: 'Infinix Hot 40', osVersion: '13', appVersion: '1.0.0', status: 'PENDING_ENROLLMENT', lastIntegrityVerdict: null, lastIntegrityAt: null, hasKeyAttestation: false, enrolledAt: null, lastSeenAt: null, revokedAt: null, revokedReason: null },
+  { id: 'dev_mock_004', userId: 'user-7', publicKeyHash: '0d9e2b77', platform: 'ios', model: 'iPhone 12', osVersion: '17.6', appVersion: '1.0.0', status: 'ACTIVE', lastIntegrityVerdict: 'APP_ATTEST_OK', lastIntegrityAt: '2026-10-18T12:00:00.000Z', hasKeyAttestation: true, enrolledAt: '2026-09-11T10:00:00.000Z', lastSeenAt: '2026-10-18T12:05:00.000Z', revokedAt: null, revokedReason: null },
+  { id: 'dev_mock_005', userId: 'user-6', publicKeyHash: 'e47b6a02', platform: 'android', model: 'Itel A70', osVersion: '13', appVersion: '0.9.4', status: 'REVOKED', lastIntegrityVerdict: 'PLAY_BASIC', lastIntegrityAt: '2026-10-05T08:00:00.000Z', hasKeyAttestation: false, enrolledAt: '2026-10-03T15:30:00.000Z', lastSeenAt: '2026-10-05T08:01:00.000Z', revokedAt: '2026-10-12T09:20:00.000Z', revokedReason: 'Téléphone déclaré perdu par l’agent le 12/10/2026.' },
+  { id: 'dev_mock_006', userId: 'user-8', publicKeyHash: '9f3c1e58', platform: 'android', model: 'Tecno Camon 20', osVersion: '13', appVersion: '1.0.0', status: 'PENDING_ENROLLMENT', lastIntegrityVerdict: null, lastIntegrityAt: null, hasKeyAttestation: false, enrolledAt: null, lastSeenAt: null, revokedAt: null, revokedReason: null },
+]
+
 function problem(status: number, code: string, detail: string): HttpResponse<DefaultBodyType> {
   const body: ApiProblemDetails = { title: code, status, detail, code }
   return HttpResponse.json(body, { status, headers: { 'Content-Type': 'application/problem+json' } })
@@ -151,6 +162,30 @@ export const handlers = [
     site.qrRotatedAt = now()
     return HttpResponse.json({ siteId: site.id, qrCode: mockQrImage, rotatedAt: site.qrRotatedAt })
   }),
+  http.get(api('/devices'), ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const filtered = devices.filter((device) => (['userId', 'status'] as const)
+      .every((key) => !params.get(key) || device[key] === params.get(key)))
+    return HttpResponse.json(page(request, filtered))
+  }),
+  http.get(api('/devices/:id'), ({ params }) => {
+    const device = devices.find((item) => item.id === String(params.id))
+    return device ? HttpResponse.json(device) : problem(404, 'NOT_FOUND', 'Appareil introuvable.')
+  }),
+  http.post(api('/devices/:id/revoke'), async ({ params, request }) => {
+    // Le jeton « élevé » n'est délivré que par /auth/step-up.
+    if (!request.headers.get('Authorization')?.startsWith('Bearer mock-elevated-token')) {
+      return problem(401, 'STEP_UP_REQUIRED', 'Une ré-authentification TOTP récente est requise.')
+    }
+    const device = devices.find((item) => item.id === String(params.id))
+    if (!device) return problem(404, 'NOT_FOUND', 'Appareil introuvable.')
+    const { reason } = (await request.json()) as RevokeDeviceRequest
+    if (!reason?.trim()) return problem(400, 'VALIDATION_FAILED', 'Le motif de révocation est obligatoire.')
+    // Idempotent : une seconde révocation ne déplace pas l'horodatage.
+    if (device.status !== 'REVOKED') Object.assign(device, { status: 'REVOKED', revokedAt: now(), revokedReason: reason.trim() })
+    return HttpResponse.json(device)
+  }),
+
   http.post(api('/auth/login'), async ({ request }) => {
     const credentials = (await request.json()) as LoginRequest
     const mockUser = findMockAuthUserByCredentials(credentials.email, credentials.password)

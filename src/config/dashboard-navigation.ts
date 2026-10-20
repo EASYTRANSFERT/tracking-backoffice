@@ -60,6 +60,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['administrator'],
   },
   {
+    title: 'Appareils',
+    routeName: 'admin-devices',
+    icon: 'mdi-cellphone-link',
+    allowedRoles: ['administrator'],
+  },
+  {
     title: 'QR codes',
     routeName: 'admin-qr-codes',
     icon: 'mdi-qrcode-scan',

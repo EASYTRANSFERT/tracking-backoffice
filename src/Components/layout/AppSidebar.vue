@@ -81,6 +81,7 @@ const routeGroups: Record<string, string[]> = {
     'admin-mission-details',
     'admin-mission-edit',
   ],
+  'admin-devices': ['admin-devices', 'admin-device-details'],
   'supervisor-missions': ['supervisor-missions', 'supervisor-mission-details'],
   'team-leader-missions': ['team-leader-missions', 'team-leader-mission-details'],
 }

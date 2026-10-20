@@ -8,6 +8,8 @@ const messagesByCode: Record<string, string> = {
   SITE_MANAGER_INVALID: 'Le responsable doit être un administrateur ou un superviseur actif.',
   MISSION_STATUS_CONFLICT: 'Cette mission ne permet plus d’ajouter de site.',
   SITE_ARCHIVED: 'Ce site est archivé et ne peut plus être modifié.',
+  STEP_UP_REQUIRED: 'Confirmez votre identité avec votre code de vérification, puis réessayez.',
+  TOTP_INVALID: 'Le code de vérification est incorrect.',
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {
