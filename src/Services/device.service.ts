@@ -1,14 +1,7 @@
 import { apiClient } from './api-client'
 import { idempotencyHeaders } from './request-headers'
 
-import type {
-  CreateDeviceEnrollmentRequest,
-  DeviceEnrollmentResponse,
-  DeviceListQuery,
-  DevicePageResponse,
-  DeviceResponse,
-  RevokeDeviceRequest,
-} from '@/types/device'
+import type { DeviceListQuery, DevicePageResponse, DeviceResponse, RevokeDeviceRequest } from '@/types/device'
 
 export const deviceService = {
   async list(query: DeviceListQuery = {}): Promise<DevicePageResponse> {
@@ -30,12 +23,6 @@ export const deviceService = {
       headers: idempotencyHeaders(),
       skipAuthRefresh: true,
     })
-    return response.data
-  },
-
-  /** Mock uniquement : l'API ne fournit pas encore cet endpoint. */
-  async createEnrollment(payload: CreateDeviceEnrollmentRequest): Promise<DeviceEnrollmentResponse> {
-    const response = await apiClient.post<DeviceEnrollmentResponse>('/devices/enrollments', payload, { headers: idempotencyHeaders() })
     return response.data
   },
 }
