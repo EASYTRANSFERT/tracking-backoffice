@@ -4,9 +4,10 @@ import { defineStore } from 'pinia'
 import { deviceService } from '@/Services/device.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAdministratorStore } from '@/stores/administrator.store'
-import type { ApiDeviceStatus, DeviceResponse } from '@/types/device'
+import type { ApiDeviceStatus, DeviceEnrollmentResponse, DeviceResponse } from '@/types/device'
 
 const PAGE_SIZE = 50
+const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 
 export interface DeviceFilters {
   userId?: string
@@ -26,6 +27,9 @@ export const useDeviceStore = defineStore('device', () => {
   const isLoadingMore = ref(false)
   const isDeviceLoading = ref(false)
   const isRevoking = ref(false)
+  const isEnrolling = ref(false)
+  /** L'API ne propose pas encore l'enrôlement : disponible en mode mock seulement. */
+  const canEnrollDevices = computed(() => mockMode)
 
   const hasMore = computed(() => nextCursor.value !== null)
 
@@ -96,6 +100,15 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
+  async function createEnrollment(userId: string): Promise<DeviceEnrollmentResponse> {
+    isEnrolling.value = true
+    try {
+      return await deviceService.createEnrollment({ userId })
+    } finally {
+      isEnrolling.value = false
+    }
+  }
+
   function activeFilters() {
     return Object.fromEntries(Object.entries(filters.value).filter(([, value]) => Boolean(value))) as DeviceFilters
   }
@@ -114,7 +127,7 @@ export const useDeviceStore = defineStore('device', () => {
 
   return {
     devices, nextCursor, filters, currentDevice, devicesByUser, pendingEnrollmentCount, hasMorePendingEnrollments,
-    isLoading, isLoadingMore, isDeviceLoading, isRevoking, hasMore,
-    agentName, loadDevices, loadMore, loadDevice, loadUserDevices, loadPendingEnrollmentCount, revokeDevice,
+    isLoading, isLoadingMore, isDeviceLoading, isRevoking, isEnrolling, canEnrollDevices, hasMore,
+    agentName, loadDevices, loadMore, loadDevice, loadUserDevices, loadPendingEnrollmentCount, revokeDevice, createEnrollment,
   }
 })

@@ -39,3 +39,21 @@ export interface DevicePageResponse {
 export interface RevokeDeviceRequest {
   reason: string
 }
+
+/**
+ * Enrôlement d'un téléphone. Endpoint pas encore fourni par l'API :
+ * forme proposée au backend, servie par les mocks en attendant.
+ */
+export interface CreateDeviceEnrollmentRequest {
+  userId: string
+}
+
+export interface DeviceEnrollmentResponse {
+  id: string
+  userId: string
+  /** Code à usage unique saisi dans l'application mobile. */
+  code: string
+  /** Image PNG en URI de données, à scanner depuis l'application. */
+  qrCode: string
+  expiresAt: string
+}

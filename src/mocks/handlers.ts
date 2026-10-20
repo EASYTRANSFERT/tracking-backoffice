@@ -8,7 +8,7 @@ import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
-import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
+import type { CreateDeviceEnrollmentRequest, DeviceEnrollmentResponse, DeviceResponse, RevokeDeviceRequest } from '@/types/device'
 import type { AssignSupervisorRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -167,6 +167,18 @@ export const handlers = [
     const filtered = devices.filter((device) => (['userId', 'status'] as const)
       .every((key) => !params.get(key) || device[key] === params.get(key)))
     return HttpResponse.json(page(request, filtered))
+  }),
+  http.post(api('/devices/enrollments'), async ({ request }) => {
+    const { userId } = (await request.json()) as CreateDeviceEnrollmentRequest
+    const user = users.find((item) => item.id === userId)
+    if (!user) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
+    if (user.status === 'DISABLED') return problem(409, 'USER_DISABLED', 'Ce compte est désactivé.')
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    const code = Array.from({ length: 8 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('')
+    return HttpResponse.json<DeviceEnrollmentResponse>({
+      id: `enr_${Date.now()}`, userId, code, qrCode: mockQrCode,
+      expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+    }, { status: 201 })
   }),
   http.get(api('/devices/:id'), ({ params }) => {
     const device = devices.find((item) => item.id === String(params.id))

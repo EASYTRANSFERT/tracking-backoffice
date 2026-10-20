@@ -9,6 +9,7 @@ const messagesByCode: Record<string, string> = {
   MISSION_STATUS_CONFLICT: 'Cette mission ne permet plus d’ajouter de site.',
   SITE_ARCHIVED: 'Ce site est archivé et ne peut plus être modifié.',
   STEP_UP_REQUIRED: 'Confirmez votre identité avec votre code de vérification, puis réessayez.',
+  USER_DISABLED: 'Ce compte est désactivé : réactivez-le avant d’enrôler un appareil.',
   TOTP_INVALID: 'Le code de vérification est incorrect.',
 }
 

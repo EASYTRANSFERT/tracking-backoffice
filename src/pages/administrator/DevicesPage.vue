@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
+import DeviceEnrollButton from '@/Components/devices/DeviceEnrollButton.vue'
 import DeviceRevokeDialog from '@/Components/devices/DeviceRevokeDialog.vue'
 import DeviceTable from '@/Components/devices/DeviceTable.vue'
 import { deviceStatusOptions } from '@/Components/devices/device-format'
@@ -50,13 +51,14 @@ onMounted(() => {
     <PageHeader>
       <template #title>Appareils</template>
       <template #description>Téléphones enregistrés par les agents pour pointer. Révoquez un appareil perdu, volé ou remplacé.</template>
+      <template #actions><DeviceEnrollButton /></template>
     </PageHeader>
     <v-progress-linear v-if="isLoading" indeterminate color="primary" class="mb-4" />
     <v-card class="overflow-hidden">
       <div class="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center">
         <div>
           <h2 class="text-lg font-bold text-[#252830]">Parc d’appareils</h2>
-          <p class="mt-1 text-xs text-[#747985]">Un appareil s’ajoute depuis l’application mobile, lors de l’activation de l’agent.</p>
+          <p class="mt-1 text-xs text-[#747985]">Un appareil s’ajoute avec un code d’activation saisi dans l’application mobile.</p>
         </div>
         <v-spacer />
         <div class="grid w-full gap-3 sm:grid-cols-[minmax(220px,1fr)_220px] lg:max-w-[560px]">
@@ -66,7 +68,7 @@ onMounted(() => {
       </div>
       <v-divider />
       <DeviceTable v-if="devices.length" :devices="devices" :agent-name="store.agentName" @view="view" @revoke="revocation.open" />
-      <AppEmptyState v-else-if="!isLoading" icon="mdi-cellphone-off" title="Aucun appareil trouvé" description="Les appareils apparaissent ici dès qu’un agent active l’application mobile." />
+      <AppEmptyState v-else-if="!isLoading" icon="mdi-cellphone-off" title="Aucun appareil trouvé" description="Enrôlez un appareil pour qu’un agent puisse pointer depuis son téléphone." />
       <div v-if="hasMore" class="flex justify-center border-t px-5 py-4">
         <v-btn variant="outlined" color="secondary" prepend-icon="mdi-chevron-down" :loading="isLoadingMore" @click="loadMore">Charger plus</v-btn>
       </div>
