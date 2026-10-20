@@ -26,11 +26,7 @@ const displayName = computed(() => {
     <div
       class="flex flex-wrap items-center gap-3 [&_.v-btn.bg-primary]:min-h-11 [&_.v-btn.bg-primary]:rounded-[10px] [&_.v-btn.bg-primary]:px-5 [&_.v-btn.bg-primary]:font-semibold [&_.v-btn.bg-primary]:normal-case [&_.v-btn.bg-primary]:tracking-normal [&_.v-btn.bg-primary]:shadow-[0_8px_18px_rgb(216_15_22_/_18%)]"
     >
-      <slot name="actions">
-        <v-btn color="primary" prepend-icon="mdi-plus" size="large" class="w-full sm:w-auto">
-          Nouvelle entreprise
-        </v-btn>
-      </slot>
+      <slot name="actions" />
     </div>
   </header>
 </template>
