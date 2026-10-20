@@ -116,24 +116,26 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
 
 <template>
   <v-card class="overflow-hidden">
-    <v-card-title class="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
+    <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
       <div class="flex items-center gap-3">
         <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-calendar-account-outline" color="primary" /></v-avatar>
         <div>
-          <h2 class="text-base font-bold">Planning de l’équipe</h2>
-          <p class="mt-1 text-xs font-normal text-[#747985]">{{ team ? `${team.name} · ${members.length} agent${members.length > 1 ? 's' : ''}` : 'Aucune équipe affectée' }}</p>
+          <h2 class="text-base font-bold text-[#252830]">Planning de l’équipe</h2>
+          <p class="mt-0.5 text-xs text-[#747985]">{{ team ? `${team.name} · ${members.length} agent${members.length > 1 ? 's' : ''}` : 'Aucune équipe affectée' }}</p>
         </div>
       </div>
-      <div v-if="site.teamId" class="flex flex-wrap items-center gap-2">
-        <v-btn icon="mdi-chevron-left" variant="text" size="small" aria-label="Semaine précédente" @click="goToWeek(addDays(weekStart, -7))" />
-        <span class="min-w-[220px] text-center text-sm font-semibold text-[#252830]">{{ weekLabel(weekStart) }}</span>
-        <v-btn icon="mdi-chevron-right" variant="text" size="small" aria-label="Semaine suivante" @click="goToWeek(addDays(weekStart, 7))" />
-        <v-btn variant="outlined" color="secondary" size="small" @click="goToWeek(startOfWeek())">Aujourd’hui</v-btn>
-        <v-btn color="primary" size="small" prepend-icon="mdi-calendar-plus" :disabled="!canPlan" @click="openPlan()">Planifier</v-btn>
+      <div v-if="site.teamId" class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center rounded-lg border border-[#e3e5ea]">
+          <v-btn icon="mdi-chevron-left" variant="text" size="small" density="comfortable" aria-label="Semaine précédente" @click="goToWeek(addDays(weekStart, -7))" />
+          <span class="min-w-[230px] px-1 text-center text-sm font-semibold text-[#252830]">{{ weekLabel(weekStart) }}</span>
+          <v-btn icon="mdi-chevron-right" variant="text" size="small" density="comfortable" aria-label="Semaine suivante" @click="goToWeek(addDays(weekStart, 7))" />
+        </div>
+        <v-btn variant="text" size="small" class="normal-case" :disabled="weekStart === startOfWeek()" @click="goToWeek(startOfWeek())">Aujourd’hui</v-btn>
+        <v-btn color="primary" prepend-icon="mdi-calendar-plus" :disabled="!canPlan" @click="openPlan()">Planifier</v-btn>
       </div>
-    </v-card-title>
+    </div>
     <v-divider />
-    <v-progress-linear v-if="isLoading" indeterminate color="primary" />
+    <v-progress-linear v-if="isLoading" indeterminate color="primary" height="2" />
 
     <AppEmptyState v-if="!site.teamId" icon="mdi-account-group-outline" title="Aucune équipe sur ce site" description="Affectez une équipe au site pour planifier les créneaux de ses agents.">
       <v-btn v-if="site.status !== 'inactive'" color="primary" variant="tonal" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-site-edit', params: { siteId: site.id } }">Affecter une équipe</v-btn>
@@ -142,47 +144,62 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
     <AppEmptyState v-else-if="!members.length && !isLoading" icon="mdi-account-off-outline" title="L’équipe n’a pas encore d’agent" description="Ajoutez des agents à l’équipe depuis la page Équipes." />
 
     <div v-else class="overflow-x-auto">
-      <table class="w-full min-w-[920px] border-collapse text-sm">
+      <table class="w-full min-w-[880px] table-fixed border-collapse text-sm">
+        <colgroup>
+          <col class="w-[200px]">
+          <col v-for="day in days" :key="day.key">
+        </colgroup>
         <thead>
-          <tr class="bg-[#F6F6F7]">
-            <th class="relative h-16 w-52 border-b border-r border-[#e3e5ea] text-left">
+          <tr>
+            <th class="relative h-14 border-b border-r border-[#eceef2] bg-[#FAFAFB]">
               <svg class="absolute inset-0 h-full w-full" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="0" x2="100%" y2="100%" stroke="#e3e5ea" /></svg>
-              <span class="absolute right-3 top-2 text-xs font-semibold text-[#747985]">Jour</span>
-              <span class="absolute bottom-2 left-3 text-xs font-semibold text-[#747985]">Agents</span>
+              <span class="absolute right-3 top-2 text-[11px] font-semibold uppercase tracking-wide text-[#9a9ea8]">Jour</span>
+              <span class="absolute bottom-2 left-4 text-[11px] font-semibold uppercase tracking-wide text-[#9a9ea8]">Agents</span>
             </th>
-            <th v-for="day in days" :key="day.key" class="border-b border-r border-[#e3e5ea] px-2 py-2 text-center last:border-r-0" :class="day.isToday ? 'bg-[#FDE9EA]' : ''">
-              <p class="text-xs font-semibold uppercase tracking-wide" :class="day.isToday ? 'text-[#D80F16]' : 'text-[#747985]'">{{ day.weekday }}</p>
-              <p class="font-bold text-[#252830]">{{ day.date }}</p>
+            <th
+              v-for="(day, index) in days"
+              :key="day.key"
+              class="border-b border-r border-[#eceef2] px-2 py-2 text-center font-normal last:border-r-0"
+              :class="day.isToday ? 'bg-[#FDE9EA]' : index > 4 ? 'bg-[#F6F6F7]' : 'bg-[#FAFAFB]'"
+            >
+              <span class="block text-[11px] font-semibold uppercase tracking-wide" :class="day.isToday ? 'text-[#D80F16]' : 'text-[#9a9ea8]'">{{ day.weekday }}</span>
+              <span class="mt-0.5 block font-semibold" :class="day.isToday ? 'text-[#D80F16]' : 'text-[#252830]'">{{ day.date }}</span>
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="[&>tr:last-child>td]:border-b-0">
           <tr v-for="member in members" :key="member.id">
-            <td class="border-b border-r border-[#e3e5ea] px-3 py-2 align-middle">
-              <p class="font-semibold text-[#252830]">{{ member.firstName }} {{ member.lastName }}</p>
-              <p class="text-xs text-[#848484]">{{ member.role === 'teamLeader' ? 'Chef d’équipe' : member.employeeNumber }} · {{ totalHours(member.id) }}</p>
+            <td class="border-b border-r border-[#eceef2] px-4 py-3">
+              <p class="truncate font-semibold text-[#252830]">{{ member.firstName }} {{ member.lastName }}</p>
+              <p class="mt-0.5 truncate text-xs text-[#848484]">{{ member.role === 'teamLeader' ? 'Chef d’équipe' : member.employeeNumber }} · {{ totalHours(member.id) }}</p>
             </td>
-            <td v-for="day in days" :key="day.key" class="group h-16 border-b border-r border-[#e3e5ea] p-1.5 align-top last:border-r-0" :class="day.isToday ? 'bg-[#FFF8F8]' : ''">
+            <td
+              v-for="(day, index) in days"
+              :key="day.key"
+              class="group h-[68px] border-b border-r border-[#eceef2] p-1.5 align-top last:border-r-0"
+              :class="day.isToday ? 'bg-[#FFF7F7]' : index > 4 ? 'bg-[#FAFAFB]' : ''"
+            >
               <div class="flex h-full flex-col gap-1">
                 <button
                   v-for="shift in shiftsOf(member.id, day.key)"
                   :key="shift.id"
                   type="button"
-                  class="flex items-center justify-center gap-1 rounded-lg bg-[#FDE9EA] px-2 py-1 text-xs font-semibold text-[#B00C12] transition hover:bg-[#F9D3D5]"
+                  class="flex h-7 w-full items-center justify-center gap-1 rounded-md border-l-[3px] text-xs font-semibold transition"
+                  :class="endsNextDay(shift) ? 'border-[#4B5A86] bg-[#EEF0F7] text-[#34406A] hover:bg-[#E2E6F2]' : 'border-[#D80F16] bg-[#FDE9EA] text-[#B00C12] hover:bg-[#F9D7D9]'"
                   :title="`Corriger le créneau de ${member.firstName} ${member.lastName}`"
                   @click="openEdit(shift)"
                 >
+                  <v-icon v-if="endsNextDay(shift)" icon="mdi-weather-night" size="13" />
                   {{ formatTime(shift.startAt) }} – {{ formatTime(shift.endAt) }}
-                  <v-icon v-if="endsNextDay(shift)" icon="mdi-weather-night" size="12" />
                 </button>
                 <button
                   v-if="canPlan"
                   type="button"
-                  class="flex min-h-7 flex-1 items-center justify-center rounded-lg text-[#b8bcc6] opacity-0 transition hover:bg-[#F6F6F7] hover:text-[#D80F16] focus:opacity-100 group-hover:opacity-100"
+                  class="flex min-h-7 w-full flex-1 items-center justify-center rounded-md border border-dashed border-transparent text-[#b8bcc6] opacity-0 transition hover:border-[#e3a7aa] hover:text-[#D80F16] focus:opacity-100 group-hover:opacity-100"
                   :aria-label="`Planifier ${member.firstName} ${member.lastName} le ${day.weekday} ${day.date}`"
                   @click="openPlan([member.id], [day.key])"
                 >
-                  <v-icon icon="mdi-plus" size="18" />
+                  <v-icon icon="mdi-plus" size="16" />
                 </button>
               </div>
             </td>

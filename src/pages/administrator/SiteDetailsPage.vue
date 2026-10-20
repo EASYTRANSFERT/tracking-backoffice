@@ -76,7 +76,7 @@ watch(() => site.value?.teamId, async (teamId) => {
     <v-progress-linear v-if="loading && !site" indeterminate color="primary" />
     <v-alert v-else-if="!site" type="error" variant="tonal" title="Site introuvable" />
 
-    <div v-else class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div v-else class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div class="space-y-6">
         <v-card>
           <v-card-title class="flex items-center justify-between px-6 py-5">
