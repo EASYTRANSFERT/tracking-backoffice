@@ -30,7 +30,7 @@ const viewMission = (mission: Mission) => router.push({ name: 'admin-mission-det
     </PageHeader>
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <DashboardStatCard title="Agents actifs" :value="activeUsersCount" icon="mdi-account-group-outline" change="Sur la page chargée" />
-      <DashboardStatCard title="nombres d'Équipes" :value="teams.length" icon="mdi-account-multiple-outline" change="Sur la page chargée" />
+      <DashboardStatCard title="Nombres d'Équipes" :value="teams.length" icon="mdi-account-multiple-outline" change="Sur la page chargée" />
       <DashboardStatCard title="Appareils en cours d'activation" :value="pendingEnrollments" icon="mdi-cellphone-check" change="En attente" change-color="warning" :to="{ name: 'admin-devices' }" />
       <DashboardStatCard title="Accès API" value="OK" icon="mdi-cloud-check-outline" change="Annuaire disponible" change-color="success" /></div>
     <div class="mt-6">
