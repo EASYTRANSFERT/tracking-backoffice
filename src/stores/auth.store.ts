@@ -2,6 +2,7 @@ import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import { isAxiosError } from 'axios'
 
+import { SessionExpiredError } from '@/Services/api-client'
 import { authService } from '@/Services/auth.service'
 import { authSessionStorage } from '@/Services/auth-session.storage'
 import { readAccessTokenClaims } from '@/Services/access-token'
@@ -10,6 +11,7 @@ import { userService } from '@/Services/user.service'
 import { getDashboardRoles } from '@/types/roles'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useOperatorStore } from '@/stores/operator.store'
+import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
 import type {
   LoginRequest,
@@ -20,6 +22,8 @@ import type { TenantResponse } from '@/types/platform'
 import type { UserRole } from '@/types/roles'
 import type { UserResponse } from '@/types/user'
 import type { UpdatePasswordRequest } from '@/types/user'
+
+const SESSION_EXPIRED_MESSAGE = 'Votre session a expiré, reconnectez-vous.'
 
 export type AuthStep =
   | 'credentials'
@@ -120,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
       qrCode.value = null
       userId.value = null
       step.value = 'authenticated'
+      useUiFeedbackStore().unmuteErrors()
       void loadTenant()
 
       return true
@@ -137,30 +142,58 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function refreshSession(): Promise<string | null> {
-    const currentRefreshToken = refreshToken.value
+  /**
+   * Renouvelle le jeton d'accès (15 min) avec le jeton de renouvellement
+   * (30 jours). L'API fait tourner le jeton de renouvellement : la réponse
+   * remplace toute la session, l'ancien jeton n'est plus valable.
+   * Lève SessionExpiredError si le serveur refuse ; relance les erreurs réseau.
+   */
+  async function refreshSession(): Promise<string> {
+    const usedRefreshToken = refreshToken.value
+    const sessionUserId = currentUser.value?.id ?? userId.value
 
-    if (!currentRefreshToken) {
-      clearSession()
-      return null
-    }
+    if (!usedRefreshToken || !sessionUserId) throw new SessionExpiredError()
 
-    try {
-      const response = await authService.refresh({
-        refreshToken: currentRefreshToken,
-      })
+    return authSessionStorage.withRefreshLock(async () => {
+      const stored = authSessionStorage.read()
 
-      /*
-       * The API rotates refresh tokens. Replacing the entire session
-       * is mandatory. Do not keep the previous refresh token.
-       */
-      applySession(response, currentUser.value?.id ?? userId.value ?? undefined)
+      // Déconnexion, ou autre compte connecté, depuis un autre onglet.
+      if (!stored || stored.userId !== sessionUserId) throw new SessionExpiredError()
 
-      return response.accessToken
-    } catch {
-      clearSession()
-      return null
-    }
+      // Un autre onglet a déjà renouvelé la session pendant l'attente du verrou :
+      // on reprend ses jetons au lieu de renvoyer un jeton déjà consommé.
+      if (stored.session.refreshToken !== usedRefreshToken) {
+        session.value = stored.session
+        accessTokenExpiresAt.value = stored.accessTokenExpiresAt
+        return stored.session.accessToken
+      }
+
+      try {
+        const response = await authService.refresh({ refreshToken: usedRefreshToken })
+        applySession(response, sessionUserId)
+        return response.accessToken
+      } catch (error) {
+        if (isRefreshRejected(error)) throw new SessionExpiredError()
+        throw error
+      }
+    })
+  }
+
+  /** Jeton de renouvellement expiré, révoqué ou rejoué (et non une panne réseau). */
+  function isRefreshRejected(error: unknown): boolean {
+    if (!isAxiosError(error)) return false
+    const status = error.response?.status
+    return status !== undefined && status >= 400 && status < 500
+  }
+
+  /**
+   * Fin de session imposée : aucune erreur n'est affichée sur la page en cours,
+   * seul le message de la page de connexion informe l'utilisateur.
+   */
+  function expireSession(): void {
+    resetAuthentication()
+    useUiFeedbackStore().muteErrors()
+    errorMessage.value = SESSION_EXPIRED_MESSAGE
   }
 
   function logout(): void {
@@ -235,8 +268,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Refresh slightly before expiry so the first protected request is reliable.
       if (persistedSession.accessTokenExpiresAt <= Date.now() + 30_000) {
-        const refreshedAccessToken = await refreshSession()
-        if (!refreshedAccessToken) return false
+        await refreshSession()
       }
 
       const authenticatedUser = await userService.findOne(persistedSession.userId)
@@ -248,8 +280,13 @@ export const useAuthStore = defineStore('auth', () => {
       step.value = 'authenticated'
       void loadTenant()
       return true
-    } catch {
-      clearSession()
+    } catch (error) {
+      if (error instanceof SessionExpiredError) {
+        expireSession()
+      } else {
+        // Panne réseau au démarrage : la session enregistrée est gardée pour le prochain chargement.
+        clearSession({ keepStoredSession: true })
+      }
       return false
     } finally {
       isRestoringSession.value = false
@@ -312,14 +349,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function clearSession() {
+  function clearSession(options: { keepStoredSession?: boolean } = {}) {
     session.value = null
     accessTokenExpiresAt.value = null
     currentUser.value = null
     activeRole.value = null
     tenant.value = null
     step.value = 'credentials'
-    authSessionStorage.clear()
+    if (!options.keepStoredSession) authSessionStorage.clear()
     useOperatorStore().resetData()
     useAdministratorStore().resetData()
   }
@@ -369,7 +406,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         case 'REFRESH_TOKEN_INVALID':
         case 'REFRESH_TOKEN_REPLAYED':
-          return 'Votre session a expiré. Veuillez vous reconnecter.'
+          return SESSION_EXPIRED_MESSAGE
 
         default:
           return 'Impossible de communiquer avec le serveur.'
@@ -412,6 +449,7 @@ export const useAuthStore = defineStore('auth', () => {
     stepUp,
     changePassword,
     logout,
+    expireSession,
     resetAuthentication,
     clearSession,
     clearError,

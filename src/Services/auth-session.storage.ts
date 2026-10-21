@@ -2,6 +2,7 @@ import type { SessionResponse } from '@/types/auth'
 
 const SESSION_STORAGE_KEY = 'kaybic.backoffice.session'
 const SESSION_STORAGE_VERSION = 1
+const REFRESH_LOCK_NAME = 'kaybic.backoffice.refresh'
 
 export interface PersistedAuthSession {
   version: typeof SESSION_STORAGE_VERSION
@@ -25,9 +26,14 @@ function isPersistedAuthSession(value: unknown): value is PersistedAuthSession {
   )
 }
 
+/*
+ * localStorage : la session survit à la fermeture du navigateur et est
+ * partagée entre les onglets, pour que le jeton de renouvellement (30 jours)
+ * serve vraiment.
+ */
 export const authSessionStorage = {
   read(): PersistedAuthSession | null {
-    const rawSession = sessionStorage.getItem(SESSION_STORAGE_KEY)
+    const rawSession = localStorage.getItem(SESSION_STORAGE_KEY)
 
     if (!rawSession) return null
 
@@ -44,13 +50,23 @@ export const authSessionStorage = {
   },
 
   write(session: Omit<PersistedAuthSession, 'version'>) {
-    sessionStorage.setItem(
+    localStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({ version: SESSION_STORAGE_VERSION, ...session }),
     )
   },
 
   clear() {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY)
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+  },
+
+  /**
+   * Un seul renouvellement à la fois, tous onglets confondus. Le jeton de
+   * renouvellement est à usage unique (rotation + détection de rejeu) :
+   * deux onglets qui l'envoient en même temps feraient révoquer la session.
+   */
+  withRefreshLock<T>(task: () => Promise<T>): Promise<T> {
+    if (typeof navigator === 'undefined' || !navigator.locks) return task()
+    return navigator.locks.request(REFRESH_LOCK_NAME, task)
   },
 }

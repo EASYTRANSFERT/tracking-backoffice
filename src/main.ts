@@ -24,12 +24,10 @@ const authStore = useAuthStore(pinia)
 configureApiAuth({
   getAccessToken: () => authStore.accessToken,
 
-  refreshSession: () => {
-    return authStore.refreshSession()
-  },
+  refreshSession: () => authStore.refreshSession(),
 
   onSessionExpired: () => {
-    authStore.resetAuthentication()
+    authStore.expireSession()
 
     if (router.currentRoute.value.name !== 'login') {
       void router.replace({ name: 'login' })

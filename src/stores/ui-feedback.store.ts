@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export type FeedbackColor = 'success' | 'error' | 'warning' | 'info'
@@ -28,6 +28,9 @@ export const useUiFeedbackStore = defineStore('ui-feedback', () => {
     color: 'warning' as FeedbackColor,
   })
 
+  /* Après une fin de session, la page quittée ne doit afficher aucune erreur. */
+  const errorsMuted = ref(false)
+
   let confirmationResolver: ((confirmed: boolean) => void) | null = null
 
   function notify(message: string, color: FeedbackColor = 'success', timeout = 4000) {
@@ -35,7 +38,19 @@ export const useUiFeedbackStore = defineStore('ui-feedback', () => {
   }
 
   function success(message: string) { notify(message, 'success') }
-  function error(message: string) { notify(message, 'error', 6000) }
+  function error(message: string) {
+    if (errorsMuted.value) return
+    notify(message, 'error', 6000)
+  }
+
+  function muteErrors() {
+    errorsMuted.value = true
+    snackbar.visible = false
+  }
+
+  function unmuteErrors() {
+    errorsMuted.value = false
+  }
   function warning(message: string) { notify(message, 'warning', 5000) }
   function info(message: string) { notify(message, 'info') }
 
@@ -70,6 +85,8 @@ export const useUiFeedbackStore = defineStore('ui-feedback', () => {
     error,
     warning,
     info,
+    muteErrors,
+    unmuteErrors,
     askConfirmation,
     resolveConfirmation,
   }
