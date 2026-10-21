@@ -7,7 +7,8 @@ export interface SiteCoordinate {
 
 export interface SiteResponse {
   id: string
-  missionId: string
+  /** Facultative : un site peut exister sans mission et y être rattaché plus tard. */
+  missionId?: string | null
   teamId?: string
   name: string
   address?: string
@@ -31,11 +32,12 @@ export interface CreateSiteRequest {
   area: SiteCoordinate[]
   toleranceRadius?: number
   responsibleId: string
-  missionId: string
+  missionId?: string
   teamId?: string
 }
 
-export type UpdateSiteRequest = Partial<Omit<CreateSiteRequest, 'missionId'>>
+/** missionId : rattache à une mission un site qui n'en a pas encore. */
+export type UpdateSiteRequest = Partial<CreateSiteRequest>
 
 export interface SiteListQuery {
   cursor?: string

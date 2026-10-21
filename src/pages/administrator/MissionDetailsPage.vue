@@ -1,29 +1,83 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
-import MissionSiteAssignmentDialog from '@/Components/missions/MissionSiteAssignmentDialog.vue'
+import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
+import { getApiErrorMessage } from '@/Services/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
 const route = useRoute()
+const router = useRouter()
 const store = useAdministratorStore()
 const feedback = useUiFeedbackStore()
 const id = computed(() => route.params.missionId as string)
 const mission = computed(() => store.getMissionById(id.value))
-// Côté API, c'est le site qui porte sa mission (site.missionId).
-const site = computed(() => mission.value?.siteId ? store.getSiteById(mission.value.siteId) : store.sites.find((item) => item.missionId === mission.value?.id))
-const supervisor = computed(() => site.value?.managerId ? store.getUserById(site.value.managerId) : undefined)
-const siteDialog = ref(false)
-const selectedSiteId = ref<string>()
+// Côté API, c'est le site qui porte sa mission (site.missionId) : une mission peut avoir plusieurs sites.
+const missionSites = computed(() => mission.value ? store.getMissionSites(mission.value.id) : [])
+const isSitesLoading = ref(false)
+// L'API refuse d'ajouter un site à une mission terminée ou annulée (MISSION_STATUS_CONFLICT).
+const canAddSite = computed(() => mission.value?.status === 'scheduled' || mission.value?.status === 'ongoing')
+const teamName = (teamId?: string) => {
+  const team = teamId ? store.teamOptions.find((item) => item.id === teamId) ?? store.getTeamById(teamId) : undefined
+  return team?.name ?? (teamId ? 'Équipe' : 'Aucune équipe')
+}
+const memberCount = (teamId?: string) => {
+  if (!teamId) return '—'
+  const count = store.teamMemberCounts[teamId]
+  return count === undefined ? '…' : `${count} agent${count > 1 ? 's' : ''}`
+}
+const managerName = (managerId?: string) => {
+  const user = managerId ? store.teamDirectoryUsers.find((item) => item.id === managerId) : undefined
+  return user ? `${user.firstName} ${user.lastName}` : 'Non affecté'
+}
+const openSite = (siteId: string) => router.push({ name: 'admin-site-details', params: { siteId } })
+const createSite = () => mission.value && router.push({ name: 'admin-site-create', query: { missionId: mission.value.id } })
+
+const attachDialog = ref(false)
+const isAttachLoading = ref(false)
+const isAttaching = ref(false)
+
+async function openAttachDialog() {
+  attachDialog.value = true
+  isAttachLoading.value = true
+  // Liste complète des sites, pour proposer tous ceux qui n'ont pas encore de mission.
+  try { await store.loadSites(true) }
+  catch { feedback.error('Impossible de charger les sites.') }
+  finally { isAttachLoading.value = false }
+}
+
+async function attachSites(siteIds: string[]) {
+  if (!mission.value) return
+  isAttaching.value = true
+  try {
+    await store.attachSitesToMission(mission.value.id, siteIds)
+    attachDialog.value = false
+    feedback.success(siteIds.length > 1 ? `${siteIds.length} sites attribués à la mission.` : 'Site attribué à la mission.')
+    void loadSites(mission.value.id)
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible d’attribuer ce site à la mission.'))
+    void loadSites(mission.value.id)
+  } finally { isAttaching.value = false }
+}
+
+async function loadSites(missionId: string) {
+  isSitesLoading.value = true
+  try { await store.loadMissionSites(missionId) }
+  catch { feedback.error('Impossible de charger les sites de cette mission.') }
+  finally { isSitesLoading.value = false }
+}
+watch(id, (missionId) => { void loadSites(missionId) })
 const formatDate = (value?: string) => value
   ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(value))
   : 'Non renseignée'
 
 onMounted(async () => {
-  store.loadSites().catch(() => undefined)
+  void loadSites(id.value)
+  store.loadTeamOptions().catch(() => undefined)
+  store.loadDirectory().catch(() => undefined)
   if (mission.value) return
   try { await store.loadMission(id.value) }
   catch { feedback.error('Impossible de charger cette mission.') }
@@ -44,17 +98,6 @@ async function closeMission() {
   catch { feedback.error('Impossible de clôturer la mission.') }
 }
 
-function openSiteDialog() {
-  selectedSiteId.value = mission.value?.siteId
-  siteDialog.value = true
-}
-
-function assignSite() {
-  if (!mission.value || !selectedSiteId.value) return
-  store.assignMissionSite(mission.value.id, selectedSiteId.value)
-  siteDialog.value = false
-  feedback.success('Site affecté à la mission.')
-}
 </script>
 
 <template>
@@ -81,23 +124,33 @@ function assignSite() {
           <v-card-title class="flex items-center justify-between gap-3 px-6 py-5">
             <div class="flex items-center gap-3">
               <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-map-marker-radius-outline" color="primary" /></v-avatar>
-              <div><h2 class="text-base font-bold">Site d’intervention</h2><p class="mt-1 text-xs font-normal text-[#747985]">Périmètre et encadrement utilisés par la mission</p></div>
+              <div><h2 class="text-base font-bold">Sites d’intervention</h2><p class="mt-1 text-xs font-normal text-[#747985]">{{ missionSites.length }} site{{ missionSites.length > 1 ? 's' : '' }} rattaché{{ missionSites.length > 1 ? 's' : '' }} à cette mission</p></div>
             </div>
-            <v-btn v-if="mission.status === 'scheduled'" variant="tonal" color="primary" size="small" :prepend-icon="site ? 'mdi-map-marker-edit-outline' : 'mdi-map-marker-plus-outline'" @click="openSiteDialog">
-              {{ site ? 'Changer' : 'Affecter un site' }}
-            </v-btn>
+            <div v-if="canAddSite" class="flex flex-wrap justify-end gap-2">
+              <v-btn variant="outlined" color="primary" size="small" prepend-icon="mdi-link-variant-plus" @click="openAttachDialog">Attribuer un site</v-btn>
+              <v-btn variant="tonal" color="primary" size="small" prepend-icon="mdi-map-marker-plus-outline" @click="createSite">Nouveau site</v-btn>
+            </div>
           </v-card-title>
           <v-divider />
-          <v-card-text v-if="site" class="grid gap-5 px-6 py-6 sm:grid-cols-2">
-            <div><p class="text-xs text-[#848484]">Site</p><p class="mt-1 font-semibold">{{ site.name }}</p></div>
-            <div><p class="text-xs text-[#848484]">Superviseur</p><p class="mt-1 font-semibold">{{ supervisor ? `${supervisor.firstName} ${supervisor.lastName}` : 'Non affecté' }}</p></div>
-            <div><p class="text-xs text-[#848484]">Adresse</p><p class="mt-1 font-medium">{{ [site.address, site.city].filter(Boolean).join(', ') || 'À compléter' }}</p></div>
-            <div><p class="text-xs text-[#848484]">Périmètre</p><p class="mt-1 font-medium">{{ site.radiusM ? `${site.radiusM} mètres` : 'À compléter' }}</p></div>
-          </v-card-text>
-          <v-card-text v-else class="px-6 py-7 text-center">
+          <v-progress-linear v-if="isSitesLoading" indeterminate color="primary" />
+          <div v-if="missionSites.length" class="overflow-x-auto">
+            <v-table hover class="min-w-[640px]">
+              <thead><tr><th>Site</th><th>Équipe</th><th>Agents</th><th>Responsable</th><th>Statut</th></tr></thead>
+              <tbody>
+                <tr v-for="site in missionSites" :key="site.id" class="cursor-pointer" @click="openSite(site.id)">
+                  <td><p class="font-semibold text-[#292d38]">{{ site.name }}</p><p class="text-xs text-[#848484]">{{ [site.address, site.city].filter(Boolean).join(', ') || 'Adresse à compléter' }}</p></td>
+                  <td class="text-sm text-[#535865]">{{ teamName(site.teamId) }}</td>
+                  <td class="text-sm text-[#535865]">{{ memberCount(site.teamId) }}</td>
+                  <td class="text-sm text-[#535865]">{{ managerName(site.managerId) }}</td>
+                  <td><AppStatusChip :status="site.status" /></td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
+          <v-card-text v-else-if="!isSitesLoading" class="px-6 py-7 text-center">
             <v-icon icon="mdi-map-marker-question-outline" color="secondary" size="42" />
-            <p class="mt-3 font-semibold text-[#292d38]">Aucun site affecté</p>
-            <p class="mt-1 text-sm text-[#747985]">Choisissez le site qui fournit le périmètre et le superviseur de cette mission.</p>
+            <p class="mt-3 font-semibold text-[#292d38]">Aucun site pour cette mission</p>
+            <p class="mt-1 text-sm text-[#747985]">{{ canAddSite ? 'Attribuez un site existant ou créez-en un : chacun a son périmètre, son équipe et son QR code.' : 'Cette mission est terminée : aucun site ne peut plus y être ajouté.' }}</p>
           </v-card-text>
         </v-card>
       </div>
@@ -112,12 +165,7 @@ function assignSite() {
       </v-card>
     </div>
 
-    <MissionSiteAssignmentDialog
-      v-model="siteDialog"
-      v-model:selected-site-id="selectedSiteId"
-      :sites="store.sites"
-      :users="store.teamDirectoryUsers"
-      @confirm="assignSite"
-    />
+
+    <MissionSiteAttachDialog v-model="attachDialog" :sites="store.sitesWithoutMission" :loading="isAttachLoading" :saving="isAttaching" @confirm="attachSites" />
   </div>
 </template>

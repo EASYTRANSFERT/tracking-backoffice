@@ -7,14 +7,14 @@ import { delimitsSurface, formatCoordinates, SITE_POINT_COUNT } from '@/Componen
 import type { EnterpriseUser, Mission, Site, SiteInput, SitePoint, Team } from '@/types/administrator'
 import type { GeocodingResult } from '@/types/geocoding'
 
-const props = defineProps<{ site?: Site; managers: EnterpriseUser[]; missions: Mission[]; teams: Team[]; loading?: boolean }>()
+const props = defineProps<{ site?: Site; managers: EnterpriseUser[]; missions: Mission[]; teams: Team[]; loading?: boolean; defaultMissionId?: string }>()
 const emit = defineEmits<{ submit: [payload: SiteInput]; cancel: []; dirtyChange: [dirty: boolean] }>()
 const form = ref()
 const data = reactive<SiteInput>({
   name: props.site?.name ?? '', address: props.site?.address ?? '', city: props.site?.city ?? '',
   locationDescription: props.site?.locationDescription ?? '',
   latitude: props.site?.latitude ?? '', longitude: props.site?.longitude ?? '',
-  missionId: props.site?.missionId ?? undefined, managerId: props.site?.managerId ?? undefined,
+  missionId: props.site?.missionId ?? props.defaultMissionId ?? undefined, managerId: props.site?.managerId ?? undefined,
   teamId: props.site?.teamId ?? undefined,
 })
 const points = ref<(SitePoint | null)[]>(Array.from({ length: Math.max(SITE_POINT_COUNT, props.site?.points?.length ?? 0) }, (_, index) => props.site?.points?.[index] ?? null))
@@ -76,7 +76,7 @@ async function submit() {
           <v-text-field v-model="data.city" label="Ville (facultatif)" />
           <v-text-field v-model="data.address" label="Adresse" class="md:col-span-2" :rules="[addressOrDescription]" />
           <v-textarea v-model="data.locationDescription" label="Description de l’emplacement" placeholder="Ex. : entrée principale, près de la réception" persistent-placeholder rows="2" auto-grow counter="500" maxlength="500" class="md:col-span-2" :rules="[addressOrDescription]" />
-          <v-select v-model="data.missionId" label="Mission" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Dérouler la liste" persistent-placeholder :disabled="Boolean(site)" :hint="site ? 'La mission d’un site ne peut pas être modifiée.' : undefined" :persistent-hint="Boolean(site)" :rules="[requiredChoice]" />
+          <v-select v-model="data.missionId" label="Mission (facultatif)" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Aucune mission" persistent-placeholder clearable :disabled="Boolean(site?.missionId)" :hint="site?.missionId ? 'La mission d’un site ne peut pas être modifiée.' : 'Vous pourrez aussi rattacher ce site depuis la page d’une mission.'" persistent-hint />
           <v-select v-model="data.managerId" label="Responsable du site" :items="managers" :item-title="managerName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
           <v-select v-model="data.teamId" label="Équipe (facultatif)" :items="teams" item-title="name" item-value="id" placeholder="Aucune équipe pour l’instant" persistent-placeholder :clearable="!site?.teamId" class="md:col-span-2" :hint="site?.teamId ? 'L’équipe peut être remplacée, pas retirée. Les créneaux déjà planifiés restent à leurs agents.' : 'L’équipe affectée au site est celle dont les agents pourront y être planifiés.'" persistent-hint />
         </v-card-text>

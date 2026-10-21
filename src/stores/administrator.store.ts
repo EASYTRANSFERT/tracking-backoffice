@@ -41,7 +41,7 @@ function mapSite(site: SiteResponse, previous?: Site): Site {
     longitude: anchor?.longitude.toFixed(6),
     radiusM: site.radiusM,
     points,
-    missionId: site.missionId,
+    missionId: site.missionId ?? undefined,
     teamId: site.teamId,
     managerId: site.managerId,
     qrCode: '',
@@ -355,6 +355,35 @@ export const useAdministratorStore = defineStore('administrator', () => {
     }
   }
 
+  /** Nombre de membres (agents et chef d'équipe) par équipe, pour les sites d'une mission. */
+  const teamMemberCounts = ref<Record<string, number>>({})
+  const getMissionSites = (missionId: string) => sites.value.filter((site) => site.missionId === missionId)
+  /** Sites actifs sans mission, qu'on peut rattacher depuis la page d'une mission. */
+  const sitesWithoutMission = computed(() => sites.value.filter((site) => !site.missionId && site.status !== 'inactive'))
+
+  async function attachSitesToMission(missionId: string, siteIds: string[]) {
+    // Une requête par site ; ceux déjà rattachés restent rattachés si une requête suivante échoue.
+    for (const siteId of siteIds) {
+      const current = getSiteById(siteId)
+      replaceSite(mapSite(await siteService.update(siteId, { missionId }), current))
+    }
+  }
+
+  // Une mission peut avoir plusieurs sites : c'est le site qui porte sa mission (missionId).
+  async function loadMissionSites(missionId: string) {
+    const loaded = (await siteService.list({ missionId, limit: 200 })).items.map((site) => mapSite(site, getSiteById(site.id)))
+    const loadedIds = new Set(loaded.map((site) => site.id))
+    sites.value = [...sites.value.filter((site) => !loadedIds.has(site.id)), ...loaded]
+
+    const teamIds = [...new Set(loaded.map((site) => site.teamId).filter((teamId): teamId is string => Boolean(teamId)))]
+    const counts = await Promise.all(teamIds.map(async (teamId) => {
+      const members = (await userService.list({ teamId, limit: 200 })).items.map(mapUser)
+      return [teamId, members.filter((user) => ['agent', 'teamLeader'].includes(user.role)).length] as const
+    }))
+    teamMemberCounts.value = { ...teamMemberCounts.value, ...Object.fromEntries(counts) }
+    return loaded
+  }
+
   async function loadSite(id: string) {
     const cached = getSiteById(id)
     if (cached) return cached
@@ -379,14 +408,14 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function createSite(input: SiteInput) {
-    if (!input.missionId || !input.managerId || !input.points || input.points.length < 3) throw new Error('Mission, responsable et périmètre sont obligatoires.')
+    if (!input.managerId || !input.points || input.points.length < 3) throw new Error('Responsable et périmètre sont obligatoires.')
     const payload: CreateSiteRequest = {
       name: input.name.trim(),
       address: input.address?.trim() || undefined,
       locationDescription: input.locationDescription?.trim() || undefined,
       area: toArea(input.points),
       responsibleId: input.managerId,
-      missionId: input.missionId,
+      missionId: input.missionId || undefined,
       teamId: input.teamId || undefined,
     }
     const created = mapSite(await siteService.create(payload), { ...input, id: '', qrCode: '', status: 'active', createdAt: '' })
@@ -407,6 +436,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (input.managerId && input.managerId !== current.managerId) payload.responsibleId = input.managerId
     // L'API ne permet pas de retirer l'équipe d'un site, seulement d'en désigner une autre.
     if (input.teamId && input.teamId !== current.teamId) payload.teamId = input.teamId
+    // Une mission peut être donnée à un site qui n'en a pas ; elle ne se change plus ensuite.
+    if (input.missionId && !current.missionId) payload.missionId = input.missionId
     if (input.points && input.points.length >= 3 && !sameArea(input.points, current.points ?? [])) payload.area = toArea(input.points)
     const local = { ...current, city: input.city, points: input.points }
     const updated = Object.keys(payload).length ? mapSite(await siteService.update(id, payload), local) : local
@@ -486,13 +517,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
     return updated
   }
 
-  function assignMissionSite(id: string, siteId: string) {
-    const mission = getMissionById(id)
-    if (!mission) throw new Error('Mission introuvable.')
-    mission.siteId = siteId
-    return mission
-  }
-
   function replaceMission(mission: Mission) {
     const index = missions.value.findIndex((item) => item.id === mission.id)
     if (index >= 0) missions.value[index] = mission
@@ -525,7 +549,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
     createUser, updateUser, toggleUserStatus, importUsers,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
-    createMission, updateMission, openMission, closeMission, assignMissionSite,
+    createMission, updateMission, openMission, closeMission,
+    teamMemberCounts, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
     createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }

@@ -98,7 +98,7 @@ watch(() => site.value?.teamId, async (teamId) => {
             <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Adresse</p><p class="mt-1 font-medium">{{ site.address || 'À compléter' }}</p></div>
             <div class="sm:col-span-2"><p class="text-xs text-[#848484]">Description de l’emplacement</p><p class="mt-1 font-medium">{{ site.locationDescription || '—' }}</p></div>
             <div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-medium">{{ team?.name ?? (site.teamId ? '…' : 'Aucune équipe affectée') }}</p></div>
-            <div><p class="text-xs text-[#848484]">Mission</p><p class="mt-1 font-medium">{{ mission ? `${mission.code} · ${mission.title}` : site.missionId || '—' }}</p></div>
+            <div><p class="text-xs text-[#848484]">Mission</p><p class="mt-1 font-medium">{{ mission ? `${mission.code} · ${mission.title}` : site.missionId || 'Aucune mission' }}</p></div>
           </v-card-text>
           <v-divider />
           <v-card-actions v-if="site.status !== 'inactive'" class="px-6 py-4">

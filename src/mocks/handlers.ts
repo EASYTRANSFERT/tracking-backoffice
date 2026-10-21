@@ -183,6 +183,7 @@ export const handlers = [
     if (!site) return problem(404, 'NOT_FOUND', 'Site introuvable.')
     if (site.status === 'ARCHIVED') return problem(409, 'SITE_ARCHIVED', 'Ce site est archivé.')
     const { responsibleId, toleranceRadius, ...payload } = (await request.json()) as UpdateSiteRequest
+    if (payload.missionId && site.missionId && payload.missionId !== site.missionId) return problem(409, 'CONFLICT', 'Ce site est déjà rattaché à une mission.')
     Object.assign(site, payload, { updatedAt: now() })
     if (responsibleId) site.managerId = responsibleId
     if (toleranceRadius) site.radiusM = toleranceRadius
