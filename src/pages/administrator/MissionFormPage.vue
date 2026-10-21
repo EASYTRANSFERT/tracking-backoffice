@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
@@ -20,7 +21,7 @@ const loading = ref(false)
 onMounted(async () => {
   if (!id.value || mission.value) return
   try { await store.loadMission(id.value) }
-  catch { feedback.error('Impossible de charger cette mission.') }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger cette mission.')) }
 })
 onBeforeRouteLeave(async () => !dirty.value || await feedback.askConfirmation({ title: 'Quitter sans enregistrer ?', message: 'Les modifications de cette mission seront perdues.', confirmText: 'Quitter' }))
 
@@ -31,7 +32,7 @@ async function submit(payload: MissionInput) {
     dirty.value = false
     feedback.success(id.value ? 'Mission mise à jour.' : 'Mission planifiée.')
     await router.push({ name: 'admin-mission-details', params: { missionId } })
-  } catch { feedback.error("Impossible d’enregistrer la mission.") }
+  } catch (error) { feedback.error(getApiErrorMessage(error, "Impossible d’enregistrer la mission.")) }
   finally { loading.value = false }
 }
 </script>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -35,7 +36,7 @@ async function updateStatus(reason: string) {
     else await store.reactivateCompany(company.value.id)
     feedback.success(previousStatus === 'active' ? 'Entreprise suspendue.' : 'Entreprise activée.')
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible de modifier le statut de cette entreprise.')
+    feedback.error(getApiErrorMessage(error, 'Impossible de modifier le statut de cette entreprise.'))
   }
 }
 </script>

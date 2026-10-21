@@ -86,8 +86,7 @@ export const useDeviceStore = defineStore('device', () => {
     const authStore = useAuthStore()
     isRevoking.value = true
     try {
-      const elevated = await authStore.stepUp(totpCode)
-      if (!elevated) throw new Error(authStore.errorMessage ?? 'Le code de vérification est incorrect.')
+      await authStore.stepUp(totpCode)
       const revoked = await deviceService.revoke(id, { reason })
       replaceDevice(revoked)
       return revoked

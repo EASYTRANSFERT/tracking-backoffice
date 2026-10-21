@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -34,7 +35,7 @@ async function submit(payload: CompanyInput) {
     feedback.success('Entreprise créée.')
     await router.push({ name: 'company-details', params: { companyId: id }, query: { created: '1' } })
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible d’enregistrer cette entreprise.')
+    feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette entreprise.'))
   }
 }
 

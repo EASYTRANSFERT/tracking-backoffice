@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { onMounted, ref, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { useDisplay } from 'vuetify'
@@ -26,8 +27,8 @@ onMounted(async () => {
         administratorStore.loadMissions(),
       ])
     }
-  } catch {
-    feedback.error('Impossible de charger les données du tableau de bord.')
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible de charger les données du tableau de bord.'))
   }
 })
 

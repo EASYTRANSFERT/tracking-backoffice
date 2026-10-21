@@ -27,8 +27,8 @@ const mission = computed(() => site.value?.missionId ? store.getMissionById(site
 onMounted(async () => {
   try {
     await Promise.all([store.loadSite(route.params.siteId as string), store.loadDirectory(), store.loadMissions()])
-  } catch {
-    feedback.error('Impossible de charger ce site.')
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible de charger ce site.'))
   } finally {
     loading.value = false
   }

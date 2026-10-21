@@ -45,7 +45,7 @@ async function openAttachDialog() {
   isAttachLoading.value = true
   // Liste complète des sites, pour proposer tous ceux qui n'ont pas encore de mission.
   try { await store.loadSites(true) }
-  catch { feedback.error('Impossible de charger les sites.') }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les sites.')) }
   finally { isAttachLoading.value = false }
 }
 
@@ -66,7 +66,7 @@ async function attachSites(siteIds: string[]) {
 async function loadSites(missionId: string) {
   isSitesLoading.value = true
   try { await store.loadMissionSites(missionId) }
-  catch { feedback.error('Impossible de charger les sites de cette mission.') }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les sites de cette mission.')) }
   finally { isSitesLoading.value = false }
 }
 watch(id, (missionId) => { void loadSites(missionId) })
@@ -80,7 +80,7 @@ onMounted(async () => {
   store.loadDirectory().catch(() => undefined)
   if (mission.value) return
   try { await store.loadMission(id.value) }
-  catch { feedback.error('Impossible de charger cette mission.') }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger cette mission.')) }
 })
 
 async function openMission() {
@@ -88,14 +88,14 @@ async function openMission() {
   const confirmed = await feedback.askConfirmation({ title: 'Ouvrir cette mission ?', message: `La mission « ${mission.value.title} » passera au statut en cours.`, confirmText: 'Ouvrir' })
   if (!confirmed) return
   try { await store.openMission(mission.value.id); feedback.success('Mission ouverte.') }
-  catch { feedback.error("Impossible d’ouvrir la mission.") }
+  catch (error) { feedback.error(getApiErrorMessage(error, "Impossible d’ouvrir la mission.")) }
 }
 async function closeMission() {
   if (!mission.value) return
   const confirmed = await feedback.askConfirmation({ title: 'Clôturer cette mission ?', message: `La mission « ${mission.value.title} » sera marquée comme terminée.`, confirmText: 'Clôturer' })
   if (!confirmed) return
   try { await store.closeMission(mission.value.id); feedback.success('Mission clôturée.') }
-  catch { feedback.error('Impossible de clôturer la mission.') }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de clôturer la mission.')) }
 }
 
 </script>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { computed, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
@@ -39,7 +40,7 @@ async function submit(payload: EnterpriseUserInput) {
       query: { adminCreated: '1' },
     })
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible de créer ce compte administrateur.')
+    feedback.error(getApiErrorMessage(error, 'Impossible de créer ce compte administrateur.'))
   } finally {
     isLoading.value = false
   }

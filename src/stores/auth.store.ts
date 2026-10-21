@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { isAxiosError } from 'axios'
 
 import { SessionExpiredError } from '@/Services/api-client'
+import { getApiErrorMessage } from '@/Services/api-error'
 import { authService } from '@/Services/auth.service'
 import { authSessionStorage } from '@/Services/auth-session.storage'
 import { readAccessTokenClaims } from '@/Services/access-token'
@@ -17,7 +18,6 @@ import type {
   LoginRequest,
   SessionResponse,
 } from '@/types/auth'
-import type { ApiProblemDetails } from '@/types/api'
 import type { TenantResponse } from '@/types/platform'
 import type { UserRole } from '@/types/roles'
 import type { UserResponse } from '@/types/user'
@@ -86,7 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error) {
-      errorMessage.value = getErrorMessage(error)
+      errorMessage.value = getApiErrorMessage(error, 'Connexion impossible.')
       return false
     } finally {
       isLoading.value = false
@@ -129,7 +129,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (error) {
-      const message = getErrorMessage(error)
+      const message = getApiErrorMessage(error, 'Vérification impossible.')
 
       if (accessToken.value) {
         resetAuthentication()
@@ -214,29 +214,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function stepUp(code: string): Promise<boolean> {
-    if (!session.value || !currentUser.value) return false
+  /**
+   * Ré-authentification TOTP pour une opération sensible. Lève l'erreur de l'API
+   * telle quelle : c'est l'appelant qui la formule dans le contexte de son action.
+   */
+  async function stepUp(code: string): Promise<void> {
+    if (!session.value || !currentUser.value) throw new Error('Votre session n’est plus active.')
 
-    isLoading.value = true
-    errorMessage.value = null
-
-    try {
-      const response = await authService.stepUp({ code })
-      const elevatedSession: SessionResponse = {
-        ...session.value,
-        accessToken: response.accessToken,
-        tokenType: response.tokenType,
-        expiresIn: response.expiresIn,
-      }
-
-      applySession(elevatedSession, currentUser.value.id)
-      return true
-    } catch (error) {
-      errorMessage.value = getErrorMessage(error)
-      return false
-    } finally {
-      isLoading.value = false
-    }
+    const response = await authService.stepUp({ code })
+    applySession({
+      ...session.value,
+      accessToken: response.accessToken,
+      tokenType: response.tokenType,
+      expiresIn: response.expiresIn,
+    }, currentUser.value.id)
   }
 
   async function changePassword(payload: UpdatePasswordRequest): Promise<boolean> {
@@ -247,7 +238,7 @@ export const useAuthStore = defineStore('auth', () => {
       await userService.updatePassword(currentUser.value.id, payload)
       return true
     } catch (error) {
-      errorMessage.value = getErrorMessage(error)
+      errorMessage.value = getApiErrorMessage(error, 'Impossible de modifier le mot de passe.')
       return false
     } finally {
       isLoading.value = false
@@ -371,53 +362,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   function clearError() {
     errorMessage.value = null
-  }
-
-  function getErrorMessage(error: unknown): string {
-    if (isAxiosError<ApiProblemDetails>(error)) {
-      const problem = error.response?.data
-
-      if (problem?.detail) {
-        return problem.detail
-      }
-
-      if (problem?.title) {
-        return problem.title
-      }
-
-      switch (problem?.code) {
-        case 'INVALID_CREDENTIALS':
-          return 'Adresse e-mail ou mot de passe incorrect.'
-
-        case 'ACCOUNT_DISABLED':
-          return 'Ce compte a été désactivé.'
-
-        case 'TENANT_SUSPENDED':
-          return "L'accès de votre entreprise a été suspendu."
-
-        case 'ACCOUNT_LOCKED':
-          return 'Ce compte est temporairement verrouillé.'
-
-        case 'LOGIN_CHALLENGE_REQUIRED':
-          return 'Veuillez recommencer la procédure de connexion.'
-
-        case 'TOTP_INVALID':
-          return 'Le code de vérification est incorrect.'
-
-        case 'REFRESH_TOKEN_INVALID':
-        case 'REFRESH_TOKEN_REPLAYED':
-          return SESSION_EXPIRED_MESSAGE
-
-        default:
-          return 'Impossible de communiquer avec le serveur.'
-      }
-    }
-
-    if (error instanceof Error) {
-      return error.message
-    }
-
-    return 'Une erreur inattendue est survenue.'
   }
 
   return {

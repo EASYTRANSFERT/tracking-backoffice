@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -29,8 +30,8 @@ async function remove(team: Team) {
   try {
     if (await store.deleteTeam(team.id)) feedback.success('Équipe supprimée.')
     else feedback.error('Cette équipe est encore utilisée et ne peut pas être supprimée.')
-  } catch {
-    feedback.error('Cette équipe est encore utilisée et ne peut pas être supprimée.')
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible de supprimer cette équipe.'))
   }
 }
 
@@ -47,7 +48,7 @@ async function manageMembers(team: Team) {
   try {
     applyDirectory(await store.loadTeamAgentDirectory(team.id))
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible de charger les agents de cette équipe.')
+    feedback.error(getApiErrorMessage(error, 'Impossible de charger les agents de cette équipe.'))
   } finally {
     loadingMembers.value = false
   }
@@ -61,7 +62,7 @@ async function addMembers() {
     selectedAgentIds.value = []
     feedback.success('Les agents ont été ajoutés à l’équipe.')
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible d’ajouter les agents à cette équipe.')
+    feedback.error(getApiErrorMessage(error, 'Impossible d’ajouter les agents à cette équipe.'))
   } finally {
     savingMembers.value = false
   }
@@ -77,7 +78,7 @@ async function removeMember(userId: string) {
     applyDirectory(await store.removeTeamMembers(selectedTeam.value.id, [userId]))
     feedback.success('Agent retiré de l’équipe.')
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible de retirer cet agent de l’équipe.')
+    feedback.error(getApiErrorMessage(error, 'Impossible de retirer cet agent de l’équipe.'))
   } finally {
     savingMembers.value = false
   }

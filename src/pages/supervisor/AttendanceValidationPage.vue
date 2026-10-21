@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { computed, ref } from 'vue'
 
 import AttendanceDecisionDialog from '@/Components/attendance/AttendanceDecisionDialog.vue'
@@ -35,7 +36,7 @@ function confirm(decision: AttendanceDecision) {
     dialogOpen.value = false
     feedback.success(decision.decision === 'validate' ? 'Pointage validé.' : 'Pointage rejeté.')
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible d’enregistrer la décision.')
+    feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer la décision.'))
   }
 }
 </script>

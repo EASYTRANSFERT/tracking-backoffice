@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { computed, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import OfferForm from '@/Components/offers/OfferForm.vue'
@@ -32,7 +33,7 @@ async function submit(payload: OfferInput) {
     feedback.success('Offre créée.')
     await router.push({ name: 'offer-details', params: { offerId: id }, query: { created: '1' } })
   } catch (error) {
-    feedback.error(error instanceof Error ? error.message : 'Impossible d’enregistrer cette offre.')
+    feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette offre.'))
   }
 }
 

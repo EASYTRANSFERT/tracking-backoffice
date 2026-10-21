@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -28,7 +29,7 @@ async function submit(payload: TeamInput){
     await store.createTeam(payload); feedback.success('Équipe créée.')
   }
   await router.push({ name: 'admin-teams' }) }
-  catch (error) { feedback.error(error instanceof Error ? error.message : 'Impossible d’enregistrer cette équipe.') } }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette équipe.')) } }
 </script>
 <template>
 <div class="mx-auto w-full max-w-[1050px]">

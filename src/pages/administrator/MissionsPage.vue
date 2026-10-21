@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
@@ -19,13 +20,13 @@ async function open(mission: Mission) {
   const confirmed = await feedback.askConfirmation({ title: 'Ouvrir cette mission ?', message: `La mission « ${mission.title} » passera au statut en cours.`, confirmText: 'Ouvrir' })
   if (!confirmed) return
   try { await store.openMission(mission.id); feedback.success('Mission ouverte.') }
-  catch { feedback.error("Impossible d’ouvrir la mission.") }
+  catch (error) { feedback.error(getApiErrorMessage(error, "Impossible d’ouvrir la mission.")) }
 }
 async function close(mission: Mission) {
   const confirmed = await feedback.askConfirmation({ title: 'Clôturer cette mission ?', message: `La mission « ${mission.title} » sera marquée comme terminée.`, confirmText: 'Clôturer' })
   if (!confirmed) return
   try { await store.closeMission(mission.id); feedback.success('Mission clôturée.') }
-  catch { feedback.error('Impossible de clôturer la mission.') }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de clôturer la mission.')) }
 }
 </script>
 

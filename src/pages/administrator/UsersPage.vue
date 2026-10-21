@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/Services/api-error'
 import { storeToRefs } from 'pinia'; import { useRouter } from 'vue-router';
 import UserTable from '@/Components/users/UserTable.vue';
 import PageHeader from '@/Components/layout/PageHeader.vue';
@@ -29,7 +30,7 @@ async function changeStatus(user: EnterpriseUser) {
     try {
       await store.toggleUserStatus(user.id);
       feedback.success(wasDisabled ? 'Compte réactivé.' : 'Compte désactivé.') }
-      catch (error) { feedback.error(error instanceof Error ? error.message : 'Action impossible.') } }
+      catch (error) { feedback.error(getApiErrorMessage(error, 'Action impossible.')) } }
 </script>
 <template>
 <div class="mx-auto w-full max-w-[1440px]">
