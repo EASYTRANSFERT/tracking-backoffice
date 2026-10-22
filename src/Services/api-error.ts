@@ -14,8 +14,8 @@ const NETWORK_ERROR_REASON = 'impossible de joindre le serveur, vérifiez votre 
 export function getErrorReason(error: unknown): string | null {
   if (isAxiosError<ApiProblemDetails>(error)) {
     if (!error.response) return NETWORK_ERROR_REASON
-    const problem = error.response.data
-    return problem?.detail?.trim() || problem?.title?.trim() || null
+    const problem = typeof error.response.data === 'object' ? error.response.data : undefined
+    return problem?.detail?.trim() || problem?.title?.trim() || describeNonApiResponse(error.response.status, error.response.headers)
   }
 
   // Seules les erreurs levées volontairement par l'application (new Error('…') en français)
@@ -23,6 +23,17 @@ export function getErrorReason(error: unknown): string | null {
   if (error instanceof Error && error.name === 'Error' && error.message.trim()) return error.message.trim()
 
   return null
+}
+
+/**
+ * Réponse qui ne vient pas de l'API (page d'erreur HTML d'un tunnel ou du proxy de Vite) :
+ * on explique d'où vient le problème plutôt que de n'afficher que l'action.
+ */
+function describeNonApiResponse(status: number, headers: unknown): string {
+  const ngrokError = (headers as Record<string, string | undefined> | undefined)?.['ngrok-error-code']
+  if (ngrokError) return `le tunnel ngrok de l’API est hors ligne ou injoignable (${ngrokError}).`
+  if (status >= 500) return `le serveur de l’API ne répond pas correctement (erreur ${status}).`
+  return `le serveur a renvoyé une réponse inattendue (erreur ${status}).`
 }
 
 /**
@@ -35,7 +46,11 @@ export function getApiErrorMessage(error: unknown, action: string): string {
   if (error instanceof SessionExpiredError) return ''
 
   const reason = getErrorReason(error)
-  if (!reason) return action
+  if (!reason) {
+    // Erreur technique (bug de l'application) : non affichée, mais visible dans la console.
+    if (error instanceof Error && error.name !== 'Error') console.error(error)
+    return action
+  }
 
   return `${action.trim().replace(/[.!…]+$/, '')} : ${lowerFirst(withFinalPunctuation(reason))}`
 }
