@@ -27,7 +27,7 @@ function viewMission(mission: Mission) {
     <MissionTable
       :missions="scopedMissions"
       title="Missions affectées"
-      description="Utilisez les filtres puis ouvrez une mission pour afficher ses détails."
+      description="Cliquez sur une mission pour afficher ses détails."
       :show-actions="false"
       row-clickable
       @view="viewMission"
