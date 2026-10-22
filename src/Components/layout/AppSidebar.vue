@@ -27,8 +27,6 @@ const settingsRoute = computed(() => {
       return 'admin-settings'
     case 'supervisor':
       return 'supervisor-settings'
-    case 'teamLeader':
-      return 'team-leader-settings'
     default:
       return 'settings'
   }
@@ -83,7 +81,6 @@ const routeGroups: Record<string, string[]> = {
   ],
   'admin-devices': ['admin-devices', 'admin-device-details'],
   'supervisor-missions': ['supervisor-missions', 'supervisor-mission-details'],
-  'team-leader-missions': ['team-leader-missions', 'team-leader-mission-details'],
 }
 
 function isItemActive(routeName: string) {

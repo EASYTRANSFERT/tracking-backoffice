@@ -12,6 +12,7 @@ import { userService } from '@/Services/user.service'
 import { getDashboardRoles } from '@/types/roles'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useOperatorStore } from '@/stores/operator.store'
+import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
 import type {
@@ -350,6 +351,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!options.keepStoredSession) authSessionStorage.clear()
     useOperatorStore().resetData()
     useAdministratorStore().resetData()
+    useSupervisorStore().reset()
   }
 
   function resetAuthentication() {

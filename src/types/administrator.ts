@@ -64,11 +64,8 @@ export interface Mission {
   id: string
   code: string
   title: string
-  siteId?: string
   startAt?: string
   endAt?: string
-  supervisorId?: string
-  teamId?: string
   status: MissionStatus
   notes: string
   openedAt?: string

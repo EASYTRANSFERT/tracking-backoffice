@@ -22,7 +22,6 @@ const profile = computed(() => {
     operator: 'settings',
     administrator: 'admin-settings',
     supervisor: 'supervisor-settings',
-    teamLeader: 'team-leader-settings',
   } as const
 
   return {

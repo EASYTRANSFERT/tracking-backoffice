@@ -21,7 +21,8 @@ const feedback = useUiFeedbackStore()
 onMounted(async () => {
   try {
     if (auth.activeRole === 'operator') await operatorStore.loadCatalog()
-    if (['administrator', 'supervisor', 'teamLeader'].includes(auth.activeRole ?? '')) {
+    // Le superviseur charge son propre périmètre (supervisor.store) depuis ses pages.
+    if (auth.activeRole === 'administrator') {
       await Promise.all([
         administratorStore.loadDirectory(),
         administratorStore.loadMissions(),

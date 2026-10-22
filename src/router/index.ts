@@ -93,7 +93,7 @@ const router = createRouter({
           component: () => import('@/pages/ChangePasswordPage.vue'),
           meta: {
             title: 'Changer le mot de passe',
-            allowedRoles: ['operator', 'administrator', 'supervisor', 'teamLeader'],
+            allowedRoles: ['operator', 'administrator', 'supervisor'],
           },
         },
         {
@@ -102,7 +102,7 @@ const router = createRouter({
           component: () => import('@/pages/SettingsPage.vue'),
           meta: {
             title: 'Paramètres',
-            allowedRoles: ['operator', 'administrator', 'supervisor', 'teamLeader'],
+            allowedRoles: ['operator', 'administrator', 'supervisor'],
           },
         },
       ],
@@ -260,63 +260,26 @@ const router = createRouter({
         {
           path: '',
           name: 'supervisor-dashboard',
-          component: () => import('@/pages/ProfileDashboardPage.vue'),
+          component: () => import('@/pages/supervisor/SupervisorDashboardPage.vue'),
           meta: { title: 'Dashboard', allowedRoles: ['supervisor'] },
         },
         {
           path: 'missions',
           name: 'supervisor-missions',
-          component: () => import('@/pages/missions/ProfileMissionsPage.vue'),
+          component: () => import('@/pages/supervisor/SupervisorMissionsPage.vue'),
           meta: { title: 'Mes missions', allowedRoles: ['supervisor'] },
         },
         {
           path: 'missions/:missionId',
           name: 'supervisor-mission-details',
-          component: () => import('@/pages/missions/ProfileMissionDetailsPage.vue'),
+          component: () => import('@/pages/supervisor/SupervisorMissionDetailsPage.vue'),
           meta: { title: 'Détail mission', allowedRoles: ['supervisor'] },
-        },
-        {
-          path: 'teams',
-          name: 'supervisor-teams',
-          component: () => import('@/pages/ProfileDirectoryPage.vue'),
-          meta: { title: 'Équipes', allowedRoles: ['supervisor'], directory: 'teams' },
         },
         {
           path: 'settings',
           name: 'supervisor-settings',
           component: () => import('@/pages/SettingsPage.vue'),
           meta: { title: 'Paramètres', allowedRoles: ['supervisor'] },
-        },
-      ],
-    },
-    {
-      path: '/team-leader',
-      component: () => import('@/Components/DashboardLayout.vue'),
-      meta: { requiresAuth: true },
-      children: [
-        {
-          path: '',
-          name: 'team-leader-dashboard',
-          component: () => import('@/pages/ProfileDashboardPage.vue'),
-          meta: { title: 'Dashboard', allowedRoles: ['teamLeader'] },
-        },
-        {
-          path: 'missions',
-          name: 'team-leader-missions',
-          component: () => import('@/pages/missions/ProfileMissionsPage.vue'),
-          meta: { title: 'Mes missions', allowedRoles: ['teamLeader'] },
-        },
-        {
-          path: 'missions/:missionId',
-          name: 'team-leader-mission-details',
-          component: () => import('@/pages/missions/ProfileMissionDetailsPage.vue'),
-          meta: { title: 'Détail mission', allowedRoles: ['teamLeader'] },
-        },
-        {
-          path: 'settings',
-          name: 'team-leader-settings',
-          component: () => import('@/pages/SettingsPage.vue'),
-          meta: { title: 'Paramètres', allowedRoles: ['teamLeader'] },
         },
       ],
     },

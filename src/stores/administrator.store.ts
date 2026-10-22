@@ -5,7 +5,7 @@ import { teamService } from '@/Services/team.service'
 import { userService } from '@/Services/user.service'
 import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
-import { mockEnterpriseUsers, mockMissions, mockTeams } from '@/mocks/administrator-data'
+import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
 import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteCoordinate, SiteResponse, UpdateSiteRequest } from '@/types/site'
@@ -21,7 +21,7 @@ function toArea(points: SitePoint[]): SiteCoordinate[] {
 const sameArea = (a: SiteCoordinate[], b: SiteCoordinate[]) => JSON.stringify(toArea(a)) === JSON.stringify(toArea(b))
 
 // Ville, adresses des points et image du QR n'existent pas côté API : on conserve la copie locale existante.
-function mapSite(site: SiteResponse, previous?: Site): Site {
+export function mapSite(site: SiteResponse, previous?: Site): Site {
   // Un point incomplet renvoyé par l'API est ignoré plutôt que de bloquer toute la liste.
   const validArea = (site.area ?? []).filter((point) => Number.isFinite(point?.latitude) && Number.isFinite(point?.longitude))
   const points: SitePoint[] = validArea.map((point, index) => {
@@ -75,7 +75,7 @@ export function mapUser(user: UserResponse): EnterpriseUser {
   }
 }
 
-function mapTeam(team: TeamResponse): Team {
+export function mapTeam(team: TeamResponse): Team {
   return {
     id: team.id,
     name: team.name,
@@ -92,11 +92,7 @@ const missionStatusFromApi: Record<MissionResponse['status'], Mission['status']>
   CLOSED: 'completed',
 }
 
-function mapMission(mission: MissionResponse): Mission {
-  const mockScope = mockMode
-    ? mockMissions.find((item) => item.id === mission.id)
-    : undefined
-
+export function mapMission(mission: MissionResponse): Mission {
   return {
     id: mission.id,
     code: mission.code,
@@ -109,9 +105,6 @@ function mapMission(mission: MissionResponse): Mission {
     closedAt: mission.closedAt,
     createdAt: mission.createdAt,
     updatedAt: mission.updatedAt,
-    siteId: mockScope?.siteId,
-    supervisorId: mockScope?.supervisorId,
-    teamId: mockScope?.teamId,
   }
 }
 
