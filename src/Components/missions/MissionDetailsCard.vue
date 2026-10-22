@@ -55,13 +55,6 @@ function fullName(user?: EnterpriseUser) {
           <div><p class="text-xs text-[#848484]">Superviseur</p><p class="mt-1 font-semibold">{{ fullName(supervisor) }}</p></div>
         </v-card-text>
       </v-card>
-
-      <v-alert
-        type="info"
-        variant="tonal"
-        title="Consultation en lecture seule"
-        text="Les informations affichées correspondent au périmètre autorisé par votre profil."
-      />
     </div>
   </div>
 </template>

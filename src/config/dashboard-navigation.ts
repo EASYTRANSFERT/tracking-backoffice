@@ -5,7 +5,7 @@ import type { NavigationItem } from '@/types/roles'
 
 export const dashboardNavigation: NavigationItem[] = [
   {
-    title: 'Dashboard',
+    title: 'Acceuil',
     routeName: 'dashboard',
     iconSrc: dashboardIcon,
     allowedRoles: ['operator'],
@@ -30,7 +30,7 @@ export const dashboardNavigation: NavigationItem[] = [
     prototypeOnly: true,
   },
   {
-    title: 'Dashboard',
+    title: 'Acceuil',
     routeName: 'admin-dashboard',
     iconSrc: dashboardIcon,
     allowedRoles: ['administrator'],
@@ -72,7 +72,7 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['administrator'],
   },
   {
-    title: 'Dashboard',
+    title: 'Acceuil',
     routeName: 'supervisor-dashboard',
     iconSrc: dashboardIcon,
     allowedRoles: ['supervisor'],

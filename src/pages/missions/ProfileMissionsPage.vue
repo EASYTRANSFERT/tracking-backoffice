@@ -21,8 +21,7 @@ function viewMission(mission: Mission) {
   <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
       <template #title>Mes missions</template>
-      <template #description>Consultez les missions comprises dans votre périmètre.</template>
-      <template #actions><v-chip color="secondary" variant="tonal" prepend-icon="mdi-eye-outline">Lecture seule</v-chip></template>
+      <template #description>Consultez les missions que vous supervisez.</template>
     </PageHeader>
 
     <MissionTable
