@@ -36,7 +36,7 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['administrator'],
   },
   {
-    title: 'Agents',
+    title: 'Employés',
     routeName: 'admin-users',
     icon: 'mdi-account-group-outline',
     allowedRoles: ['administrator'],

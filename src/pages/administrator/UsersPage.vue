@@ -35,7 +35,23 @@ async function changeStatus(user: EnterpriseUser) {
 <template>
 <div class="mx-auto w-full max-w-[1440px]">
   <PageHeader>
-    <template #title>Empoloyés</template>
+    <template #title>Employés</template>
     <template #description>Gérez les membres, leurs rôles et leurs équipes.</template>
     <template #actions>
-      <v-btn v-if="canImportUsers" variant="outlined" color="secondary" prepend-icon="mdi-file-upload-outline" :to="{ name: 'admin-user-import' }">Importer</v-btn><v-btn color="primary" prepend-icon="mdi-account-plus-outline" :to="{ name: 'admin-user-create' }">Nouvel agent</v-btn></template></PageHeader><UserTable :users="users" :teams="teams" :cursor-page="userPage" :has-next-page="Boolean(userNextCursor)" :has-previous-page="userCursorHistory.length > 0" @view="view" @edit="edit" @change-status="changeStatus" @next-page="store.nextUserPage" @previous-page="store.previousUserPage" /></div></template>
+      <v-btn v-if="canImportUsers" variant="outlined" color="secondary" prepend-icon="mdi-file-upload-outline" :to="{ name: 'admin-user-import' }">Importer</v-btn>
+      <v-btn color="primary" prepend-icon="mdi-account-plus-outline" :to="{ name: 'admin-user-create' }">Nouvel agent</v-btn>
+      </template>
+      </PageHeader>
+      <UserTable :users="users"
+                 :teams="teams"
+                 :cursor-page="userPage"
+                 :has-next-page="Boolean(userNextCursor)"
+                 :has-previous-page="userCursorHistory.length > 0"
+                 @view="view"
+                 @edit="edit"
+                 @change-status="changeStatus"
+                 @next-page="store.nextUserPage"
+                 @previous-page="store.previousUserPage"
+        />
+      </div>
+    </template>
