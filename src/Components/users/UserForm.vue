@@ -60,7 +60,7 @@ async function submit() {
         <v-text-field v-model="data.lastName" label="Nom" :rules="[required]" />
         <v-text-field v-model="data.employeeNumber" label="Matricule" :rules="[required]" />
         <v-text-field v-model="data.email" label="E-mail professionnel" type="email" :rules="[required,email]" />
-        <v-text-field v-model="data.phone" label="Téléphone" placeholder="+2250700000000" hint="Format international avec indicatif pays" persistent-hint inputmode="tel" autocomplete="tel" :rules="[required,internationalPhone]" />
+        <v-text-field v-model="data.phone" label="Téléphone" placeholder="+2250700000000" hint="Format international avec indicatif pays" persistent-hint inputmode="tel" autocomplete="tel" :rules="[required,internationalPhone]" maxlength="14"/>
         <v-text-field v-if="!user" v-model="data.password" label="Mot de passe temporaire" :type="showPassword ? 'text' : 'password'" :append-inner-icon="showPassword ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" @click:append-inner="showPassword = !showPassword" autocomplete="new-password" hint="13 caractères minimum" persistent-hint counter :rules="[required,strongEnoughPassword]" />
         <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :items="[{title:'Administrateur',value:'administrator'},{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
         <v-text-field v-else label="Rôle" model-value="Administrateur" readonly />
