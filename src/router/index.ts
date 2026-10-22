@@ -244,6 +244,12 @@ const router = createRouter({
           component: () => import('@/pages/SettingsPage.vue'),
           meta: { title: 'Paramètres', allowedRoles: ['administrator'] },
         },
+        {
+          path: 'settings/entreprise',
+          name: 'admin-company-settings',
+          component: () => import('@/pages/administrator/CompanySettingsPage.vue'),
+          meta: { title: 'Paramètres de l’entreprise', allowedRoles: ['administrator'] },
+        },
       ],
     },
     {
