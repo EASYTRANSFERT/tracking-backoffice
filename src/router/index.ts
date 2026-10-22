@@ -282,12 +282,6 @@ const router = createRouter({
           meta: { title: 'Équipes', allowedRoles: ['supervisor'], directory: 'teams' },
         },
         {
-          path: 'attendance',
-          name: 'supervisor-attendance',
-          component: () => import('@/pages/supervisor/AttendanceValidationPage.vue'),
-          meta: { title: 'Pointages', allowedRoles: ['supervisor'] },
-        },
-        {
           path: 'settings',
           name: 'supervisor-settings',
           component: () => import('@/pages/SettingsPage.vue'),

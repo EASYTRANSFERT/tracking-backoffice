@@ -41,10 +41,14 @@ async function submit() {
         <div>
           <h2 class="text-base font-bold">Informations de l’équipe</h2>
           <p class="mt-1 text-xs font-normal text-[#747985]">Définissez l’équipe et le superviseur responsable</p>
+          <v-alert class="md:col-span-2 m-5" type="info" variant="tonal">
+          Le nom de l'équipe et le superviseur sont obligatoire pour la création.
+        </v-alert>
         </div>
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
+
         <v-text-field v-model="data.name" label="Nom de l’équipe" :rules="[required]" />
         <v-select
           v-model="data.supervisorUserId"
@@ -55,9 +59,6 @@ async function submit() {
           :rules="[required]"
           no-data-text="Aucun superviseur actif disponible"
         />
-        <v-alert class="md:col-span-2" type="info" variant="tonal">
-          Le superviseur est obligatoire. Le chef et les agents pourront ensuite être rattachés à l’équipe.
-        </v-alert>
       </v-card-text>
     </v-card>
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
