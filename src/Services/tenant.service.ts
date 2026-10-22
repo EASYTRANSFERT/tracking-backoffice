@@ -35,7 +35,7 @@ export const tenantService = {
   },
 
   async update(id: string, payload: UpdateTenantRequest): Promise<TenantResponse> {
-    const response = await apiClient.patch<TenantResponse>(`/platform/tenants/${id}`, payload, { headers: idempotencyHeaders() })
+    const response = await apiClient.patch<TenantResponse>(`/platform/tenants/settings/${id}`, payload, { headers: idempotencyHeaders() })
     return response.data
   },
 
