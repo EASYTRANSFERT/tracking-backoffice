@@ -78,21 +78,10 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['supervisor'],
   },
   {
-    title: 'Mes missions', routeName: 'supervisor-missions', icon: 'mdi-clipboard-text-clock-outline', allowedRoles: ['supervisor'],
+    title: 'Mes missions',
+    routeName: 'supervisor-missions',
+    icon: 'mdi-clipboard-text-clock-outline',
+    allowedRoles: ['supervisor'],
   },
-  {
-    title: 'Mes équipes', routeName: 'supervisor-teams', icon: 'mdi-account-multiple-outline', allowedRoles: ['supervisor'],
-  },
-  {
-    title: 'Pointages', routeName: 'supervisor-attendance', icon: 'mdi-clock-check-outline', allowedRoles: ['supervisor'],
-  },
-  {
-    title: 'Dashboard',
-    routeName: 'team-leader-dashboard',
-    iconSrc: dashboardIcon,
-    allowedRoles: ['teamLeader'],
-  },
-  {
-    title: 'Mes missions', routeName: 'team-leader-missions', icon: 'mdi-clipboard-text-clock-outline', allowedRoles: ['teamLeader'],
-  },
+
 ]
