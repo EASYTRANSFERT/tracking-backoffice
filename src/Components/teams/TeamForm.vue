@@ -15,8 +15,8 @@ const data = reactive<TeamInput>({
   name: props.team?.name ?? '',
   supervisorUserId: props.team?.supervisorUserId ?? '',
 })
-const supervisors = computed(() => props.users.filter(
-  (user) => user.role === 'supervisor' && user.status === 'active',
+const teamLead = computed(() => props.users.filter(
+  (user) => user.role === 'teamLeader' && user.status === 'active',
 ))
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
 const fullName = (user: EnterpriseUser) => `${user.firstName} ${user.lastName}`
@@ -40,9 +40,9 @@ async function submit() {
         </v-avatar>
         <div>
           <h2 class="text-base font-bold">Informations de l’équipe</h2>
-          <p class="mt-1 text-xs font-normal text-[#747985]">Définissez l’équipe et le superviseur responsable</p>
+          <p class="mt-1 text-xs font-normal text-[#747985]">Définissez l’équipe et son chef</p>
           <v-alert class="md:col-span-2 m-5" type="info" variant="tonal">
-          Le nom de l'équipe et le superviseur sont obligatoire pour la création.
+          Le nom de l'équipe et le chef de l'équipe sont obligatoire pour la création.
         </v-alert>
         </div>
       </v-card-title>
@@ -52,8 +52,8 @@ async function submit() {
         <v-text-field v-model="data.name" label="Nom de l’équipe" :rules="[required]" />
         <v-select
           v-model="data.supervisorUserId"
-          label="Superviseur"
-          :items="supervisors"
+          label="Chef d'équipe"
+          :items="teamLead"
           :item-title="fullName"
           item-value="id"
           :rules="[required]"

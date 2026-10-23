@@ -11,7 +11,7 @@ export interface TeamResponse {
 
 export interface CreateTeamRequest {
   name: string
-  supervisorUserId: string
+  leadUserId: string
 }
 
 export interface UpdateTeamRequest {
