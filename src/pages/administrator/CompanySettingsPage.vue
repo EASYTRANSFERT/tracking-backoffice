@@ -5,7 +5,7 @@ import { onBeforeRouteLeave } from 'vue-router'
 
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import CompanySettingsForm from '@/Components/settings/CompanySettingsForm.vue'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useCompanySettingsStore } from '@/stores/company-settings.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 

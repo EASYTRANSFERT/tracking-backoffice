@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
 import { computed, ref, watch } from 'vue'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
@@ -35,10 +36,9 @@ const dateFrom = ref('')
 const dateTo = ref('')
 const page = ref(1)
 const filtered = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('fr')
   return [...props.missions].filter((mission) => {
     const startDate = mission.startAt?.slice(0, 10) ?? ''
-    return (!query || `${mission.code} ${mission.title}`.toLocaleLowerCase('fr').includes(query))
+    return matchesSearch(search.value, mission.code, mission.title)
       && (status.value === 'all' || mission.status === status.value)
       && (!dateFrom.value || Boolean(startDate && startDate >= dateFrom.value))
       && (!dateTo.value || Boolean(startDate && startDate <= dateTo.value))

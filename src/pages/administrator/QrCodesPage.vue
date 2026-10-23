@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { getApiErrorMessage } from '@/Services/api-error'
+import { matchesSearch } from '@/utils/search'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { computed, onMounted, ref } from 'vue'; import { storeToRefs } from 'pinia'; import { useRouter } from 'vue-router'; import AppEmptyState from '@/Components/common/AppEmptyState.vue'; import PageHeader from '@/Components/layout/PageHeader.vue'; import QrCodeCard from '@/Components/sites/QrCodeCard.vue'; import { useSiteQrCode } from '@/composables/useSiteQrCode'; import { useAdministratorStore } from '@/stores/administrator.store'; import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 const router = useRouter(); const store = useAdministratorStore(); const feedback = useUiFeedbackStore(); const { sites, isSitesLoading } = storeToRefs(store); const { generatingId, generate } = useSiteQrCode()
 const search = ref('')
-// Recherche sur le nom, l'adresse et la ville, sans tenir compte des accents ni de la casse.
-const normalize = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('fr')
-const filteredSites = computed(() => { const q = normalize(search.value?.trim() ?? ''); return q ? sites.value.filter((site) => normalize(`${site.name} ${site.address ?? ''} ${site.city ?? ''}`).includes(q)) : sites.value })
+const filteredSites = computed(() => sites.value.filter((site) => matchesSearch(search.value, site.name, site.address, site.city)))
 onMounted(async () => { try { await store.loadSites() } catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les sites.')) } })
 </script>
 <template><div class="mx-auto w-full max-w-[1440px]"><PageHeader><template #title>QR codes des sites</template><template #description>Consultez et renouvelez les identifiants de pointage de chaque site.</template><template #actions><v-btn color="primary" prepend-icon="mdi-map-marker-plus-outline" :to="{ name: 'admin-site-create' }">Nouveau site</v-btn></template></PageHeader><v-alert class="mb-6" type="info" variant="tonal" text="La régénération invalide l’ancien QR code. L’image n’est affichée qu’au moment de sa génération : pensez à l’imprimer." />

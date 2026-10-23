@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { isAxiosError } from 'axios'
 
 import { SessionExpiredError } from '@/Services/api-client'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { authService } from '@/Services/auth.service'
 import { authSessionStorage } from '@/Services/auth-session.storage'
 import { readAccessTokenClaims } from '@/Services/access-token'

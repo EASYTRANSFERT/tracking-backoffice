@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { Site } from '@/types/administrator'

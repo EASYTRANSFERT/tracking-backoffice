@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nameOr } from '@/utils/people'
 import type { EnterpriseUser } from '@/types/administrator'
 
 defineProps<{
@@ -6,9 +7,6 @@ defineProps<{
   projectLead?: EnterpriseUser
 }>()
 
-const fullName = (user?: EnterpriseUser) => user
-  ? `${user.firstName} ${user.lastName}`
-  : 'Non affecté'
 </script>
 
 <template>
@@ -27,12 +25,12 @@ const fullName = (user?: EnterpriseUser) => user
       <v-list-item
         prepend-icon="mdi-account-tie-outline"
         title="Superviseur"
-        :subtitle="fullName(supervisor)"
+        :subtitle="nameOr(supervisor)"
       />
       <v-list-item
         prepend-icon="mdi-briefcase-account-outline"
         title="Chef d'équipe"
-        :subtitle="fullName(projectLead)"
+        :subtitle="nameOr(projectLead)"
       />
     </v-list>
     <v-divider />

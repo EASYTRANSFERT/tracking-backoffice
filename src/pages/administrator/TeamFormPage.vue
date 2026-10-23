@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'

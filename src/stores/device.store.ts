@@ -1,3 +1,4 @@
+import { fullName } from '@/utils/people'
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
@@ -32,7 +33,7 @@ export const useDeviceStore = defineStore('device', () => {
   /** L'API ne renvoie que userId : le nom vient de l'annuaire déjà chargé. */
   function agentName(userId: string) {
     const user = useAdministratorStore().teamDirectoryUsers.find((item) => item.id === userId)
-    return user ? `${user.firstName} ${user.lastName}` : null
+    return user ? fullName(user) : null
   }
 
   async function loadDevices(nextFilters: DeviceFilters = filters.value) {

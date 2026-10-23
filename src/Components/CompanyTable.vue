@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
 import { computed, ref, watch } from 'vue'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
@@ -50,14 +51,9 @@ const statusOptions = [
 ]
 
 const filteredCompanies = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('fr')
   return props.companies.filter((company) => {
-    const matchesSearch =
-      !query ||
-      company.legalName.toLocaleLowerCase('fr').includes(query) ||
-      (company.contactEmail ?? '').toLocaleLowerCase('fr').includes(query)
     const matchesStatus = selectedStatus.value === 'all' || company.status === selectedStatus.value
-    return matchesSearch && matchesStatus
+    return matchesSearch(search.value, company.legalName, company.contactEmail) && matchesStatus
   })
 })
 

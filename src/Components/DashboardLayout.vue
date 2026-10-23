@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { onMounted, ref, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { useDisplay } from 'vuetify'

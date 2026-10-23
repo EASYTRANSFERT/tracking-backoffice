@@ -7,7 +7,7 @@ import DeviceStatusChip from '@/Components/devices/DeviceStatusChip.vue'
 import { deviceSystem, deviceTitle, formatDeviceDate } from '@/Components/devices/device-format'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useDeviceRevocation } from '@/composables/useDeviceRevocation'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useDeviceStore } from '@/stores/device.store'
 

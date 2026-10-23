@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
+import { nameOr } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
@@ -8,10 +10,10 @@ import type { EnterpriseUser, Site, SiteStatus } from '@/types/administrator'
 const props = withDefaults(defineProps<{ sites: Site[]; users: EnterpriseUser[]; pageSize?: number }>(), { pageSize: 6 })
 const emit = defineEmits<{ view: [site: Site]; edit: [site: Site]; changeStatus: [site: Site] }>()
 const search = ref(''); const status = ref<SiteStatus | 'all'>('all'); const page = ref(1); const displayMode = ref<'table' | 'map'>('table')
-const filtered = computed(() => { const q = search.value.trim().toLocaleLowerCase('fr'); return props.sites.filter((site) => (!q || `${site.name} ${site.address ?? ''} ${site.city ?? ''}`.toLocaleLowerCase('fr').includes(q)) && (status.value === 'all' || site.status === status.value)) })
+const filtered = computed(() => { return props.sites.filter((site) => matchesSearch(search.value, site.name, site.address, site.city) && (status.value === 'all' || site.status === status.value)) })
 const pageCount = computed(() => Math.ceil(filtered.value.length / props.pageSize)); const start = computed(() => (page.value - 1) * props.pageSize); const displayed = computed(() => filtered.value.slice(start.value, start.value + props.pageSize))
 watch([search, status], () => { page.value = 1 })
-const managerName = (id?: string) => { const user = props.users.find((item) => item.id === id); return user ? `${user.firstName} ${user.lastName}` : 'Non affecté' }
+const managerName = (id?: string) => { const user = props.users.find((item) => item.id === id); return nameOr(user) }
 </script>
 <template>
   <v-card class="overflow-hidden"><div class="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center"><div><h2 class="text-lg font-bold text-[#252830]">Sites opérationnels</h2><p class="mt-1 text-xs text-[#747985]">Configurez la géolocalisation et les QR codes des sites.</p></div><v-spacer /><div class="grid w-full gap-3 sm:grid-cols-[minmax(220px,1fr)_180px_auto] lg:max-w-[650px]"><v-text-field v-model="search" prepend-inner-icon="mdi-magnify" placeholder="Rechercher un site" density="compact" hide-details clearable /><v-select v-model="status" :items="[{title:'Tous les statuts',value:'all'},{title:'À compléter',value:'draft'},{title:'Actifs',value:'active'},{title:'Archivés',value:'inactive'}]" density="compact" hide-details /><v-btn-toggle v-model="displayMode" mandatory color="primary" variant="outlined" density="comfortable"><v-btn value="table" icon="mdi-table" aria-label="Vue tableau" /><v-btn value="map" icon="mdi-map-outline" aria-label="Vue carte" /></v-btn-toggle></div></div><v-divider />

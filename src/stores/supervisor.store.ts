@@ -4,14 +4,10 @@ import { defineStore } from 'pinia'
 import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
 import { teamService } from '@/Services/team.service'
-import { userService } from '@/Services/user.service'
-import { mapMission, mapSite, mapTeam, mapUser } from '@/stores/administrator.store'
+import { mapMission, mapSite, mapTeam } from '@/stores/mappers'
 import { useAuthStore } from '@/stores/auth.store'
 
-import type { EnterpriseUser, Mission, Site, Team } from '@/types/administrator'
-
-const byName = (a: EnterpriseUser, b: EnterpriseUser) =>
-  `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'fr')
+import type { Mission, Site, Team } from '@/types/administrator'
 
 /**
  * Périmètre du superviseur, en lecture seule : les sites dont il est responsable
@@ -24,7 +20,6 @@ export const useSupervisorStore = defineStore('supervisor', () => {
   const sites = ref<Site[]>([])
   const missions = ref<Mission[]>([])
   const teamsById = ref<Record<string, Team>>({})
-  const membersByTeam = ref<Record<string, EnterpriseUser[]>>({})
   const isLoading = ref(false)
   const hasLoaded = ref(false)
 
@@ -62,31 +57,23 @@ export const useSupervisorStore = defineStore('supervisor', () => {
     }
   }
 
-  /** Équipe et agents de chaque site de la mission. */
+  /** Équipe de chaque site de la mission. Ses agents sont chargés par le planning (assignment.store). */
   async function loadMissionTeams(missionId: string) {
     const teamIds = [...new Set(getMissionSites(missionId).map((site) => site.teamId).filter((id): id is string => Boolean(id)))]
-    await Promise.all(teamIds.map(async (teamId) => {
-      const [team, members] = await Promise.all([
-        teamsById.value[teamId] ? Promise.resolve(teamsById.value[teamId]) : teamService.findOne(teamId).then(mapTeam),
-        userService.list({ teamId, limit: 200 }).then((page) => page.items.map(mapUser)
-          .filter((user) => ['agent', 'teamLeader'].includes(user.role))
-          .sort(byName)),
-      ])
-      teamsById.value = { ...teamsById.value, [teamId]: team }
-      membersByTeam.value = { ...membersByTeam.value, [teamId]: members }
-    }))
+    const missing = teamIds.filter((teamId) => !teamsById.value[teamId])
+    const teams = await Promise.all(missing.map((teamId) => teamService.findOne(teamId).then(mapTeam)))
+    teamsById.value = { ...teamsById.value, ...Object.fromEntries(teams.map((team) => [team.id, team])) }
   }
 
   function reset() {
     sites.value = []
     missions.value = []
     teamsById.value = {}
-    membersByTeam.value = {}
     hasLoaded.value = false
   }
 
   return {
-    sites, missions, teamCount, teamsById, membersByTeam, isLoading, hasLoaded,
+    sites, missions, teamCount, teamsById, isLoading, hasLoaded,
     siteCountByMission, getMissionById, getMissionSites, loadScope, loadMissionTeams, reset,
   }
 })

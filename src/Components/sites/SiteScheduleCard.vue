@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { fullName } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { isAxiosError } from 'axios'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
+import WeekNavigator from '@/Components/sites/WeekNavigator.vue'
 import SiteShiftDialog from '@/Components/sites/SiteShiftDialog.vue'
-import { addDays, formatTime, startOfWeek, toDayKey, weekDays, weekLabel } from '@/Components/sites/site-schedule'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { formatTime, toDayKey, weekDays } from '@/Components/sites/site-schedule'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useAssignmentStore } from '@/stores/assignment.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { Site, Team } from '@/types/administrator'
@@ -68,7 +70,7 @@ function describeError(error: unknown, fallback: string) {
   const message = getApiErrorMessage(error, fallback)
   const userId = isAxiosError<{ userId?: string }>(error) ? error.response?.data?.userId : undefined
   const user = members.value.find((item) => item.id === userId)
-  return user ? `${message} (${user.firstName} ${user.lastName})` : message
+  return user ? `${message} (${fullName(user)})` : message
 }
 
 async function plan(userIds: string[], slots: AssignmentSlot[]) {
@@ -125,12 +127,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
         </div>
       </div>
       <div v-if="site.teamId" class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center rounded-lg border border-[#e3e5ea]">
-          <v-btn icon="mdi-chevron-left" variant="text" size="small" density="comfortable" aria-label="Semaine précédente" @click="goToWeek(addDays(weekStart, -7))" />
-          <span class="min-w-[230px] px-1 text-center text-sm font-semibold text-[#252830]">{{ weekLabel(weekStart) }}</span>
-          <v-btn icon="mdi-chevron-right" variant="text" size="small" density="comfortable" aria-label="Semaine suivante" @click="goToWeek(addDays(weekStart, 7))" />
-        </div>
-        <v-btn variant="text" size="small" class="normal-case" :disabled="weekStart === startOfWeek()" @click="goToWeek(startOfWeek())">Aujourd’hui</v-btn>
+        <WeekNavigator :week-start="weekStart" @change="goToWeek" />
         <v-btn color="primary" prepend-icon="mdi-calendar-plus" :disabled="!canPlan" @click="openPlan()">Planifier</v-btn>
       </div>
     </div>
@@ -186,7 +183,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
                   type="button"
                   class="flex h-7 w-full items-center justify-center gap-1 rounded-md border-l-[3px] text-xs font-semibold transition"
                   :class="endsNextDay(shift) ? 'border-[#4B5A86] bg-[#EEF0F7] text-[#34406A] hover:bg-[#E2E6F2]' : 'border-[#D80F16] bg-[#FDE9EA] text-[#B00C12] hover:bg-[#F9D7D9]'"
-                  :title="`Corriger le créneau de ${member.firstName} ${member.lastName}`"
+                  :title="`Corriger le créneau de ${fullName(member)}`"
                   @click="openEdit(shift)"
                 >
                   <v-icon v-if="endsNextDay(shift)" icon="mdi-weather-night" size="13" />
@@ -196,7 +193,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
                   v-if="canPlan"
                   type="button"
                   class="flex min-h-7 w-full flex-1 items-center justify-center rounded-md border border-dashed border-transparent text-[#b8bcc6] opacity-0 transition hover:border-[#e3a7aa] hover:text-[#D80F16] focus:opacity-100 group-hover:opacity-100"
-                  :aria-label="`Planifier ${member.firstName} ${member.lastName} le ${day.weekday} ${day.date}`"
+                  :aria-label="`Planifier ${fullName(member)} le ${day.weekday} ${day.date}`"
                   @click="openPlan([member.id], [day.key])"
                 >
                   <v-icon icon="mdi-plus" size="16" />

@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios'
 
-import { SessionExpiredError } from './api-client'
+import { SessionExpiredError } from '@/Services/api-client'
 
 import type { ApiProblemDetails } from '@/types/api'
 

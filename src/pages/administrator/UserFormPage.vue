@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { computed, ref } from 'vue'; import { storeToRefs } from 'pinia'; import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'; import PageHeader from '@/Components/layout/PageHeader.vue'; import UserForm from '@/Components/users/UserForm.vue'; import { useAdministratorStore } from '@/stores/administrator.store'; import { useUiFeedbackStore } from '@/stores/ui-feedback.store'; import type { EnterpriseUserInput } from '@/types/administrator'
 const route = useRoute(); const router = useRouter(); const store = useAdministratorStore(); const feedback = useUiFeedbackStore(); const { teams } = storeToRefs(store); const id = computed(() => route.params.userId as string | undefined); const user = computed(() => id.value ? store.getUserById(id.value) : undefined); const dirty = ref(false)
 onBeforeRouteLeave(async () => !dirty.value || await feedback.askConfirmation({ title: 'Quitter sans enregistrer ?', message: 'Les modifications de cet utilisateur seront perdues.', confirmText: 'Quitter' }))

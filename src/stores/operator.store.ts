@@ -1,3 +1,4 @@
+import { fullName } from '@/utils/people'
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
@@ -224,7 +225,7 @@ export const useOperatorStore = defineStore('operator', () => {
 
     return tenantService.createUser(id, {
       matricule: input.employeeNumber,
-      names: `${input.firstName} ${input.lastName}`.trim(),
+      names: fullName(input),
       email: input.email,
       phone,
       role: 'ADMIN',

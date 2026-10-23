@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fullName } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
@@ -7,7 +8,8 @@ import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import SiteShiftList from '@/Components/sites/SiteShiftList.vue'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
+import { useAssignmentStore } from '@/stores/assignment.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
@@ -16,7 +18,9 @@ const route = useRoute()
 const authStore = useAuthStore()
 const store = useSupervisorStore()
 const feedback = useUiFeedbackStore()
-const { isLoading, hasLoaded, teamsById, membersByTeam } = storeToRefs(store)
+const { isLoading, hasLoaded, teamsById } = storeToRefs(store)
+// Les agents de l'équipe du site affiché sont ceux que charge le planning ci-dessous.
+const { members, isLoading: isMembersLoading } = storeToRefs(useAssignmentStore())
 
 const missionId = computed(() => String(route.params.missionId))
 const mission = computed(() => store.getMissionById(missionId.value))
@@ -25,9 +29,7 @@ const sites = computed(() => store.getMissionSites(missionId.value))
 const selectedSiteId = ref<string>()
 const site = computed(() => sites.value.find((item) => item.id === selectedSiteId.value) ?? sites.value[0])
 const team = computed(() => site.value?.teamId ? teamsById.value[site.value.teamId] : undefined)
-const members = computed(() => site.value?.teamId ? membersByTeam.value[site.value.teamId] ?? [] : [])
 const leader = computed(() => members.value.find((member) => member.id === team.value?.leadUserId))
-const isTeamsLoading = ref(false)
 
 const formatDate = (value?: string) => value
   ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
@@ -38,12 +40,9 @@ async function load() {
   try {
     await store.loadScope()
     if (!mission.value) return
-    isTeamsLoading.value = true
     await store.loadMissionTeams(missionId.value)
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible de charger les équipes de cette mission.'))
-  } finally {
-    isTeamsLoading.value = false
   }
 }
 watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { immediate: true })
@@ -92,7 +91,7 @@ watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { imme
               <div><p class="text-xs text-[#848484]">Responsable du site</p><p class="mt-1 font-semibold">{{ managerLabel(site.managerId) }}</p></div>
               <div><p class="text-xs text-[#848484]">Zone autorisée</p><p class="mt-1 font-medium">{{ site.radiusM ? `${site.radiusM} m autour du périmètre` : 'Non renseignée' }}</p></div>
               <div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-semibold">{{ site.teamId ? team?.name ?? '…' : 'Aucune équipe affectée' }}</p></div>
-              <div><p class="text-xs text-[#848484]">Chef d’équipe</p><p class="mt-1 font-semibold">{{ leader ? `${leader.firstName} ${leader.lastName}` : site.teamId ? 'Non désigné' : '—' }}</p></div>
+              <div><p class="text-xs text-[#848484]">Chef d’équipe</p><p class="mt-1 font-semibold">{{ leader ? fullName(leader) : site.teamId ? 'Non désigné' : '—' }}</p></div>
             </v-card-text>
           </v-card>
 
@@ -102,7 +101,7 @@ watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { imme
               <div><h2 class="text-base font-bold">Agents</h2><p class="mt-1 text-xs font-normal text-[#747985]">{{ site.teamId ? `${members.length} membre${members.length > 1 ? 's' : ''} de l’équipe` : 'Aucune équipe sur ce site' }}</p></div>
             </v-card-title>
             <v-divider />
-            <v-progress-linear v-if="isTeamsLoading" indeterminate color="primary" height="2" />
+            <v-progress-linear v-if="isMembersLoading" indeterminate color="primary" height="2" />
             <div v-if="members.length" class="max-h-[340px] overflow-y-auto">
               <v-table density="comfortable">
                 <thead><tr><th>Agent</th><th>Matricule</th><th>Téléphone</th></tr></thead>
@@ -115,7 +114,7 @@ watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { imme
                 </tbody>
               </v-table>
             </div>
-            <v-card-text v-else-if="!isTeamsLoading" class="px-6 py-8 text-center text-sm text-[#747985]">{{ site.teamId ? 'L’équipe n’a pas encore d’agent.' : 'L’administrateur doit affecter une équipe à ce site.' }}</v-card-text>
+            <v-card-text v-else-if="!isMembersLoading" class="px-6 py-8 text-center text-sm text-[#747985]">{{ site.teamId ? 'L’équipe n’a pas encore d’agent.' : 'L’administrateur doit affecter une équipe à ce site.' }}</v-card-text>
           </v-card>
         </div>
 

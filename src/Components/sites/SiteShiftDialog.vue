@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fullName } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 import { endsNextDay, timeOf, toDayKey, toSlot, type ScheduleDay } from '@/Components/sites/site-schedule'
 import type { EnterpriseUser } from '@/types/administrator'
@@ -29,10 +30,10 @@ const end = ref('15:00')
 const validationError = ref<string | null>(null)
 
 const isEdit = computed(() => Boolean(props.assignment))
-const memberOptions = computed(() => props.members.map((user) => ({ title: `${user.firstName} ${user.lastName}`, value: user.id })))
+const memberOptions = computed(() => props.members.map((user) => ({ title: fullName(user), value: user.id })))
 const memberName = computed(() => {
   const user = props.members.find((item) => item.id === props.assignment?.userId)
-  return user ? `${user.firstName} ${user.lastName}` : props.assignment?.userId
+  return user ? fullName(user) : props.assignment?.userId
 })
 const nightShift = computed(() => endsNextDay(start.value, end.value))
 

@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import MissionTable from '@/Components/missions/MissionTable.vue'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { Mission } from '@/types/administrator'

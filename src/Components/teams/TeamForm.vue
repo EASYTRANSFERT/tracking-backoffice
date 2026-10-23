@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fullName } from '@/utils/people'
 import { reactive, ref, watch } from 'vue'
 
 import type { EnterpriseUser, Team, TeamInput } from '@/types/administrator'
@@ -17,7 +18,6 @@ const data = reactive<TeamInput>({
   leadUserId: props.team?.leadUserId ?? '',
 })
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
-const fullName = (user: EnterpriseUser) => `${user.firstName} ${user.lastName}`
 
 watch(data, () => emit('dirtyChange', true), { deep: true })
 

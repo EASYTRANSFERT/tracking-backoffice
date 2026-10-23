@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { getApiErrorMessage } from '@/Services/api-error'
+import { fullName } from '@/utils/people'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { storeToRefs } from 'pinia'; import { useRouter } from 'vue-router';
 import UserTable from '@/Components/users/UserTable.vue';
 import PageHeader from '@/Components/layout/PageHeader.vue';
@@ -23,7 +24,7 @@ async function changeStatus(user: EnterpriseUser) {
   const action = wasDisabled ? 'réactiver' : 'désactiver';
   const confirmed = await feedback.askConfirmation({
     title: `${action[0]?.toUpperCase()}${action.slice(1)} ce compte ?`,
-    message: `Vous allez ${action} le compte de ${user.firstName} ${user.lastName}.`,
+    message: `Vous allez ${action} le compte de ${fullName(user)}.`,
     confirmText: action[0]?.toUpperCase() + action.slice(1), color: wasDisabled ? 'success' : 'error'
     });
     if (!confirmed) return;

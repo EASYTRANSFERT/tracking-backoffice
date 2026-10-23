@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nameOr } from '@/utils/people'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as L from 'leaflet'
 
@@ -46,7 +47,7 @@ function hasValidCoordinates(site: Site) {
 
 function managerName(id?: string) {
   const user = props.users.find((item) => item.id === id)
-  return user ? `${user.firstName} ${user.lastName}` : 'Non affecté'
+  return nameOr(user)
 }
 
 function createPopup(site: Site) {

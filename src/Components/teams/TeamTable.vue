@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
+import { nameOr } from '@/utils/people'
 import { computed, ref } from 'vue'
 
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
@@ -29,12 +31,11 @@ const emit = defineEmits<{
 
 const search = ref('')
 const displayed = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('fr')
-  return props.teams.filter((team) => !query || team.name.toLocaleLowerCase('fr').includes(query))
+  return props.teams.filter((team) => matchesSearch(search.value, team.name))
 })
 const userName = (id?: string) => {
   const user = props.users.find((item) => item.id === id)
-  return user ? `${user.firstName} ${user.lastName}` : 'Non affecté'
+  return nameOr(user)
 }
 const members = (id: string) => props.users.filter((user) => user.teamId === id && user.role === 'agent').length
 </script>

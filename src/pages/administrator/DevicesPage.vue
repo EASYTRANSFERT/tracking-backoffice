@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fullName } from '@/utils/people'
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -8,7 +9,7 @@ import DeviceTable from '@/Components/devices/DeviceTable.vue'
 import { deviceStatusOptions } from '@/Components/devices/device-format'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useDeviceRevocation } from '@/composables/useDeviceRevocation'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useDeviceStore } from '@/stores/device.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
@@ -22,7 +23,7 @@ const { devices, hasMore, isLoading, isLoadingMore } = storeToRefs(store)
 const revocation = useDeviceRevocation()
 const userId = ref<string | null>(store.filters.userId ?? null)
 const status = ref<ApiDeviceStatus | null>(store.filters.status ?? null)
-const agentOptions = computed(() => administratorStore.teamDirectoryUsers.map((user) => ({ title: `${user.firstName} ${user.lastName}`, value: user.id })))
+const agentOptions = computed(() => administratorStore.teamDirectoryUsers.map((user) => ({ title: fullName(user), value: user.id })))
 
 async function load() {
   try {

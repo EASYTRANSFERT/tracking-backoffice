@@ -1,3 +1,4 @@
+import { fullName, byName, isTeamMember } from '@/utils/people'
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
@@ -5,6 +6,7 @@ import { teamService } from '@/Services/team.service'
 import { userService } from '@/Services/user.service'
 import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
+import { mapMission, mapSite, mapTeam, mapUser, roleToApi, toArea } from '@/stores/mappers'
 import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
 import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
@@ -14,98 +16,7 @@ import type { ApiUserRole, UserResponse } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const PAGE_SIZE = 10
-function toArea(points: SitePoint[]): SiteCoordinate[] {
-  return points.map(({ latitude, longitude }) => ({ latitude, longitude }))
-}
-
 const sameArea = (a: SiteCoordinate[], b: SiteCoordinate[]) => JSON.stringify(toArea(a)) === JSON.stringify(toArea(b))
-
-// Ville, adresses des points et image du QR n'existent pas côté API : on conserve la copie locale existante.
-export function mapSite(site: SiteResponse, previous?: Site): Site {
-  // Un point incomplet renvoyé par l'API est ignoré plutôt que de bloquer toute la liste.
-  const validArea = (site.area ?? []).filter((point) => Number.isFinite(point?.latitude) && Number.isFinite(point?.longitude))
-  const points: SitePoint[] = validArea.map((point, index) => {
-    const known = previous?.points?.[index]
-    const address = known?.latitude === point.latitude && known.longitude === point.longitude ? known.address : undefined
-    return { latitude: point.latitude, longitude: point.longitude, address }
-  })
-  // Le premier point du contour sert de repère sur la carte des sites.
-  const [anchor] = points
-  return {
-    id: site.id,
-    name: site.name,
-    address: site.address,
-    locationDescription: site.locationDescription,
-    city: previous?.city,
-    latitude: anchor?.latitude.toFixed(6),
-    longitude: anchor?.longitude.toFixed(6),
-    radiusM: site.radiusM,
-    points,
-    missionId: site.missionId ?? undefined,
-    teamId: site.teamId,
-    managerId: site.managerId,
-    qrCode: '',
-    qrImage: previous?.qrImage,
-    qrRotatedAt: site.qrRotatedAt,
-    status: site.status === 'ACTIVE' ? 'active' : 'inactive',
-    createdAt: site.createdAt,
-  }
-}
-const roleToApi: Record<EnterpriseUser['role'], ApiUserRole> = {
-  administrator: 'ADMIN', supervisor: 'SUPERVISOR', teamLeader: 'TEAM_LEAD', agent: 'AGENT',
-}
-const roleFromApi: Partial<Record<ApiUserRole, EnterpriseUser['role']>> = {
-  ADMIN: 'administrator', SUPERVISOR: 'supervisor', TEAM_LEAD: 'teamLeader', AGENT: 'agent',
-}
-
-export function mapUser(user: UserResponse): EnterpriseUser {
-  const [firstName = '', ...lastNameParts] = user.names.trim().split(/\s+/)
-  const apiRole = user.roles.find((role) => roleFromApi[role])
-  return {
-    id: user.id,
-    employeeNumber: user.matricule,
-    firstName,
-    lastName: lastNameParts.join(' '),
-    email: user.email ?? '',
-    phone: user.phone,
-    role: apiRole ? roleFromApi[apiRole]! : 'agent',
-    teamId: user.teamId,
-    status: user.status === 'ACTIVE' ? 'active' : user.status === 'DISABLED' ? 'disabled' : 'invited',
-    createdAt: user.createdAt,
-  }
-}
-
-export function mapTeam(team: TeamResponse): Team {
-  return {
-    id: team.id,
-    name: team.name,
-    leadUserId: team.leadUserId ?? undefined,
-    createdAt: team.createdAt,
-    updatedAt: team.updatedAt,
-  }
-}
-
-const missionStatusFromApi: Record<MissionResponse['status'], Mission['status']> = {
-  PLANNED: 'scheduled',
-  OPEN: 'ongoing',
-  CLOSED: 'completed',
-}
-
-export function mapMission(mission: MissionResponse): Mission {
-  return {
-    id: mission.id,
-    code: mission.code,
-    title: mission.name,
-    notes: mission.description ?? '',
-    startAt: mission.startAt,
-    endAt: mission.endAt,
-    status: missionStatusFromApi[mission.status],
-    openedAt: mission.openedAt,
-    closedAt: mission.closedAt,
-    createdAt: mission.createdAt,
-    updatedAt: mission.updatedAt,
-  }
-}
 
 function toIso(value?: string) {
   return value ? new Date(value).toISOString() : undefined
@@ -232,7 +143,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (!input.password) throw new Error('Un mot de passe temporaire est requis.')
     const created = await userService.create({
       matricule: input.employeeNumber,
-      names: `${input.firstName} ${input.lastName}`.trim(),
+      names: fullName(input),
       email: input.email || undefined,
       phone: input.phone,
       role: roleToApi[input.role],
@@ -246,7 +157,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   async function updateUser(id: string, input: EnterpriseUserInput) {
     replaceUser(mapUser(await userService.update(id, {
       matricule: input.employeeNumber,
-      names: `${input.firstName} ${input.lastName}`.trim(),
+      names: fullName(input),
       email: input.email || undefined,
       phone: input.phone,
       role: roleToApi[input.role],
@@ -288,7 +199,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   async function loadTeamLeadOptions() {
     const page = await userService.list({ role: 'TEAM_LEAD', status: 'ACTIVE', limit: 200 })
     teamLeadOptions.value = page.items.map(mapUser)
-      .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'fr'))
+      .sort(byName)
     return teamLeadOptions.value
   }
 
@@ -313,7 +224,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const result = await userService.list({ limit: 200 })
     const directory = result.items.map(mapUser)
     return {
-      members: directory.filter((user) => user.teamId === teamId && ['agent', 'teamLeader'].includes(user.role)),
+      members: directory.filter((user) => user.teamId === teamId && isTeamMember(user)),
       available: directory.filter((user) => user.role === 'agent' && !user.teamId),
     }
   }
@@ -377,7 +288,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const teamIds = [...new Set(loaded.map((site) => site.teamId).filter((teamId): teamId is string => Boolean(teamId)))]
     const counts = await Promise.all(teamIds.map(async (teamId) => {
       const members = (await userService.list({ teamId, limit: 200 })).items.map(mapUser)
-      return [teamId, members.filter((user) => ['agent', 'teamLeader'].includes(user.role)).length] as const
+      return [teamId, members.filter((user) => isTeamMember(user)).length] as const
     }))
     teamMemberCounts.value = { ...teamMemberCounts.value, ...Object.fromEntries(counts) }
     return loaded

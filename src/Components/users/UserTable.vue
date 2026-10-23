@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
+import { fullName } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
@@ -13,10 +15,8 @@ const role = ref<EnterpriseUserRole | 'all'>('all')
 const page = ref(1)
 const roleLabels: Record<EnterpriseUserRole, string> = { administrator: 'Administrateur', supervisor: 'Superviseur', teamLeader: 'Chef d’équipe', agent: 'Agent' }
 const filtered = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('fr')
   return props.users.filter((user) => {
-    const name = `${user.firstName} ${user.lastName} ${user.email} ${user.employeeNumber}`.toLocaleLowerCase('fr')
-    return (!query || name.includes(query)) && (status.value === 'all' || user.status === status.value) && (role.value === 'all' || user.role === role.value)
+    return matchesSearch(search.value, fullName(user), user.email, user.employeeNumber) && (status.value === 'all' || user.status === status.value) && (role.value === 'all' || user.role === role.value)
   })
 })
 const pageCount = computed(() => Math.ceil(filtered.value.length / props.pageSize))

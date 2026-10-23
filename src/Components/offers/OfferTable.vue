@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
 import { computed, ref } from 'vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
@@ -9,8 +10,7 @@ const props = withDefaults(defineProps<{ offers: Offer[]; editable?: boolean; cu
 const emit = defineEmits<{ view: [offer: Offer]; edit: [offer: Offer]; nextPage: []; previousPage: [] }>()
 const search = ref('')
 const filteredOffers = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('fr')
-  return props.offers.filter((offer) => !query || offer.name.toLocaleLowerCase('fr').includes(query))
+  return props.offers.filter((offer) => matchesSearch(search.value, offer.name))
 })
 </script>
 

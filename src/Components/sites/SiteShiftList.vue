@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { nameOr } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
-import { addDays, formatTime, fromDayKey, startOfWeek, toDayKey, weekLabel } from '@/Components/sites/site-schedule'
-import { getApiErrorMessage } from '@/Services/api-error'
+import WeekNavigator from '@/Components/sites/WeekNavigator.vue'
+import { formatTime, fromDayKey, toDayKey } from '@/Components/sites/site-schedule'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useAssignmentStore } from '@/stores/assignment.store'
 import type { Site, Team } from '@/types/administrator'
 
@@ -33,7 +35,7 @@ const duration = (minutes: number) => {
 }
 const agentName = (userId: string) => {
   const member = memberById.value.get(userId)
-  return member ? `${member.firstName} ${member.lastName}` : 'Agent'
+  return nameOr(member, 'Agent')
 }
 
 /** Créneaux de la semaine regroupés par journée, dans l'ordre chronologique. */
@@ -77,12 +79,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
         </div>
       </div>
       <div v-if="site.teamId" class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center rounded-lg border border-[#e3e5ea]">
-          <v-btn icon="mdi-chevron-left" variant="text" size="small" density="comfortable" aria-label="Semaine précédente" @click="goToWeek(addDays(weekStart, -7))" />
-          <span class="min-w-[230px] px-1 text-center text-sm font-semibold text-[#252830]">{{ weekLabel(weekStart) }}</span>
-          <v-btn icon="mdi-chevron-right" variant="text" size="small" density="comfortable" aria-label="Semaine suivante" @click="goToWeek(addDays(weekStart, 7))" />
-        </div>
-        <v-btn variant="text" size="small" class="normal-case" :disabled="weekStart === startOfWeek()" @click="goToWeek(startOfWeek())">Aujourd’hui</v-btn>
+        <WeekNavigator :week-start="weekStart" @change="goToWeek" />
       </div>
     </div>
     <v-divider />

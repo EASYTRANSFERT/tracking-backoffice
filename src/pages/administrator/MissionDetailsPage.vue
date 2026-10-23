@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { nameOr } from '@/utils/people'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
-import { getApiErrorMessage } from '@/Services/api-error'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
@@ -31,7 +32,7 @@ const memberCount = (teamId?: string) => {
 }
 const managerName = (managerId?: string) => {
   const user = managerId ? store.teamDirectoryUsers.find((item) => item.id === managerId) : undefined
-  return user ? `${user.firstName} ${user.lastName}` : 'Non affecté'
+  return nameOr(user)
 }
 const openSite = (siteId: string) => router.push({ name: 'admin-site-details', params: { siteId } })
 const createSite = () => mission.value && router.push({ name: 'admin-site-create', query: { missionId: mission.value.id } })

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
+import { fullName } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
@@ -27,13 +29,9 @@ const emit = defineEmits<{
 }>()
 
 const search = ref('')
-const fullName = (user: EnterpriseUser) => `${user.firstName} ${user.lastName}`
 const filteredAgents = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase('fr')
-  if (!query) return props.availableAgents
   return props.availableAgents.filter((agent) =>
-    [fullName(agent), agent.employeeNumber, agent.email, agent.phone]
-      .some((value) => value.toLocaleLowerCase('fr').includes(query)),
+    matchesSearch(search.value, fullName(agent), agent.employeeNumber, agent.email, agent.phone),
   )
 })
 

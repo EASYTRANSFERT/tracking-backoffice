@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { matchesSearch } from '@/utils/search'
 import { computed, ref, watch } from 'vue'
 
 import type { Site } from '@/types/administrator'
@@ -9,12 +10,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean]; confirm: [site
 const search = ref('')
 const selected = ref<string[]>([])
 
-// Recherche sur le nom, l'adresse et la ville, sans tenir compte des accents ni de la casse.
-const normalize = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('fr')
-const filtered = computed(() => {
-  const q = normalize(search.value?.trim() ?? '')
-  return q ? props.sites.filter((site) => normalize(`${site.name} ${site.address ?? ''} ${site.city ?? ''}`).includes(q)) : props.sites
-})
+const filtered = computed(() => props.sites.filter((site) => matchesSearch(search.value, site.name, site.address, site.city)))
 
 watch(() => props.modelValue, (open) => { if (open) { search.value = ''; selected.value = [] } })
 

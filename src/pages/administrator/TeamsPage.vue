@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { getApiErrorMessage } from '@/Services/api-error'
+import { nameOr } from '@/utils/people'
+import { getApiErrorMessage } from '@/utils/api-error'
 import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -74,7 +75,7 @@ async function addMembers() {
 async function removeMember(userId: string) {
   if (!selectedTeam.value) return
   const agent = teamMembers.value.find((member) => member.id === userId)
-  const confirmed = await feedback.askConfirmation({ title: 'Retirer cet agent ?', message: `${agent ? `${agent.firstName} ${agent.lastName}` : 'Cet agent'} ne fera plus partie de l’équipe « ${selectedTeam.value.name} ».`, confirmText: 'Retirer', color: 'error' })
+  const confirmed = await feedback.askConfirmation({ title: 'Retirer cet agent ?', message: `${nameOr(agent, 'Cet agent')} ne fera plus partie de l’équipe « ${selectedTeam.value.name} ».`, confirmText: 'Retirer', color: 'error' })
   if (!confirmed) return
   savingMembers.value = true
   try {
