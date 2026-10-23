@@ -6,7 +6,7 @@ import { mockCompanies, mockOffers } from '@/mocks/operator-data'
 import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, LoginRequest, RefreshRequest, SessionResponse, TotpCodeRequest } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
-import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
+import type { ApiMissionStatus, AssignMissionSupervisorRequest, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
 import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
@@ -55,6 +55,7 @@ const missions: MissionResponse[] = mockMissions.map((mission) => ({
   startAt: mission.startAt ? new Date(mission.startAt).toISOString() : undefined,
   endAt: mission.endAt ? new Date(mission.endAt).toISOString() : undefined,
   status: missionStatusToApi[mission.status],
+  supervisorUserId: mission.supervisorId ?? null,
   openedAt: mission.status === 'ongoing' ? new Date(mission.startAt!).toISOString() : undefined,
   closedAt: ['completed', 'cancelled'].includes(mission.status) ? new Date(mission.endAt!).toISOString() : undefined,
   createdAt: '2026-09-01T08:00:00.000Z',
@@ -139,6 +140,8 @@ function checkSiteForPlanning(siteId: string) {
   if (!site.teamId) return problem(409, 'ASSIGNMENT_SITE_WITHOUT_TEAM', 'Ce site n’a pas d’équipe.')
   return site
 }
+
+const isActiveSupervisor = (userId?: string) => users.some((user) => user.id === userId && user.status === 'ACTIVE' && user.roles.includes('SUPERVISOR'))
 
 function problem(status: number, code: string, detail: string): HttpResponse<DefaultBodyType> {
   const body: ApiProblemDetails = { title: code, status, detail, code }
@@ -448,11 +451,13 @@ export const handlers = [
   }),
   http.post(api('/missions'), async ({ request }) => {
     const payload = (await request.json()) as CreateMissionRequest
+    if (!isActiveSupervisor(payload.supervisorUserId)) return problem(409, 'MISSION_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
     const timestamp = now()
     const mission: MissionResponse = {
       id: `mission-${Date.now()}`,
       code: payload.code,
       name: payload.name,
+      supervisorUserId: payload.supervisorUserId,
       description: payload.description,
       startAt: payload.startAt,
       endAt: payload.endAt,
@@ -467,7 +472,16 @@ export const handlers = [
     const mission = missions.find((item) => item.id === String(params.id))
     if (!mission) return problem(404, 'NOT_FOUND', "La mission demandée n’existe pas.")
     const payload = (await request.json()) as UpdateMissionRequest
+    if (payload.supervisorUserId && !isActiveSupervisor(payload.supervisorUserId)) return problem(409, 'MISSION_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
     Object.assign(mission, payload, { updatedAt: now() })
+    return HttpResponse.json(mission)
+  }),
+  http.put(api('/missions/:id/supervisor'), async ({ params, request }) => {
+    const mission = missions.find((item) => item.id === String(params.id))
+    if (!mission) return problem(404, 'NOT_FOUND', "La mission demandée n’existe pas.")
+    const payload = (await request.json()) as AssignMissionSupervisorRequest
+    if (!isActiveSupervisor(payload.userId)) return problem(409, 'MISSION_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
+    Object.assign(mission, { supervisorUserId: payload.userId, updatedAt: now() })
     return HttpResponse.json(mission)
   }),
   http.post(api('/missions/:id/open'), ({ params }) => {

@@ -72,7 +72,7 @@ watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { imme
         </v-card-text>
       </v-card>
 
-      <v-card v-if="!sites.length"><AppEmptyState icon="mdi-map-marker-off-outline" title="Aucun site" description="Aucun site de cette mission ne fait partie de votre périmètre." /></v-card>
+      <v-card v-if="!sites.length"><AppEmptyState icon="mdi-map-marker-off-outline" title="Aucun site" description="Aucun site de cette mission ne vous est encore visible." /></v-card>
 
       <template v-else-if="site">
         <v-tabs v-if="sites.length > 1" :model-value="site.id" color="primary" show-arrows @update:model-value="selectedSiteId = String($event)">

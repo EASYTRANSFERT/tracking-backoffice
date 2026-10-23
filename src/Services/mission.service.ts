@@ -2,6 +2,7 @@ import { apiClient } from './api-client'
 import { idempotencyHeaders } from './request-headers'
 
 import type {
+  AssignMissionSupervisorRequest,
   CreateMissionRequest,
   MissionListQuery,
   MissionPageResponse,
@@ -27,6 +28,12 @@ export const missionService = {
 
   async update(id: string, payload: UpdateMissionRequest): Promise<MissionResponse> {
     const response = await apiClient.patch<MissionResponse>(`/missions/${id}`, payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  /** Change le superviseur de la mission (compte SUPERVISOR actif). */
+  async assignSupervisor(id: string, payload: AssignMissionSupervisorRequest): Promise<MissionResponse> {
+    const response = await apiClient.put<MissionResponse>(`/missions/${id}/supervisor`, payload, { headers: idempotencyHeaders() })
     return response.data
   },
 

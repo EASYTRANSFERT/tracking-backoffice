@@ -8,6 +8,8 @@ export interface MissionResponse {
   startAt?: string
   endAt?: string
   status: ApiMissionStatus
+  /** Superviseur de la mission. Absent du Swagger au 23/10 : facultatif tant que l'API ne le garantit pas. */
+  supervisorUserId?: string | null
   openedAt?: string
   closedAt?: string
   createdAt: string
@@ -17,12 +19,18 @@ export interface MissionResponse {
 export interface CreateMissionRequest {
   code: string
   name: string
+  /** Compte actif portant le rôle SUPERVISOR. Obligatoire. */
+  supervisorUserId: string
   description?: string
   startAt?: string
   endAt?: string
 }
 
 export type UpdateMissionRequest = Partial<CreateMissionRequest>
+
+export interface AssignMissionSupervisorRequest {
+  userId: string
+}
 
 export interface MissionListQuery {
   cursor?: string

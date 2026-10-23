@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
+import MissionSupervisorDialog from '@/Components/missions/MissionSupervisorDialog.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
@@ -18,6 +19,22 @@ const id = computed(() => route.params.missionId as string)
 const mission = computed(() => store.getMissionById(id.value))
 // Côté API, c'est le site qui porte sa mission (site.missionId) : une mission peut avoir plusieurs sites.
 const missionSites = computed(() => mission.value ? store.getMissionSites(mission.value.id) : [])
+
+const missionSupervisor = computed(() => mission.value?.supervisorUserId ? store.teamDirectoryUsers.find((user) => user.id === mission.value?.supervisorUserId) : undefined)
+const supervisorDialog = ref(false)
+const isAssigningSupervisor = ref(false)
+
+async function assignSupervisor(supervisorUserId: string) {
+  if (!mission.value) return
+  isAssigningSupervisor.value = true
+  try {
+    await store.assignMissionSupervisor(mission.value.id, supervisorUserId)
+    supervisorDialog.value = false
+    feedback.success('Superviseur attribué à la mission.')
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible d’attribuer ce superviseur.'))
+  } finally { isAssigningSupervisor.value = false }
+}
 const isSitesLoading = ref(false)
 // L'API refuse d'ajouter un site à une mission terminée ou annulée (MISSION_STATUS_CONFLICT).
 const canAddSite = computed(() => mission.value?.status === 'scheduled' || mission.value?.status === 'ongoing')
@@ -155,7 +172,19 @@ async function closeMission() {
           </v-card-text>
         </v-card>
       </div>
-      <v-card class="h-fit">
+      <div class="h-fit space-y-6">
+      <v-card>
+        <v-card-title class="flex items-center justify-between gap-3 px-5 py-5">
+          <span>Superviseur</span>
+          <v-btn v-if="mission.status !== 'completed'" variant="tonal" color="primary" size="small" prepend-icon="mdi-account-switch-outline" @click="supervisorDialog = true">{{ mission.supervisorUserId ? 'Changer' : 'Attribuer' }}</v-btn>
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="flex items-center gap-3 px-5 py-5">
+          <v-avatar color="red-lighten-5"><v-icon icon="mdi-account-tie-outline" color="primary" /></v-avatar>
+          <div><p class="font-semibold text-[#292d38]">{{ mission.supervisorUserId ? nameOr(missionSupervisor, 'Superviseur') : 'Non renseigné' }}</p><p class="text-xs text-[#747985]">Suit la mission depuis le back-office</p></div>
+        </v-card-text>
+      </v-card>
+      <v-card>
         <v-card-title class="px-5 py-5">Actions</v-card-title><v-divider />
         <v-card-text class="text-sm leading-6 text-[#747985]">Le cycle de vie suit les transitions prévues par l’API : planifiée, en cours, puis terminée.</v-card-text>
         <v-card-actions class="pa-5 pt-0">
@@ -164,9 +193,11 @@ async function closeMission() {
           <v-chip v-else color="success" variant="tonal" prepend-icon="mdi-check-circle-outline">Mission terminée</v-chip>
         </v-card-actions>
       </v-card>
+      </div>
     </div>
 
 
+    <MissionSupervisorDialog v-model="supervisorDialog" :supervisors="store.supervisors" :current-id="mission?.supervisorUserId" :loading="store.isDirectoryLoading" :saving="isAssigningSupervisor" @confirm="assignSupervisor" />
     <MissionSiteAttachDialog v-model="attachDialog" :sites="store.sitesWithoutMission" :loading="isAttachLoading" :saving="isAttaching" @confirm="attachSites" />
   </div>
 </template>

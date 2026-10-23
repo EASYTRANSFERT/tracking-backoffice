@@ -91,6 +91,7 @@ export function mapMission(mission: MissionResponse): Mission {
     startAt: mission.startAt,
     endAt: mission.endAt,
     status: missionStatusFromApi[mission.status],
+    supervisorUserId: mission.supervisorUserId ?? undefined,
     openedAt: mission.openedAt,
     closedAt: mission.closedAt,
     createdAt: mission.createdAt,

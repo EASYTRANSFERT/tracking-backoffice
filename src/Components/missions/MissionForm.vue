@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
 
-import type { Mission, MissionInput } from '@/types/administrator'
+import { fullName } from '@/utils/people'
+import type { EnterpriseUser, Mission, MissionInput } from '@/types/administrator'
 
-const props = defineProps<{ mission?: Mission; loading?: boolean }>()
+/** supervisors : comptes actifs portant le rôle Superviseur. */
+const props = defineProps<{ mission?: Mission; supervisors: EnterpriseUser[]; loading?: boolean; supervisorsLoading?: boolean }>()
 const emit = defineEmits<{
   submit: [payload: MissionInput]
   cancel: []
@@ -17,8 +19,11 @@ const data = reactive<MissionInput>({
   startAt: props.mission?.startAt?.slice(0, 16) ?? '',
   endAt: props.mission?.endAt?.slice(0, 16) ?? '',
   notes: props.mission?.notes ?? '',
+  supervisorUserId: props.mission?.supervisorUserId ?? '',
 })
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
+// Obligatoire à la création ; en modification, un champ vide laisse le superviseur inchangé.
+const supervisorRule = (value: string) => Boolean(props.mission) || Boolean(value) || 'Ce champ est obligatoire'
 const validPeriod = () => !data.startAt || !data.endAt || data.endAt > data.startAt || 'La fin doit être postérieure au début'
 
 watch(data, () => emit('dirtyChange', true), { deep: true })
@@ -47,6 +52,19 @@ async function submit() {
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
         <v-text-field v-model="data.code" label="Référence" placeholder="MIS-2026-001" :rules="[required]" />
         <v-text-field v-model="data.title" label="Intitulé de la mission" :rules="[required]" />
+        <v-select
+          v-model="data.supervisorUserId"
+          label="Superviseur"
+          class="md:col-span-2"
+          :items="supervisors"
+          :item-title="fullName"
+          item-value="id"
+          :loading="supervisorsLoading"
+          :rules="[supervisorRule]"
+          hint="Le superviseur suit la mission, ses équipes et leurs agents depuis le back-office."
+          persistent-hint
+          no-data-text="Aucun superviseur actif : créez d’abord un compte au rôle Superviseur."
+        />
         <v-text-field v-model="data.startAt" label="Début prévisionnel" type="datetime-local" :rules="[validPeriod]" />
         <v-text-field v-model="data.endAt" label="Fin prévisionnelle" type="datetime-local" :rules="[validPeriod]" />
         <v-textarea v-model="data.notes" label="Description" rows="4" class="md:col-span-2" />

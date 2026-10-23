@@ -27,7 +27,7 @@ const viewMission = (mission: Mission) => router.push({ name: 'supervisor-missio
   <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
       <template #title>Mes missions</template>
-      <template #description>Missions qui ont au moins un site dont vous êtes responsable.</template>
+      <template #description>Missions qui vous sont attribuées.</template>
       <template #actions><span /></template>
     </PageHeader>
     <MissionTable :missions="missions" :loading="isLoading" title="Missions de mon périmètre" description="Cliquez sur une mission pour voir ses sites, ses équipes et ses agents." :show-actions="false" row-clickable @view="viewMission" />

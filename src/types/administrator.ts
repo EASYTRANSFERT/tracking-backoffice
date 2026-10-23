@@ -65,6 +65,7 @@ export interface Mission {
   title: string
   startAt?: string
   endAt?: string
+  supervisorUserId?: string
   status: MissionStatus
   notes: string
   openedAt?: string
@@ -73,4 +74,4 @@ export interface Mission {
   updatedAt?: string
 }
 
-export type MissionInput = Pick<Mission, 'code' | 'title' | 'startAt' | 'endAt' | 'notes'>
+export type MissionInput = Pick<Mission, 'code' | 'title' | 'startAt' | 'endAt' | 'notes'> & { supervisorUserId: string }

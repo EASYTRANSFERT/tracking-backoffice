@@ -386,11 +386,13 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const payload: CreateMissionRequest = {
       code: input.code.trim(),
       name: input.title.trim(),
+      supervisorUserId: input.supervisorUserId,
       description: input.notes?.trim() || undefined,
       startAt: toIso(input.startAt),
       endAt: toIso(input.endAt),
     }
-    const created = mapMission(await missionService.create(payload))
+    const response = mapMission(await missionService.create(payload))
+    const created = { ...response, supervisorUserId: response.supervisorUserId ?? input.supervisorUserId }
     missions.value.unshift(created)
     return created.id
   }
@@ -409,10 +411,21 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (description !== (current.notes || undefined)) payload.description = description
     if (startAt !== current.startAt) payload.startAt = startAt
     if (endAt !== current.endAt) payload.endAt = endAt
-    if (!Object.keys(payload).length) return current
-    const updated = mapMission(await missionService.update(id, payload))
+    let updated = current
+    if (Object.keys(payload).length) updated = mapMission(await missionService.update(id, payload))
+    if (input.supervisorUserId && input.supervisorUserId !== current.supervisorUserId) {
+      updated = await assignMissionSupervisor(id, input.supervisorUserId)
+    }
     replaceMission(updated)
     return updated
+  }
+
+  async function assignMissionSupervisor(id: string, supervisorUserId: string) {
+    const updated = mapMission(await missionService.assignSupervisor(id, { userId: supervisorUserId }))
+    // Si l'API ne renvoie pas encore le superviseur, on garde celui qui vient d'être attribué.
+    const withSupervisor = { ...updated, supervisorUserId: updated.supervisorUserId ?? supervisorUserId }
+    replaceMission(withSupervisor)
+    return withSupervisor
   }
 
   async function openMission(id: string) {
@@ -460,7 +473,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     createUser, updateUser, toggleUserStatus, importUsers,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
-    createMission, updateMission, openMission, closeMission,
+    createMission, updateMission, assignMissionSupervisor, openMission, closeMission,
     teamMemberCounts, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
     teamLeadOptions, loadTeamLeadOptions, createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,

@@ -33,7 +33,7 @@ const viewMission = (mission: Mission) => router.push({ name: 'supervisor-missio
   <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
       <template #title>Bonjour {{ firstName }}</template>
-      <template #description>Suivez les missions de vos sites, leurs équipes et leurs agents.</template>
+      <template #description>Suivez vos missions, leurs équipes et leurs agents.</template>
       <template #actions><span /></template>
     </PageHeader>
 
@@ -44,6 +44,6 @@ const viewMission = (mission: Mission) => router.push({ name: 'supervisor-missio
       <DashboardStatCard title="Équipes sur mes sites" :value="teamCount" icon="mdi-account-multiple-outline" change="Votre périmètre" />
     </div>
 
-    <MissionTable :missions="missions" :loading="isLoading" title="Mes missions" description="Missions qui ont au moins un de vos sites. Cliquez pour voir les équipes et les agents." :show-actions="false" row-clickable @view="viewMission" />
+    <MissionTable :missions="missions" :loading="isLoading" title="Mes missions" description="Missions qui vous sont attribuées. Cliquez pour voir les sites, les équipes et les agents." :show-actions="false" row-clickable @view="viewMission" />
   </div>
 </template>

@@ -10,9 +10,10 @@ import { useAuthStore } from '@/stores/auth.store'
 import type { Mission, Site, Team } from '@/types/administrator'
 
 /**
- * Périmètre du superviseur, en lecture seule : les sites dont il est responsable
- * (GET /sites est borné à ce périmètre par l'API), leurs missions, et les équipes
- * qui travaillent sur ces sites. Dans une mission, il ne voit que ses sites.
+ * Périmètre du superviseur, en lecture seule.
+ * Ses missions : celles qui lui sont attribuées (mission.supervisorUserId).
+ * Ses sites : ceux que GET /sites lui renvoie (l'API le borne à son périmètre) ;
+ * dans une mission, il ne voit que ceux-là.
  */
 export const useSupervisorStore = defineStore('supervisor', () => {
   const authStore = useAuthStore()
@@ -41,20 +42,31 @@ export const useSupervisorStore = defineStore('supervisor', () => {
 
     isLoading.value = true
     try {
-      const managed = await siteService.list({ managerId: userId, limit: 200 })
-      const unique = new Map(managed.items.map((site) => [site.id, mapSite(site)]))
+      const [allMissions, visibleSites] = await Promise.all([listAllMissions(), siteService.list({ limit: 200 })])
+      sites.value = visibleSites.items.map((site) => mapSite(site))
 
-      const missionIds = [...new Set([...unique.values()].map((site) => site.missionId).filter((id): id is string => Boolean(id)))]
-      const loadedMissions = await Promise.all(missionIds.map((id) => missionService.findOne(id).then(mapMission).catch(() => null)))
-
-      sites.value = [...unique.values()]
-      missions.value = loadedMissions
-        .filter((mission): mission is Mission => mission !== null)
+      // Tant que l'API ne renvoie pas supervisorUserId (absent du Swagger au 23/10), on retombe
+      // sur les missions de ses sites, pour que la page ne reste pas vide.
+      const apiReturnsSupervisor = allMissions.some((mission) => mission.supervisorUserId)
+      const siteMissionIds = new Set(sites.value.map((site) => site.missionId))
+      missions.value = allMissions
+        .filter((mission) => apiReturnsSupervisor ? mission.supervisorUserId === userId : siteMissionIds.has(mission.id))
         .sort((a, b) => (b.startAt ?? '').localeCompare(a.startAt ?? ''))
       hasLoaded.value = true
     } finally {
       isLoading.value = false
     }
+  }
+
+  async function listAllMissions(): Promise<Mission[]> {
+    const items: Mission[] = []
+    let cursor: string | undefined
+    do {
+      const page = await missionService.list({ cursor, limit: 200 })
+      items.push(...page.items.map(mapMission))
+      cursor = page.nextCursor ?? undefined
+    } while (cursor)
+    return items
   }
 
   /** Équipe de chaque site de la mission. Ses agents sont chargés par le planning (assignment.store). */
