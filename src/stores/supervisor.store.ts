@@ -14,20 +14,15 @@ const byName = (a: EnterpriseUser, b: EnterpriseUser) =>
   `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'fr')
 
 /**
- * Périmètre du superviseur, en lecture seule.
- * Ses sites : ceux dont il est responsable, et ceux des équipes qu'il supervise.
- * Ses missions : celles de ces sites. Dans une mission, il ne voit que ses sites.
- *
- * L'API borne GET /sites au périmètre de l'appelant (aujourd'hui : les sites dont
- * le superviseur est responsable). Si elle l'élargit aux équipes supervisées, ces
- * sites apparaîtront ici sans autre changement.
+ * Périmètre du superviseur, en lecture seule : les sites dont il est responsable
+ * (GET /sites est borné à ce périmètre par l'API), leurs missions, et les équipes
+ * qui travaillent sur ces sites. Dans une mission, il ne voit que ses sites.
  */
 export const useSupervisorStore = defineStore('supervisor', () => {
   const authStore = useAuthStore()
 
   const sites = ref<Site[]>([])
   const missions = ref<Mission[]>([])
-  const supervisedTeams = ref<Team[]>([])
   const teamsById = ref<Record<string, Team>>({})
   const membersByTeam = ref<Record<string, EnterpriseUser[]>>({})
   const isLoading = ref(false)
@@ -37,6 +32,8 @@ export const useSupervisorStore = defineStore('supervisor', () => {
   const getMissionSites = (missionId: string) => sites.value
     .filter((site) => site.missionId === missionId)
     .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+  /** Équipes qui travaillent sur les sites du superviseur. */
+  const teamCount = computed(() => new Set(sites.value.map((site) => site.teamId).filter(Boolean)).size)
   const siteCountByMission = computed(() => sites.value.reduce<Record<string, number>>((counts, site) => {
     if (site.missionId) counts[site.missionId] = (counts[site.missionId] ?? 0) + 1
     return counts
@@ -49,22 +46,12 @@ export const useSupervisorStore = defineStore('supervisor', () => {
 
     isLoading.value = true
     try {
-      // Équipes supervisées : complément d'information, leur échec ne bloque pas la page.
-      const teams = await teamService.list({ limit: 200 })
-        .then((page) => page.items.map(mapTeam).filter((team) => team.supervisorUserId === userId))
-        .catch(() => [] as Team[])
-
-      const [managed, ...ofTeams] = await Promise.all([
-        siteService.list({ managerId: userId, limit: 200 }),
-        ...teams.map((team) => siteService.list({ teamId: team.id, limit: 200 }).catch(() => ({ items: [] }))),
-      ])
-      const unique = new Map([managed, ...ofTeams].flatMap((page) => page.items).map((site) => [site.id, mapSite(site)]))
+      const managed = await siteService.list({ managerId: userId, limit: 200 })
+      const unique = new Map(managed.items.map((site) => [site.id, mapSite(site)]))
 
       const missionIds = [...new Set([...unique.values()].map((site) => site.missionId).filter((id): id is string => Boolean(id)))]
       const loadedMissions = await Promise.all(missionIds.map((id) => missionService.findOne(id).then(mapMission).catch(() => null)))
 
-      supervisedTeams.value = teams
-      teamsById.value = { ...teamsById.value, ...Object.fromEntries(teams.map((team) => [team.id, team])) }
       sites.value = [...unique.values()]
       missions.value = loadedMissions
         .filter((mission): mission is Mission => mission !== null)
@@ -93,14 +80,13 @@ export const useSupervisorStore = defineStore('supervisor', () => {
   function reset() {
     sites.value = []
     missions.value = []
-    supervisedTeams.value = []
     teamsById.value = {}
     membersByTeam.value = {}
     hasLoaded.value = false
   }
 
   return {
-    sites, missions, supervisedTeams, teamsById, membersByTeam, isLoading, hasLoaded,
+    sites, missions, teamCount, teamsById, membersByTeam, isLoading, hasLoaded,
     siteCountByMission, getMissionById, getMissionSites, loadScope, loadMissionTeams, reset,
   }
 })

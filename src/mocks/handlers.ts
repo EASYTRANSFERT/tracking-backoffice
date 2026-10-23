@@ -9,10 +9,9 @@ import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, 
 import type { ApiMissionStatus, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
-import type { AttendanceSessionDecisionRequest, AttendanceSessionResponse } from '@/types/attendance-session'
 import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
 import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
-import type { AssignSupervisorRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
+import type { CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
 const mockQrCode = '/qrcode.png'
@@ -125,32 +124,6 @@ const assignments: AssignmentResponse[] = [
   ...[1, 3].map((day) => ['user-7', 'site-2', day, '22:00', '06:00'] as const),
 ].map(([userId, siteId, day, start, end], index) => mockAssignment(index + 1, userId, siteId, day, start, end))
 
-// Pointages fictifs des créneaux déjà commencés : conformes, en retard, hors zone, sans départ, ou absents.
-const minutesAfter = (iso: string, minutes: number) => new Date(new Date(iso).getTime() + minutes * 60_000).toISOString()
-const attendanceSessions: AttendanceSessionResponse[] = assignments
-  .filter((shift, index) => new Date(shift.startAt) < new Date() && index % 7 !== 6)
-  .map((shift, index) => {
-    const ended = new Date(shift.endAt) < new Date()
-    const lateMin = index % 4 === 2 ? 14 : 0
-    const missingExit = ended && index % 5 === 3
-    const outAt = ended && !missingExit ? minutesAfter(shift.endAt, 3) : null
-    const flags = [
-      ...(index % 5 === 1 ? ['OUT_OF_ZONE'] : []),
-      ...(index % 5 === 4 ? ['LOW_ACCURACY'] : []),
-      ...(lateMin ? ['LATE'] : []),
-      ...(missingExit ? ['MISSING_EXIT'] : []),
-    ]
-    const inAt = minutesAfter(shift.startAt, lateMin || -4)
-    return {
-      id: `ses_mock_${index + 1}`, userId: shift.userId, siteId: shift.siteId, assignmentId: shift.id,
-      inAt, outAt, minutes: outAt ? Math.round((new Date(outAt).getTime() - new Date(inAt).getTime()) / 60_000) : null,
-      lateMin, earlyMin: 0, flags,
-      status: outAt ? 'CLOSED' : missingExit ? 'MISSING_EXIT' : 'OPEN',
-      validation: !flags.length && outAt ? 'AUTO_VALIDATED' : 'PENDING',
-      decisionReason: null,
-    }
-  })
-
 function assignmentProblem(status: number, code: string, detail: string, location: { userId?: string; slotIndex?: number } = {}) {
   return HttpResponse.json({ title: code, status, detail, code, ...location }, { status, headers: { 'Content-Type': 'application/problem+json' } })
 }
@@ -262,27 +235,6 @@ export const handlers = [
       .filter((item) => (!from || item.startAt >= from) && (!to || item.startAt < to))
       .sort((a, b) => a.startAt.localeCompare(b.startAt))
     return HttpResponse.json(page(request, filtered))
-  }),
-  http.get(api('/sessions'), ({ request }) => {
-    const params = new URL(request.url).searchParams
-    const from = params.get('from')
-    const to = params.get('to')
-    const filtered = attendanceSessions
-      .filter((item) => (['userId', 'siteId'] as const).every((key) => !params.get(key) || item[key] === params.get(key)))
-      .filter((item) => (!from || item.inAt >= from) && (!to || item.inAt < to))
-      .sort((a, b) => a.inAt.localeCompare(b.inAt))
-    return HttpResponse.json(page(request, filtered))
-  }),
-  http.post(api('/sessions/:id/decision'), async ({ params, request }) => {
-    const session = attendanceSessions.find((item) => item.id === String(params.id))
-    if (!session) return problem(404, 'NOT_FOUND', 'Pointage introuvable.')
-    if (session.validation !== 'PENDING') return problem(409, 'CONFLICT', 'Une décision a déjà été prise sur ce pointage.')
-    const payload = (await request.json()) as AttendanceSessionDecisionRequest
-    if (payload.decision === 'REJECT' && !payload.reason?.trim()) return problem(400, 'VALIDATION_FAILED', 'Le motif est obligatoire pour rejeter un pointage.')
-    if (payload.decision === 'VALIDATE' && !session.outAt && !payload.correctedOutAt) return problem(400, 'VALIDATION_FAILED', 'Indiquez l’heure de sortie à retenir.')
-    if (payload.correctedOutAt) Object.assign(session, { outAt: payload.correctedOutAt, status: 'CLOSED' })
-    Object.assign(session, { validation: payload.decision === 'VALIDATE' ? 'VALIDATED' : 'REJECTED', decisionReason: payload.reason?.trim() || null })
-    return HttpResponse.json(session)
   }),
   http.get(api('/assignments/:id'), ({ params }) => {
     const assignment = assignments.find((item) => item.id === String(params.id))
@@ -541,9 +493,10 @@ export const handlers = [
   http.post(api('/teams'), async ({ request }) => {
     const payload = (await request.json()) as CreateTeamRequest
     const timestamp = now()
-    const supervisor = users.find((user) => user.id === payload.supervisorUserId && user.status === 'ACTIVE' && user.roles.includes('SUPERVISOR'))
-    if (!supervisor) return problem(409, 'TEAM_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
-    const team: TeamResponse = { id: `team-${Date.now()}`, name: payload.name, leadUserId: null, supervisorUserId: payload.supervisorUserId, createdAt: timestamp, updatedAt: timestamp }
+    const lead = users.find((user) => user.id === payload.leadUserId && user.status === 'ACTIVE' && user.roles.includes('TEAM_LEAD'))
+    if (!lead) return problem(409, 'TEAM_LEAD_INVALID', 'Le chef d’équipe doit être un compte actif portant le rôle TEAM_LEAD.')
+    const team: TeamResponse = { id: `team-${Date.now()}`, name: payload.name, leadUserId: lead.id, createdAt: timestamp, updatedAt: timestamp }
+    lead.teamId = team.id
     teams.unshift(team)
     return HttpResponse.json(team, { status: 201 })
   }),
@@ -552,16 +505,6 @@ export const handlers = [
     if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
     const payload = (await request.json()) as UpdateTeamRequest
     if (payload.name) team.name = payload.name
-    team.updatedAt = now()
-    return HttpResponse.json(team)
-  }),
-  http.put(api('/teams/:id/supervisor'), async ({ params, request }) => {
-    const team = teams.find((item) => item.id === String(params.id))
-    if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
-    const payload = (await request.json()) as AssignSupervisorRequest
-    const supervisor = users.find((user) => user.id === payload.userId && user.status === 'ACTIVE' && user.roles.includes('SUPERVISOR'))
-    if (!supervisor) return problem(409, 'TEAM_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
-    team.supervisorUserId = payload.userId
     team.updatedAt = now()
     return HttpResponse.json(team)
   }),

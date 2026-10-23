@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 
 import type { EnterpriseUser, Team, TeamInput } from '@/types/administrator'
 
-const props = defineProps<{ team?: Team; users: EnterpriseUser[]; loading?: boolean }>()
+/** leaders : comptes actifs portant le rôle Chef d'équipe (TEAM_LEAD). */
+const props = defineProps<{ team?: Team; leaders: EnterpriseUser[]; loading?: boolean; leadersLoading?: boolean }>()
 const emit = defineEmits<{
   submit: [payload: TeamInput]
   cancel: []
@@ -13,11 +14,8 @@ const emit = defineEmits<{
 const form = ref()
 const data = reactive<TeamInput>({
   name: props.team?.name ?? '',
-  supervisorUserId: props.team?.supervisorUserId ?? '',
+  leadUserId: props.team?.leadUserId ?? '',
 })
-const teamLead = computed(() => props.users.filter(
-  (user) => user.role === 'teamLeader' && user.status === 'active',
-))
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
 const fullName = (user: EnterpriseUser) => `${user.firstName} ${user.lastName}`
 
@@ -27,7 +25,7 @@ async function submit() {
   const result = await form.value?.validate()
   if (!result?.valid) return
   emit('dirtyChange', false)
-  emit('submit', { name: data.name.trim(), supervisorUserId: data.supervisorUserId })
+  emit('submit', { name: data.name.trim(), leadUserId: data.leadUserId })
 }
 </script>
 
@@ -41,23 +39,26 @@ async function submit() {
         <div>
           <h2 class="text-base font-bold">Informations de l’équipe</h2>
           <p class="mt-1 text-xs font-normal text-[#747985]">Définissez l’équipe et son chef</p>
-          <v-alert class="md:col-span-2 m-5" type="info" variant="tonal">
-          Le nom de l'équipe et le chef de l'équipe sont obligatoire pour la création.
-        </v-alert>
         </div>
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-
+        <v-alert v-if="!team" class="md:col-span-2 mb-4" type="info" variant="tonal" density="compact">
+          Le nom de l’équipe et son chef sont obligatoires. Le chef est un compte au rôle « Chef d’équipe » : créez-le d’abord depuis la page Agents s’il n’existe pas.
+        </v-alert>
         <v-text-field v-model="data.name" label="Nom de l’équipe" :rules="[required]" />
         <v-select
-          v-model="data.supervisorUserId"
-          label="Chef d'équipe"
-          :items="teamLead"
+          v-model="data.leadUserId"
+          label="Chef d’équipe"
+          :items="leaders"
           :item-title="fullName"
           item-value="id"
+          :loading="leadersLoading"
+          :disabled="Boolean(team)"
           :rules="[required]"
-          no-data-text="Aucun superviseur actif disponible"
+          :hint="team ? 'Le chef d’équipe ne se modifie pas depuis ce formulaire.' : undefined"
+          :persistent-hint="Boolean(team)"
+          no-data-text="Aucun chef d’équipe actif : créez d’abord un compte au rôle Chef d’équipe."
         />
       </v-card-text>
     </v-card>

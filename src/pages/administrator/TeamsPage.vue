@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { getApiErrorMessage } from '@/Services/api-error'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
@@ -15,6 +15,9 @@ const router = useRouter()
 const store = useAdministratorStore()
 const feedback = useUiFeedbackStore()
 const { teams, teamDirectoryUsers, teamPage, teamNextCursor, teamCursorHistory } = storeToRefs(store)
+
+// Les noms des chefs d'équipe ne sont pas forcément dans la page d'utilisateurs déjà chargée.
+onMounted(() => { store.loadTeamLeadOptions().catch(() => undefined) })
 
 const membersDialog = ref(false)
 const selectedTeam = ref<Team>()

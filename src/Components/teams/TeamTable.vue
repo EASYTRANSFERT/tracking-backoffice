@@ -44,7 +44,7 @@ const members = (id: string) => props.users.filter((user) => user.teamId === id 
     <div class="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center">
       <div>
         <h2 class="text-lg font-bold text-[#252830]">Équipes de l’entreprise</h2>
-        <p class="mt-1 text-xs text-[#747985]">Une équipe regroupe un superviseur, un chef et les agents affectés.</p>
+        <p class="mt-1 text-xs text-[#747985]">Une équipe regroupe un chef et les agents affectés.</p>
       </div>
       <v-spacer />
       <v-text-field v-model="search" prepend-inner-icon="mdi-magnify" placeholder="Rechercher une équipe" density="compact" hide-details clearable class="w-full sm:max-w-xs" />
@@ -52,11 +52,10 @@ const members = (id: string) => props.users.filter((user) => user.teamId === id 
     <v-divider />
     <div v-if="displayed.length" class="overflow-x-auto">
       <v-table hover>
-        <thead><tr><th>Équipe</th><th>Superviseur</th><th>Chef d’équipe</th><th>Agents</th><th>Dernière mise à jour</th><th class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>Équipe</th><th>Chef d’équipe</th><th>Agents</th><th>Dernière mise à jour</th><th class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>
           <tr v-for="team in displayed" :key="team.id">
             <td class="font-semibold">{{ team.name }}</td>
-            <td>{{ userName(team.supervisorUserId) }}</td>
             <td>{{ userName(team.leadUserId) }}</td>
             <td>
               <v-btn v-if="!readonly" variant="tonal" color="primary" size="small" prepend-icon="mdi-account-group-outline" @click="emit('manageMembers', team)">

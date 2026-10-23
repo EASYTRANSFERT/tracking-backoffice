@@ -27,7 +27,6 @@ const data = reactive<EnterpriseUserInput>({
   password: '',
 })
 const roleCanHaveTeam = computed(() => ['teamLeader', 'agent'].includes(data.role))
-const roleRequiresTeam = computed(() => data.role === 'teamLeader')
 const required = (value: string) => Boolean(value?.trim()) || 'Ce champ est obligatoire'
 const email = (value: string) => /.+@.+\..+/.test(value) || 'Adresse e-mail invalide'
 const normalizePhone = (value: string) => value.replace(/[\s().-]/g, '')
@@ -72,9 +71,8 @@ async function submit() {
           item-title="name"
           item-value="id"
           clearable
-          :rules="roleRequiresTeam ? [required] : []"
-          :hint="data.role === 'agent' ? 'Facultatif — l’agent pourra être ajouté à une équipe plus tard.' : undefined"
-          :persistent-hint="data.role === 'agent'"
+          :hint="data.role === 'teamLeader' ? 'Facultatif — le chef sera rattaché à l’équipe dont il prendra la tête.' : 'Facultatif — l’agent pourra être ajouté à une équipe plus tard.'"
+          persistent-hint
         />
         <v-alert v-else type="info" variant="tonal" class="md:col-span-2">
           {{ data.role === 'administrator' ? 'Un administrateur' : 'Un superviseur' }} n’est pas rattaché à une équipe.

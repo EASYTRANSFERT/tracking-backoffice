@@ -16,7 +16,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const store = useSupervisorStore()
 const feedback = useUiFeedbackStore()
-const { missions, sites, supervisedTeams, isLoading } = storeToRefs(store)
+const { missions, sites, teamCount, isLoading } = storeToRefs(store)
 
 const firstName = computed(() => authStore.currentUser?.names.split(/\s+/)[0] ?? 'Utilisateur')
 const countByStatus = (status: Mission['status']) => missions.value.filter((mission) => mission.status === status).length
@@ -41,7 +41,7 @@ const viewMission = (mission: Mission) => router.push({ name: 'supervisor-missio
       <DashboardStatCard title="Missions en cours" :value="countByStatus('ongoing')" icon="mdi-progress-clock" change="À suivre" change-color="warning" />
       <DashboardStatCard title="Missions planifiées" :value="countByStatus('scheduled')" icon="mdi-calendar-clock-outline" change="À venir" />
       <DashboardStatCard title="Mes sites" :value="sites.length" icon="mdi-map-marker-radius-outline" change="Votre périmètre" />
-      <DashboardStatCard title="Équipes supervisées" :value="supervisedTeams.length" icon="mdi-account-multiple-outline" change="Votre périmètre" />
+      <DashboardStatCard title="Équipes sur mes sites" :value="teamCount" icon="mdi-account-multiple-outline" change="Votre périmètre" />
     </div>
 
     <MissionTable :missions="missions" :loading="isLoading" title="Mes missions" description="Missions qui ont au moins un de vos sites. Cliquez pour voir les équipes et les agents." :show-actions="false" row-clickable @view="viewMission" />

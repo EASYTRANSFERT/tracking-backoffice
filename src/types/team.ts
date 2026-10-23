@@ -4,22 +4,18 @@ export interface TeamResponse {
   id: string
   name: string
   leadUserId?: string | null
-  supervisorUserId: string
   createdAt: string
   updatedAt: string
 }
 
 export interface CreateTeamRequest {
   name: string
+  /** Compte actif portant le rôle TEAM_LEAD. */
   leadUserId: string
 }
 
 export interface UpdateTeamRequest {
   name?: string
-}
-
-export interface AssignSupervisorRequest {
-  userId: string
 }
 
 export interface TeamMembersRequest {

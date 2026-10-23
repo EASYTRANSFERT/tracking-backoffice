@@ -80,7 +80,6 @@ export function mapTeam(team: TeamResponse): Team {
     id: team.id,
     name: team.name,
     leadUserId: team.leadUserId ?? undefined,
-    supervisorUserId: team.supervisorUserId,
     createdAt: team.createdAt,
     updatedAt: team.updatedAt,
   }
@@ -115,6 +114,7 @@ function toIso(value?: string) {
 export const useAdministratorStore = defineStore('administrator', () => {
   const users = ref<EnterpriseUser[]>(mockMode ? structuredClone(mockEnterpriseUsers) : [])
   const supervisors = ref<EnterpriseUser[]>([])
+  const teamLeadOptions = ref<EnterpriseUser[]>([])
   const teams = ref<Team[]>(mockMode ? structuredClone(mockTeams) : [])
   const sites = ref<Site[]>([])
   const missions = ref<Mission[]>([])
@@ -134,7 +134,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const activeSitesCount = computed(() => sites.value.filter((site) => site.status === 'active').length)
   const ongoingMissionsCount = computed(() => missions.value.filter((mission) => mission.status === 'ongoing').length)
   const teamDirectoryUsers = computed(() => [
-    ...new Map([...users.value, ...supervisors.value].map((user) => [user.id, user])).values(),
+    ...new Map([...users.value, ...supervisors.value, ...teamLeadOptions.value].map((user) => [user.id, user])).values(),
   ])
 
   const getUserById = (id: string) => users.value.find((user) => user.id === id)
@@ -278,10 +278,18 @@ export const useAdministratorStore = defineStore('administrator', () => {
   async function createTeam(input: TeamInput) {
     const created = await teamService.create({
       name: input.name,
-      supervisorUserId: input.supervisorUserId,
+      leadUserId: input.leadUserId,
     })
     teams.value.unshift(mapTeam(created))
     return created.id
+  }
+
+  /** Chefs d'équipe proposés à la création d'une équipe : comptes TEAM_LEAD actifs. */
+  async function loadTeamLeadOptions() {
+    const page = await userService.list({ role: 'TEAM_LEAD', status: 'ACTIVE', limit: 200 })
+    teamLeadOptions.value = page.items.map(mapUser)
+      .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'fr'))
+    return teamLeadOptions.value
   }
 
   async function updateTeam(id: string, input: TeamInput) {
@@ -291,9 +299,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (input.name.trim() !== current.name) {
       updated = mapTeam(await teamService.update(id, { name: input.name.trim() }))
     }
-    if (input.supervisorUserId !== current.supervisorUserId) {
-      updated = mapTeam(await teamService.assignSupervisor(id, { userId: input.supervisorUserId }))
-    }
+    // Le chef d'équipe ne change pas ici : PUT /teams/{id}/lead exige une ré-authentification TOTP.
     replaceTeam(updated)
   }
 
@@ -519,6 +525,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   function resetData() {
     users.value = mockMode ? structuredClone(mockEnterpriseUsers) : []
     supervisors.value = []
+    teamLeadOptions.value = []
     teams.value = mockMode ? structuredClone(mockTeams) : []
     sites.value = []
     missions.value = []
@@ -544,7 +551,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, openMission, closeMission,
     teamMemberCounts, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
-    createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
+    teamLeadOptions, loadTeamLeadOptions, createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }
 })

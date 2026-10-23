@@ -24,12 +24,11 @@ export interface Team {
   id: string
   name: string
   leadUserId?: string
-  supervisorUserId: string
   createdAt: string
   updatedAt: string
 }
 
-export type TeamInput = Pick<Team, 'name' | 'supervisorUserId'>
+export type TeamInput = { name: string; leadUserId: string }
 
 export interface SitePoint {
   latitude: number
