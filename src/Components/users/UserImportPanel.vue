@@ -13,7 +13,8 @@ const fileModel = computed({
   // Selon la version de Vuetify, le champ renvoie un fichier ou une liste.
   set: (value: File | File[] | null) => emit('update:file', Array.isArray(value) ? value[0] ?? null : value),
 })
-const canApply = computed(() => Boolean(props.report && !props.report.applied && !props.report.rejected.length && props.report.matched > 0))
+// Une vérification sans ligne refusée suffit : en simulation, l'API peut compter 0 matricule « modifié ».
+const canApply = computed(() => Boolean(props.report && !props.report.applied && !props.report.rejected.length))
 const stats = computed(() => props.report ? [
   { label: 'Lignes lues', value: props.report.read, color: 'text-[#252830]' },
   { label: props.report.applied ? 'Matricules modifiés' : 'Matricules à modifier', value: props.report.matched, color: 'text-[#1E7D4F]' },
@@ -67,7 +68,7 @@ function downloadTemplate() {
           </div>
 
           <v-alert v-if="report.rejected.length" type="error" variant="tonal" density="compact" text="Aucune modification n’est faite tant qu’une ligne est refusée. Corrigez le fichier puis vérifiez-le à nouveau." />
-          <v-alert v-else-if="!report.applied && !report.matched" type="info" variant="tonal" density="compact" text="Tous les matricules du fichier sont déjà à jour : il n’y a rien à appliquer." />
+          <v-alert v-else-if="!report.applied && report.read > 0 && report.unchanged === report.read" type="info" variant="tonal" density="compact" text="Tous les matricules du fichier sont déjà à jour." />
 
           <div v-if="report.rejected.length" class="overflow-x-auto">
             <h3 class="mb-2 text-sm font-bold text-[#292d38]">Lignes refusées</h3>
