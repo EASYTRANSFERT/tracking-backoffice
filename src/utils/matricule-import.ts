@@ -31,7 +31,7 @@ const reasonLabels: Record<string, string> = {
   MATRICULE_EMPTY: 'Matricule vide',
   MATRICULE_DUPLICATED_IN_FILE: 'Matricule présent plusieurs fois dans le fichier',
   MATRICULE_ALREADY_USED: 'Matricule déjà attribué à un autre compte',
-  NAME_DIFFERS: 'Le nom diffère de celui du compte (le numéro fait foi)',
+  NAME_DIFFERS: 'Le nom diffère de celui du compte',
 }
 
 export const importReasonLabel = (reason: string) => reasonLabels[reason] ?? reason
