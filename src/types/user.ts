@@ -29,7 +29,7 @@ export interface CreateUserRequest {
   phone: string
   role: ApiUserRole
   teamId?: string
-  password: string
+  password?: string
 }
 
 export interface CreateTenantUserRequest extends CreateUserRequest {

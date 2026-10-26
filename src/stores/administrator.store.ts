@@ -140,7 +140,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function createUser(input: EnterpriseUserInput) {
-    if (!input.password) throw new Error('Un mot de passe temporaire est requis.')
     const created = await userService.create({
       names: fullName(input),
       email: input.email || undefined,
