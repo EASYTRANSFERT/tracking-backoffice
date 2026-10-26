@@ -13,8 +13,6 @@ const fileModel = computed({
   // Selon la version de Vuetify, le champ renvoie un fichier ou une liste.
   set: (value: File | File[] | null) => emit('update:file', Array.isArray(value) ? value[0] ?? null : value),
 })
-// Une vérification sans ligne refusée suffit : en simulation, l'API peut compter 0 matricule « modifié ».
-const canApply = computed(() => Boolean(props.report && !props.report.applied && !props.report.rejected.length))
 const stats = computed(() => props.report ? [
   { label: 'Lignes lues', value: props.report.read, color: 'text-[#252830]' },
   { label: props.report.applied ? 'Matricules modifiés' : 'Matricules à modifier', value: props.report.matched, color: 'text-[#1E7D4F]' },
@@ -47,7 +45,7 @@ function downloadTemplate() {
         <v-divider />
         <v-card-actions class="flex-wrap justify-end gap-2 px-6 py-4">
           <v-btn variant="outlined" color="primary" prepend-icon="mdi-file-search-outline" :disabled="!file || applying" :loading="checking" @click="emit('check')">Vérifier le fichier</v-btn>
-          <v-btn color="primary" variant="flat" prepend-icon="mdi-check-all" :disabled="!canApply || checking" :loading="applying" @click="emit('apply')">Appliquer l’import</v-btn>
+          <v-btn color="primary" variant="flat" prepend-icon="mdi-check-all" :loading="applying" @click="emit('apply')">Appliquer l’import</v-btn>
         </v-card-actions>
       </v-card>
 
@@ -105,7 +103,7 @@ function downloadTemplate() {
       <v-list lines="three" class="py-2">
         <v-list-item prepend-icon="mdi-download-outline" title="Télécharger le modèle" subtitle="Fichier CSV avec les colonnes nom, téléphone, matricule." @click="downloadTemplate" />
         <v-list-item prepend-icon="mdi-phone-check-outline" title="Le téléphone fait foi" subtitle="Chaque ligne est rattachée au compte qui porte ce numéro. Le nom sert seulement à repérer une incohérence." />
-        <v-list-item prepend-icon="mdi-shield-check-outline" title="Tout ou rien" subtitle="Vérifiez d’abord : tant qu’une ligne est refusée, aucun matricule n’est modifié." />
+        <v-list-item prepend-icon="mdi-shield-check-outline" title="Tout ou rien" subtitle="Tant qu’une ligne est refusée, aucun matricule n’est modifié. La vérification est facultative." />
       </v-list>
     </v-card>
   </div>

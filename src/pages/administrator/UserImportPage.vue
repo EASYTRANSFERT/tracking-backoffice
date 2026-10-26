@@ -28,7 +28,10 @@ async function check() {
 }
 
 async function apply() {
-  if (!file.value) return
+  if (!file.value) {
+    feedback.warning('Choisissez d’abord le fichier des matricules.')
+    return
+  }
   isApplying.value = true
   try {
     report.value = await store.importMatricules(file.value, false)
