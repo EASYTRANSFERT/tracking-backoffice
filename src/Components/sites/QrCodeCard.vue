@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import type { Site } from '@/types/administrator'
-const props = defineProps<{ site: Site; loading?: boolean }>()
-const emit = defineEmits<{ regenerate: [site: Site]; details: [site: Site] }>()
+const props = defineProps<{ site: Site; loading?: boolean; printing?: boolean }>()
+const emit = defineEmits<{ regenerate: [site: Site]; print: [site: Site] }>()
 const rotatedAt = computed(() => props.site.qrRotatedAt
   ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(props.site.qrRotatedAt))
   : null)
@@ -29,8 +29,9 @@ const rotatedAt = computed(() => props.site.qrRotatedAt
                 <v-btn
                 variant="outlined"
                 color="secondary"
-                prepend-icon="mdi-eye-outline"
-                @click="emit('details', site)">Voir
+                prepend-icon="mdi-printer-outline"
+                :loading="printing"
+                @click="emit('print', site)">Imprimer
                 </v-btn>
                 <v-btn color="primary"
                         :prepend-icon="site.qrRotatedAt ? 'mdi-refresh' : 'mdi-qrcode-plus'"

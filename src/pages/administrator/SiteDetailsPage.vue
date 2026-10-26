@@ -18,7 +18,7 @@ import type { EnterpriseUser, Team } from '@/types/administrator'
 const route = useRoute()
 const store = useAdministratorStore()
 const feedback = useUiFeedbackStore()
-const { generatingId, generate } = useSiteQrCode()
+const { generatingId, printingId, generate, print } = useSiteQrCode()
 const loading = ref(true)
 const archiving = ref(false)
 const site = computed(() => store.getSiteById(route.params.siteId as string))
@@ -143,7 +143,7 @@ watch(() => site.value?.teamId, async (teamId) => {
 
       <div class="space-y-6">
         <SiteGovernanceCard :supervisor="supervisor" :project-lead="projectLead" />
-        <QrCodeCard :site="site" :loading="generatingId === site.id" @details="() => {}" @regenerate="generate" />
+        <QrCodeCard :site="site" :loading="generatingId === site.id" :printing="printingId === site.id" @print="print" @regenerate="generate" />
       </div>
     </div>
     <SiteScheduleCard v-if="site" :site="site" :team="team" class="mt-6" />
