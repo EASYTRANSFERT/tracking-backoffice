@@ -141,6 +141,9 @@ function checkSiteForPlanning(siteId: string) {
   return site
 }
 
+// L'API engendre le matricule ; l'entreprise le remplace ensuite par import.
+const generatedMatricule = () => `GEN-${String(Date.now()).slice(-6)}`
+
 const isActiveSupervisor = (userId?: string) => users.some((user) => user.id === userId && user.status === 'ACTIVE' && user.roles.includes('SUPERVISOR'))
 
 function problem(status: number, code: string, detail: string): HttpResponse<DefaultBodyType> {
@@ -378,7 +381,7 @@ export const handlers = [
     const timestamp = now()
     const user: UserResponse = {
       id: `user-${Date.now()}`,
-      matricule: payload.matricule,
+      matricule: generatedMatricule(),
       names: payload.names,
       email: payload.email,
       phone: payload.phone,
@@ -399,6 +402,45 @@ export const handlers = [
     return HttpResponse.json(offer, { status: 201 })
   }),
 
+  // Import des matricules : en mode démo, seul le CSV est lu (nom ; téléphone ; matricule).
+  http.post(api('/users/matricules/import'), async ({ request }) => {
+    const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true'
+    const file = (await request.formData()).get('file')
+    if (!(file instanceof File) || !file.name.toLowerCase().endsWith('.csv')) return problem(400, 'MATRICULE_IMPORT_FILE_INVALID', 'En mode démonstration, seul un fichier CSV peut être lu.')
+    const lines = (await file.text()).replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim())
+    if (lines.length < 2) return problem(400, 'MATRICULE_IMPORT_EMPTY', 'Le fichier ne contient aucune ligne de données.')
+    const separator = lines[0]!.includes(';') ? ';' : ','
+    const header = lines[0]!.split(separator).map((cell) => cell.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim())
+    const column = (...names: string[]) => header.findIndex((cell) => names.some((name) => cell.startsWith(name)))
+    const [nameCol, phoneCol, matriculeCol] = [column('nom', 'name'), column('tel', 'numero', 'phone'), column('matricule')]
+    if ([nameCol, phoneCol, matriculeCol].includes(-1)) return problem(400, 'MATRICULE_IMPORT_FILE_INVALID', 'En-tête attendu : nom, téléphone, matricule.')
+    const digits = (value: string) => value.replace(/\D/g, '').slice(-10)
+    const rows = lines.slice(1).map((line, index) => {
+      const cells = line.split(separator).map((cell) => cell.trim())
+      return { rowNumber: index + 2, name: cells[nameCol] ?? '', phone: cells[phoneCol] ?? '', matricule: cells[matriculeCol] ?? '' }
+    })
+    const report = { read: rows.length, matched: 0, unchanged: 0, rejected: [] as { rowNumber: number; reason: string; name: string; phone: string; matricule: string }[], warnings: [] as { rowNumber: number; reason: string; phone: string }[], applied: false }
+    const updates: { user: UserResponse; matricule: string }[] = []
+    rows.forEach((row) => {
+      const reject = (reason: string) => report.rejected.push({ ...row, reason })
+      if (digits(row.phone).length < 8) return reject('PHONE_UNREADABLE')
+      if (rows.filter((other) => digits(other.phone) === digits(row.phone)).length > 1) return reject('PHONE_DUPLICATED_IN_FILE')
+      if (!row.matricule) return reject('MATRICULE_EMPTY')
+      if (rows.filter((other) => other.matricule === row.matricule).length > 1) return reject('MATRICULE_DUPLICATED_IN_FILE')
+      const user = users.find((item) => digits(item.phone) === digits(row.phone))
+      if (!user) return reject('PHONE_UNKNOWN')
+      if (users.some((item) => item.id !== user.id && item.matricule === row.matricule)) return reject('MATRICULE_ALREADY_USED')
+      if (row.name && row.name.toLowerCase() !== user.names.toLowerCase()) report.warnings.push({ rowNumber: row.rowNumber, reason: 'NAME_DIFFERS', phone: row.phone })
+      if (user.matricule === row.matricule) report.unchanged += 1
+      else { report.matched += 1; updates.push({ user, matricule: row.matricule }) }
+    })
+    if (report.rejected.length && !dryRun) return HttpResponse.json({ title: 'MATRICULE_IMPORT_REJECTED', status: 422, code: 'MATRICULE_IMPORT_REJECTED', detail: 'Le fichier comporte des lignes refusées : aucune modification.', ...report }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })
+    if (!dryRun) {
+      updates.forEach(({ user, matricule }) => Object.assign(user, { matricule, updatedAt: now() }))
+      report.applied = true
+    }
+    return HttpResponse.json(report)
+  }),
   http.get(api('/users'), ({ request }) => {
     const url = new URL(request.url)
     const status = url.searchParams.get('status')
@@ -414,7 +456,7 @@ export const handlers = [
   http.post(api('/users'), async ({ request }) => {
     const payload = (await request.json()) as CreateUserRequest
     const timestamp = now()
-    const user: UserResponse = { id: `user-${Date.now()}`, matricule: payload.matricule, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, status: 'PENDING_ACTIVATION', createdAt: timestamp, updatedAt: timestamp }
+    const user: UserResponse = { id: `user-${Date.now()}`, matricule: generatedMatricule(), names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, status: 'PENDING_ACTIVATION', createdAt: timestamp, updatedAt: timestamp }
     users.unshift(user)
     return HttpResponse.json(user, { status: 201 })
   }),
@@ -430,7 +472,7 @@ export const handlers = [
     const index = users.findIndex((item) => item.id === String(params.userId))
     if (index < 0) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
     const payload = (await request.json()) as UpdateUserRequest
-    users[index] = { ...users[index]!, matricule: payload.matricule, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, updatedAt: now() }
+    users[index] = { ...users[index]!, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, updatedAt: now() }
     return HttpResponse.json(users[index])
   }),
   http.delete(api('/users/:userId'), ({ params }) => {

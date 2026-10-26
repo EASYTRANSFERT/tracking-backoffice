@@ -11,7 +11,7 @@ import type { EnterpriseUser } from '@/types/administrator'
 const router = useRouter();
 const store = useAdministratorStore();
 const feedback = useUiFeedbackStore();
-const { users, teams, canReactivateUsers, canImportUsers, userPage, userNextCursor, userCursorHistory } = storeToRefs(store)
+const { users, teams, canReactivateUsers, userPage, userNextCursor, userCursorHistory } = storeToRefs(store)
 const view = (user: EnterpriseUser) => router.push({ name: 'admin-user-details', params: { userId: user.id } });
 const edit = (user: EnterpriseUser) => router.push({ name: 'admin-user-edit', params: { userId: user.id } })
 
@@ -39,7 +39,7 @@ async function changeStatus(user: EnterpriseUser) {
     <template #title>Employés</template>
     <template #description>Gérez les membres, leurs rôles et leurs équipes.</template>
     <template #actions>
-      <v-btn v-if="canImportUsers" variant="outlined" color="secondary" prepend-icon="mdi-file-upload-outline" :to="{ name: 'admin-user-import' }">Importer</v-btn>
+      <v-btn variant="outlined" color="secondary" prepend-icon="mdi-file-upload-outline" :to="{ name: 'admin-user-import' }">Importer les matricules</v-btn>
       <v-btn color="primary" prepend-icon="mdi-account-plus-outline" :to="{ name: 'admin-user-create' }">Nouvel agent</v-btn>
       </template>
       </PageHeader>

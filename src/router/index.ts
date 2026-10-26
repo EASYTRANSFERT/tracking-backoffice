@@ -134,7 +134,7 @@ const router = createRouter({
           path: 'users/import',
           name: 'admin-user-import',
           component: () => import('@/pages/administrator/UserImportPage.vue'),
-          meta: { title: 'Importer des utilisateurs', allowedRoles: ['administrator'] },
+          meta: { title: 'Importer les matricules', allowedRoles: ['administrator'] },
         },
         {
           path: 'users/:userId',

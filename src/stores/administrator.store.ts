@@ -8,11 +8,12 @@ import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
 import { mapMission, mapSite, mapTeam, mapUser, roleToApi, toArea } from '@/stores/mappers'
 import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
+import { readRejectedImportReport } from '@/utils/matricule-import'
 import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteCoordinate, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { TeamResponse } from '@/types/team'
-import type { ApiUserRole, UserResponse } from '@/types/user'
+import type { MatriculeImportReport } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const PAGE_SIZE = 10
@@ -37,7 +38,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const hasLoadedSites = ref(false)
   const canImportSites = computed(() => mockMode)
   const canReactivateUsers = computed(() => mockMode)
-  const canImportUsers = computed(() => mockMode)
 
   const activeUsersCount = computed(() => users.value.filter(
     (user) => user.role !== 'administrator' && user.status === 'active',
@@ -176,13 +176,22 @@ export const useAdministratorStore = defineStore('administrator', () => {
     else users.value.unshift(user)
   }
 
-  function importUsers(count: number) {
-    if (!mockMode) throw new Error("L’API ne fournit pas encore d’endpoint d’import utilisateurs.")
-    const now = Date.now()
-    for (let index = 0; index < count; index += 1) {
-      users.value.unshift({ id: `imported-${now}-${index}`, employeeNumber: `IMP-${String(now).slice(-4)}-${index + 1}`, firstName: 'Utilisateur', lastName: `Importé ${index + 1}`, email: `importe.${now}.${index + 1}@entreprise.ci`, phone: '+225 00 00 00 00 00', role: 'agent', status: 'invited', createdAt: new Date().toISOString() })
+  /**
+   * Import des matricules : simulation (dryRun) puis application. Un fichier refusé
+   * (422) renvoie quand même son rapport ligne par ligne, pour l'afficher.
+   */
+  async function importMatricules(file: File, dryRun: boolean): Promise<MatriculeImportReport> {
+    try {
+      const report = await userService.importMatricules(file, dryRun)
+      if (report.applied) await loadDirectory(true)
+      return report
+    } catch (error) {
+      const report = readRejectedImportReport(error)
+      if (report) return report
+      throw error
     }
   }
+
 
   async function createTeam(input: TeamInput) {
     const created = await teamService.create({
@@ -463,12 +472,12 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   return {
-    users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportUsers, canImportSites,
+    users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportSites,
     userNextCursor, userCursorHistory, userPage, teamNextCursor, teamCursorHistory, teamPage,
     activeUsersCount, activeSitesCount, ongoingMissionsCount,
     getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
     nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
-    createUser, updateUser, toggleUserStatus, importUsers,
+    createUser, updateUser, toggleUserStatus, importMatricules,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, assignMissionSupervisor, openMission, closeMission,
