@@ -2,15 +2,10 @@
 import { nameOr } from '@/utils/people'
 import type { EnterpriseUser } from '@/types/administrator'
 
-/**
- * Qui encadre le site : son responsable (choisi sur le site), le superviseur de sa mission
- * et le chef de l'équipe qui y travaille.
- */
+/** Qui encadre le site : son superviseur (managerId du site) et le chef de l'équipe qui y travaille. */
 defineProps<{
-  manager?: EnterpriseUser
-  missionSupervisor?: EnterpriseUser
+  supervisor?: EnterpriseUser
   teamLead?: EnterpriseUser
-  hasMission: boolean
   hasTeam: boolean
   /** Vrai tant que les noms sont en cours de chargement. */
   loading?: boolean
@@ -25,13 +20,12 @@ defineProps<{
       </v-avatar>
       <div>
         <h2 class="text-base font-bold">Encadrement du site</h2>
-        <p class="mt-1 text-xs font-normal text-[#747985]">Responsables opérationnels</p>
+        <p class="mt-1 text-xs font-normal text-[#747985]">Superviseur et chef d’équipe</p>
       </div>
     </v-card-title>
     <v-divider />
     <v-list lines="two" class="py-2">
-      <v-list-item prepend-icon="mdi-account-tie-outline" title="Responsable du site" :subtitle="loading && !manager ? '…' : nameOr(manager)" />
-      <v-list-item prepend-icon="mdi-account-eye-outline" title="Superviseur de la mission" :subtitle="!hasMission ? 'Aucune mission' : loading && !missionSupervisor ? '…' : nameOr(missionSupervisor, 'Non renseigné')" />
+      <v-list-item prepend-icon="mdi-account-tie-outline" title="Superviseur" :subtitle="loading && !supervisor ? '…' : nameOr(supervisor)" />
       <v-list-item prepend-icon="mdi-briefcase-account-outline" title="Chef d’équipe" :subtitle="!hasTeam ? 'Aucune équipe affectée' : loading && !teamLead ? '…' : nameOr(teamLead, 'Non désigné')" />
     </v-list>
   </v-card>

@@ -13,7 +13,7 @@ const route = useRoute();
 const router = useRouter();
 const store = useAdministratorStore();
 const feedback = useUiFeedbackStore();
-const { teamDirectoryUsers, missions, teamOptions } = storeToRefs(store);
+const { supervisors, missions, teamOptions } = storeToRefs(store);
 
 const id = computed(() => route.params.siteId as string | undefined);
 const site = computed(() => id.value ? store.getSiteById(id.value) : undefined)
@@ -22,10 +22,13 @@ const site = computed(() => id.value ? store.getSiteById(id.value) : undefined)
 const fromMissionId = computed(() => !id.value && typeof route.query.missionId === 'string' ? route.query.missionId : undefined);
 const backRoute = computed(() => fromMissionId.value ? { name: 'admin-mission-details', params: { missionId: fromMissionId.value } } : { name: 'admin-sites' })
 
-// L'API accepte comme responsable un administrateur ou un superviseur actif.
-const managers = computed(
-  () => teamDirectoryUsers.value.filter(
-    (user) => ['supervisor', 'administrator'].includes(user.role) && user.status === 'active'));
+// Le site est confié à un superviseur actif (liste complète, pas seulement la page chargée).
+// L'API accepte aussi un administrateur : celui déjà désigné reste proposé pour ne pas le perdre.
+const managers = computed(() => {
+  const current = store.findUser(site.value?.managerId)
+  const list = supervisors.value.filter((user) => user.status === 'active')
+  return current && !list.some((user) => user.id === current.id) ? [current, ...list] : list
+});
 const dirty = ref(false);
 const loading = ref(false);
 const initializing = ref(true)
@@ -38,6 +41,8 @@ onMounted(
         store.loadMissions(),
         store.loadTeamOptions(),
         id.value ? store.loadSite(id.value) : Promise.resolve()])
+      // Superviseur déjà désigné, même s'il n'est pas dans la première page d'utilisateurs.
+      await store.ensureUsers([site.value?.managerId])
     } catch (error) {
        feedback.error(getApiErrorMessage(error, 'Impossible de charger les données du site.')
       )

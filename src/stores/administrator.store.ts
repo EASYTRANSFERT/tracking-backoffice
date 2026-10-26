@@ -352,7 +352,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function createSite(input: SiteInput) {
-    if (!input.managerId || !input.points || input.points.length < 3) throw new Error('Responsable et périmètre sont obligatoires.')
+    if (!input.managerId || !input.points || input.points.length < 3) throw new Error('Superviseur et périmètre sont obligatoires.')
     const payload: CreateSiteRequest = {
       name: input.name.trim(),
       address: input.address?.trim() || undefined,

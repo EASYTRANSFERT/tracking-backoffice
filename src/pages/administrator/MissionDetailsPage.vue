@@ -151,7 +151,7 @@ async function closeMission() {
           <v-progress-linear v-if="isSitesLoading" indeterminate color="primary" />
           <div v-if="missionSites.length" class="overflow-x-auto">
             <v-table hover class="min-w-[640px]">
-              <thead><tr><th>Site</th><th>Équipe</th><th>Agents</th><th>Responsable</th><th>Statut</th></tr></thead>
+              <thead><tr><th>Site</th><th>Équipe</th><th>Agents</th><th>Superviseur</th><th>Statut</th></tr></thead>
               <tbody>
                 <tr v-for="site in missionSites" :key="site.id" class="cursor-pointer" @click="openSite(site.id)">
                   <td><p class="font-semibold text-[#292d38]">{{ site.name }}</p><p class="text-xs text-[#848484]">{{ [site.address, site.city].filter(Boolean).join(', ') || 'Adresse à compléter' }}</p></td>

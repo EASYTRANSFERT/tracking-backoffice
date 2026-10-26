@@ -68,7 +68,7 @@ async function submit() {
       <v-card>
         <v-card-title class="flex items-center gap-3 px-6 py-5">
           <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-map-marker-plus-outline" color="primary" /></v-avatar>
-          <div><h2 class="text-base font-bold">Informations du site</h2><p class="mt-1 text-xs font-normal text-[#747985]">Nom, adresse et responsable opérationnel</p></div>
+          <div><h2 class="text-base font-bold">Informations du site</h2><p class="mt-1 text-xs font-normal text-[#747985]">Nom, adresse et superviseur</p></div>
         </v-card-title>
         <v-divider />
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
@@ -77,7 +77,7 @@ async function submit() {
           <v-text-field v-model="data.address" label="Adresse" class="md:col-span-2" :rules="[addressOrDescription]" />
           <v-textarea v-model="data.locationDescription" label="Description de l’emplacement" placeholder="Ex. : entrée principale, près de la réception" persistent-placeholder rows="2" auto-grow counter="500" maxlength="500" class="md:col-span-2" :rules="[addressOrDescription]" />
           <v-select v-model="data.missionId" label="Mission (facultatif)" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Aucune mission" persistent-placeholder clearable :disabled="Boolean(site?.missionId)" :hint="site?.missionId ? 'La mission d’un site ne peut pas être modifiée.' : 'Vous pourrez aussi rattacher ce site depuis la page d’une mission.'" persistent-hint />
-          <v-select v-model="data.managerId" label="Responsable du site" :items="managers" :item-title="fullName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
+          <v-select v-model="data.managerId" label="Superviseur du site" :items="managers" :item-title="fullName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
           <v-select v-model="data.teamId" label="Équipe (facultatif)" :items="teams" item-title="name" item-value="id" placeholder="Aucune équipe pour l’instant" persistent-placeholder :clearable="!site?.teamId" class="md:col-span-2" :hint="site?.teamId ? 'L’équipe peut être remplacée, pas retirée. Les créneaux déjà planifiés restent à leurs agents.' : 'L’équipe affectée au site est celle dont les agents pourront y être planifiés.'" persistent-hint />
         </v-card-text>
       </v-card>
