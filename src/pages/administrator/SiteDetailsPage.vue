@@ -13,7 +13,7 @@ import { useSiteQrCode } from '@/composables/useSiteQrCode'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import type { EnterpriseUser, Team } from '@/types/administrator'
+import type { Team } from '@/types/administrator'
 
 const route = useRoute()
 const store = useAdministratorStore()
@@ -48,13 +48,17 @@ async function archive() {
     archiving.value = false
   }
 }
-const supervisor = computed(() => site.value?.managerId
-  ? store.teamDirectoryUsers.find((user) => user.id === site.value?.managerId)
-  : undefined)
-
-// Pas encore d’endpoint pour désigner un chef d'équipe sur un site.
-const projectLead = computed<EnterpriseUser | undefined>(() => undefined)
 const team = ref<Team>()
+const manager = computed(() => store.findUser(site.value?.managerId))
+const missionSupervisor = computed(() => store.findUser(mission.value?.supervisorUserId))
+const teamLead = computed(() => store.findUser(team.value?.leadUserId))
+const peopleLoading = ref(false)
+
+// Les noms ne sont pas forcément dans la page d'utilisateurs déjà chargée : on charge ceux qui manquent.
+watch(() => [site.value?.managerId, mission.value?.supervisorUserId, team.value?.leadUserId], async (ids) => {
+  peopleLoading.value = true
+  try { await store.ensureUsers(ids) } finally { peopleLoading.value = false }
+}, { immediate: true })
 watch(() => site.value?.teamId, async (teamId) => {
   team.value = undefined
   if (!teamId) return
@@ -142,7 +146,7 @@ watch(() => site.value?.teamId, async (teamId) => {
       </div>
 
       <div class="space-y-6">
-        <SiteGovernanceCard :supervisor="supervisor" :project-lead="projectLead" />
+        <SiteGovernanceCard :manager="manager" :mission-supervisor="missionSupervisor" :team-lead="teamLead" :has-mission="Boolean(site.missionId)" :has-team="Boolean(site.teamId)" :loading="peopleLoading" />
         <QrCodeCard :site="site" :loading="generatingId === site.id" :printing="printingId === site.id" @print="print" @regenerate="generate" />
       </div>
     </div>

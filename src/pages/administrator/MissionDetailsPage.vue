@@ -20,7 +20,8 @@ const mission = computed(() => store.getMissionById(id.value))
 // Côté API, c'est le site qui porte sa mission (site.missionId) : une mission peut avoir plusieurs sites.
 const missionSites = computed(() => mission.value ? store.getMissionSites(mission.value.id) : [])
 
-const missionSupervisor = computed(() => mission.value?.supervisorUserId ? store.teamDirectoryUsers.find((user) => user.id === mission.value?.supervisorUserId) : undefined)
+const missionSupervisor = computed(() => store.findUser(mission.value?.supervisorUserId))
+watch(() => mission.value?.supervisorUserId, (id) => { store.ensureUsers([id]).catch(() => undefined) }, { immediate: true })
 const supervisorDialog = ref(false)
 const isAssigningSupervisor = ref(false)
 
@@ -47,10 +48,7 @@ const memberCount = (teamId?: string) => {
   const count = store.teamMemberCounts[teamId]
   return count === undefined ? '…' : `${count} agent${count > 1 ? 's' : ''}`
 }
-const managerName = (managerId?: string) => {
-  const user = managerId ? store.teamDirectoryUsers.find((item) => item.id === managerId) : undefined
-  return nameOr(user)
-}
+const managerName = (managerId?: string) => nameOr(store.findUser(managerId))
 const openSite = (siteId: string) => router.push({ name: 'admin-site-details', params: { siteId } })
 const createSite = () => mission.value && router.push({ name: 'admin-site-create', query: { missionId: mission.value.id } })
 

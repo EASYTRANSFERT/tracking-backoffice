@@ -11,8 +11,9 @@ import type { EnterpriseUser } from '@/types/administrator'
 const router = useRouter();
 const store = useAdministratorStore();
 const feedback = useUiFeedbackStore();
-const { users, teams, canReactivateUsers, userPage, userNextCursor, userCursorHistory } = storeToRefs(store)
+const { users, knownTeams, canReactivateUsers, userPage, userNextCursor, userCursorHistory } = storeToRefs(store)
 const view = (user: EnterpriseUser) => router.push({ name: 'admin-user-details', params: { userId: user.id } });
+store.loadTeamOptions().catch(() => undefined)
 const edit = (user: EnterpriseUser) => router.push({ name: 'admin-user-edit', params: { userId: user.id } })
 
 async function changeStatus(user: EnterpriseUser) {
@@ -44,7 +45,7 @@ async function changeStatus(user: EnterpriseUser) {
       </template>
       </PageHeader>
       <UserTable :users="users"
-                 :teams="teams"
+                 :teams="knownTeams"
                  :cursor-page="userPage"
                  :has-next-page="Boolean(userNextCursor)"
                  :has-previous-page="userCursorHistory.length > 0"

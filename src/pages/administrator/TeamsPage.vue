@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nameOr } from '@/utils/people'
 import { getApiErrorMessage } from '@/utils/api-error'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
@@ -15,10 +15,17 @@ import type { EnterpriseUser, Team } from '@/types/administrator'
 const router = useRouter()
 const store = useAdministratorStore()
 const feedback = useUiFeedbackStore()
-const { teams, teamDirectoryUsers, teamPage, teamNextCursor, teamCursorHistory } = storeToRefs(store)
+const { teams, teamDirectoryUsers, teamMemberCounts, teamPage, teamNextCursor, teamCursorHistory } = storeToRefs(store)
 
 // Les noms des chefs d'équipe ne sont pas forcément dans la page d'utilisateurs déjà chargée.
 onMounted(() => { store.loadTeamLeadOptions().catch(() => undefined) })
+
+// Effectif et nom du chef de chaque équipe affichée (la liste des utilisateurs est paginée).
+watch(teams, (shown) => {
+  store.loadTeamMemberCounts(shown.map((team) => team.id)).catch(() => undefined)
+  store.ensureUsers(shown.map((team) => team.leadUserId)).catch(() => undefined)
+}, { immediate: true })
+const refreshCount = (teamId: string) => { store.loadTeamMemberCounts([teamId]).catch(() => undefined) }
 
 const membersDialog = ref(false)
 const selectedTeam = ref<Team>()
@@ -63,6 +70,7 @@ async function addMembers() {
   savingMembers.value = true
   try {
     applyDirectory(await store.addTeamMembers(selectedTeam.value.id, selectedAgentIds.value))
+    refreshCount(selectedTeam.value.id)
     selectedAgentIds.value = []
     feedback.success('Les agents ont été ajoutés à l’équipe.')
   } catch (error) {
@@ -80,6 +88,7 @@ async function removeMember(userId: string) {
   savingMembers.value = true
   try {
     applyDirectory(await store.removeTeamMembers(selectedTeam.value.id, [userId]))
+    refreshCount(selectedTeam.value.id)
     feedback.success('Agent retiré de l’équipe.')
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible de retirer cet agent de l’équipe.'))
@@ -100,6 +109,7 @@ async function removeMember(userId: string) {
     <TeamTable
       :teams="teams"
       :users="teamDirectoryUsers"
+      :member-counts="teamMemberCounts"
       :cursor-page="teamPage"
       :has-next-page="Boolean(teamNextCursor)"
       :has-previous-page="teamCursorHistory.length > 0"

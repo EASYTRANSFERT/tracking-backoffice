@@ -44,14 +44,44 @@ export const useAdministratorStore = defineStore('administrator', () => {
   ).length)
   const activeSitesCount = computed(() => sites.value.filter((site) => site.status === 'active').length)
   const ongoingMissionsCount = computed(() => missions.value.filter((mission) => mission.status === 'ongoing').length)
+  /** Nombre de membres (agents et chef d'équipe) par équipe. */
+  const teamMemberCounts = ref<Record<string, number>>({})
+  /** Comptes chargés un par un pour afficher un nom (responsable, chef, superviseur…). */
+  const knownUsers = ref<EnterpriseUser[]>([])
   const teamDirectoryUsers = computed(() => [
-    ...new Map([...users.value, ...supervisors.value, ...teamLeadOptions.value].map((user) => [user.id, user])).values(),
+    ...new Map([...users.value, ...supervisors.value, ...teamLeadOptions.value, ...knownUsers.value].map((user) => [user.id, user])).values(),
   ])
+  const findUser = (id?: string | null) => id ? teamDirectoryUsers.value.find((user) => user.id === id) : undefined
+
+  /**
+   * Charge les comptes absents des listes déjà chargées (la liste des utilisateurs est paginée) :
+   * sans cela, un responsable ou un chef d'équipe hors de la première page s'affiche « Non affecté ».
+   */
+  async function ensureUsers(ids: (string | null | undefined)[]) {
+    const missing = [...new Set(ids.filter((id): id is string => Boolean(id)))].filter((id) => !findUser(id))
+    if (!missing.length) return
+    const found = await Promise.all(missing.map((id) => userService.findOne(id).then(mapUser).catch(() => null)))
+    knownUsers.value = [...knownUsers.value, ...found.filter((user): user is EnterpriseUser => user !== null)]
+  }
+
+  /** Nombre de membres (agents et chef d'équipe) de chaque équipe demandée. */
+  async function loadTeamMemberCounts(teamIds: (string | null | undefined)[]) {
+    const unique = [...new Set(teamIds.filter((id): id is string => Boolean(id)))]
+    const counts = await Promise.all(unique.map(async (teamId) => {
+      const members = (await userService.list({ teamId, limit: 200 })).items.map(mapUser)
+      return [teamId, members.filter((user) => isTeamMember(user)).length] as const
+    }))
+    teamMemberCounts.value = { ...teamMemberCounts.value, ...Object.fromEntries(counts) }
+  }
 
   const getUserById = (id: string) => users.value.find((user) => user.id === id)
   const getSiteById = (id: string) => sites.value.find((site) => site.id === id)
   const getMissionById = (id: string) => missions.value.find((mission) => mission.id === id)
+  const teamOptions = ref<Team[]>([])
   const getTeamById = (id: string) => teams.value.find((team) => team.id === id)
+  /** Équipes connues : la page affichée et la liste complète des choix (teamOptions). */
+  const knownTeams = computed(() => [...new Map([...teams.value, ...teamOptions.value].map((team) => [team.id, team])).values()])
+  const findTeam = (id?: string | null) => id ? knownTeams.value.find((team) => team.id === id) : undefined
   const userNextCursor = ref<string | null>(null)
   const userCursorHistory = ref<(string | undefined)[]>([])
   const userPage = ref(1)
@@ -163,7 +193,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function toggleUserStatus(id: string) {
-    const user = getUserById(id)
+    const user = findUser(id)
     if (!user) return
     if (user.status === 'disabled') throw new Error("L’API ne fournit pas d’endpoint de réactivation utilisateur.")
     replaceUser(mapUser(await userService.disable(id)))
@@ -173,6 +203,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const index = users.value.findIndex((item) => item.id === user.id)
     if (index >= 0) users.value[index] = user
     else users.value.unshift(user)
+    // Un compte chargé à part (hors de la page affichée) doit aussi refléter la modification.
+    knownUsers.value = knownUsers.value.map((item) => item.id === user.id ? user : item)
   }
 
   /**
@@ -210,7 +242,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function updateTeam(id: string, input: TeamInput) {
-    const current = getTeamById(id)
+    const current = findTeam(id)
     if (!current) throw new Error('Équipe introuvable.')
     let updated = current
     if (input.name.trim() !== current.name) {
@@ -257,6 +289,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const index = teams.value.findIndex((item) => item.id === team.id)
     if (index >= 0) teams.value[index] = team
     else teams.value.unshift(team)
+    teamOptions.value = teamOptions.value.map((item) => item.id === team.id ? team : item)
   }
 
   async function loadSites(force = false) {
@@ -271,8 +304,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
     }
   }
 
-  /** Nombre de membres (agents et chef d'équipe) par équipe, pour les sites d'une mission. */
-  const teamMemberCounts = ref<Record<string, number>>({})
   const getMissionSites = (missionId: string) => sites.value.filter((site) => site.missionId === missionId)
   /** Sites actifs sans mission, qu'on peut rattacher depuis la page d'une mission. */
   const sitesWithoutMission = computed(() => sites.value.filter((site) => !site.missionId && site.status !== 'inactive'))
@@ -291,12 +322,10 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const loadedIds = new Set(loaded.map((site) => site.id))
     sites.value = [...sites.value.filter((site) => !loadedIds.has(site.id)), ...loaded]
 
-    const teamIds = [...new Set(loaded.map((site) => site.teamId).filter((teamId): teamId is string => Boolean(teamId)))]
-    const counts = await Promise.all(teamIds.map(async (teamId) => {
-      const members = (await userService.list({ teamId, limit: 200 })).items.map(mapUser)
-      return [teamId, members.filter((user) => isTeamMember(user)).length] as const
-    }))
-    teamMemberCounts.value = { ...teamMemberCounts.value, ...Object.fromEntries(counts) }
+    await Promise.all([
+      loadTeamMemberCounts(loaded.map((site) => site.teamId)),
+      ensureUsers(loaded.map((site) => site.managerId)),
+    ])
     return loaded
   }
 
@@ -309,7 +338,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   /** Toutes les équipes (200 au plus), pour les listes de choix. */
-  const teamOptions = ref<Team[]>([])
   async function loadTeamOptions() {
     teamOptions.value = (await teamService.list({ limit: 200 })).items.map(mapTeam)
     return teamOptions.value
@@ -456,6 +484,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
     users.value = mockMode ? structuredClone(mockEnterpriseUsers) : []
     supervisors.value = []
     teamLeadOptions.value = []
+    knownUsers.value = []
+    teamMemberCounts.value = {}
     teams.value = mockMode ? structuredClone(mockTeams) : []
     sites.value = []
     missions.value = []
@@ -480,7 +510,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, assignMissionSupervisor, openMission, closeMission,
-    teamMemberCounts, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
+    teamMemberCounts, loadTeamMemberCounts, findUser, ensureUsers, knownTeams, findTeam, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
     teamLeadOptions, loadTeamLeadOptions, createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }

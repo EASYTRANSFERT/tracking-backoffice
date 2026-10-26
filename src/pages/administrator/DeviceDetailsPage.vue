@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import DeviceRevokeDialog from '@/Components/devices/DeviceRevokeDialog.vue'
@@ -19,6 +19,7 @@ const revocation = useDeviceRevocation()
 const loadError = ref<string | null>(null)
 const deviceId = computed(() => route.params.deviceId as string)
 const device = computed(() => (currentDevice.value?.id === deviceId.value ? currentDevice.value : null))
+watch(() => device.value?.userId, (id) => { administratorStore.ensureUsers([id]).catch(() => undefined) }, { immediate: true })
 const agentName = computed(() => (device.value ? store.agentName(device.value.userId) : null))
 
 const fields = computed(() => {

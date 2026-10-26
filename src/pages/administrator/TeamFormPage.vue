@@ -15,15 +15,16 @@ const store = useAdministratorStore();
 const feedback = useUiFeedbackStore();
 const { teamLeadOptions } = storeToRefs(store);
 const id = computed(() => route.params.teamId as string | undefined);
-const team = computed(() => id.value ? store.getTeamById(id.value) : undefined);
+const team = computed(() => store.findTeam(id.value));
 const dirty = ref(false)
 const saving = ref(false)
-const leadersLoading = ref(false)
+const leadersLoading = ref(true)
 
 // Liste complète des chefs d'équipe actifs, et non la seule page d'utilisateurs déjà chargée.
 onMounted(async () => {
   leadersLoading.value = true
-  try { await store.loadTeamLeadOptions() }
+  // L'équipe à modifier vient de la liste complète si elle n'est pas dans la page affichée.
+  try { await Promise.all([store.loadTeamLeadOptions(), store.loadTeamOptions()]) }
   catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les chefs d’équipe.')) }
   finally { leadersLoading.value = false }
 })
@@ -52,7 +53,8 @@ async function submit(payload: TeamInput){
       <v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-teams' }">Retour</v-btn>
     </template>
     </PageHeader>
-    <v-alert v-if="id && !team" type="error" variant="tonal" title="Équipe introuvable" />
+    <v-progress-linear v-if="id && !team && leadersLoading" indeterminate color="primary" />
+    <v-alert v-else-if="id && !team" type="error" variant="tonal" title="Équipe introuvable" />
     <TeamForm v-else :team="team" :leaders="teamLeadOptions" :leaders-loading="leadersLoading" :loading="saving" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" />
     </div>
   </template>
