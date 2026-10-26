@@ -24,7 +24,6 @@ export interface UserResponse {
 }
 
 export interface CreateUserRequest {
-  matricule: string
   names: string
   email?: string
   phone: string

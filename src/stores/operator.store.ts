@@ -224,7 +224,7 @@ export const useOperatorStore = defineStore('operator', () => {
     }
 
     return tenantService.createUser(id, {
-      matricule: input.employeeNumber,
+      //matricule: input.employeeNumber,
       names: fullName(input),
       email: input.email,
       phone,

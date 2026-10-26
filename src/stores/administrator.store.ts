@@ -142,7 +142,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   async function createUser(input: EnterpriseUserInput) {
     if (!input.password) throw new Error('Un mot de passe temporaire est requis.')
     const created = await userService.create({
-      matricule: input.employeeNumber,
       names: fullName(input),
       email: input.email || undefined,
       phone: input.phone,
@@ -156,7 +155,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   async function updateUser(id: string, input: EnterpriseUserInput) {
     replaceUser(mapUser(await userService.update(id, {
-      matricule: input.employeeNumber,
       names: fullName(input),
       email: input.email || undefined,
       phone: input.phone,
