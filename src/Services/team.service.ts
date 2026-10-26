@@ -1,7 +1,7 @@
 import { apiClient } from './api-client'
 import { idempotencyHeaders } from './request-headers'
 
-import type { CreateTeamRequest, TeamListQuery, TeamMembersRequest, TeamPageResponse, TeamResponse, UpdateTeamRequest } from '@/types/team'
+import type { AssignTeamLeadRequest, CreateTeamRequest, TeamListQuery, TeamMembersRequest, TeamPageResponse, TeamResponse, UpdateTeamRequest } from '@/types/team'
 
 export const teamService = {
   async list(query: TeamListQuery = {}): Promise<TeamPageResponse> {
@@ -21,6 +21,12 @@ export const teamService = {
 
   async update(id: string, payload: UpdateTeamRequest): Promise<TeamResponse> {
     const response = await apiClient.patch<TeamResponse>(`/teams/${id}`, payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  /** Désigne le chef parmi les membres. Exige une ré-authentification TOTP récente (step-up). */
+  async assignLead(id: string, payload: AssignTeamLeadRequest): Promise<TeamResponse> {
+    const response = await apiClient.put<TeamResponse>(`/teams/${id}/lead`, payload, { headers: idempotencyHeaders() })
     return response.data
   },
 

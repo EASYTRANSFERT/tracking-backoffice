@@ -18,6 +18,11 @@ export interface UpdateTeamRequest {
   name?: string
 }
 
+/** Agent membre de l'équipe, désigné comme chef. */
+export interface AssignTeamLeadRequest {
+  userId: string
+}
+
 export interface TeamMembersRequest {
   userIds: string[]
 }

@@ -2,8 +2,11 @@ import type { EnterpriseUser } from '@/types/administrator'
 
 type Named = Pick<EnterpriseUser, 'firstName' | 'lastName'>
 
-/** « Prénom Nom », tel qu'affiché partout dans le back-office. */
-export const fullName = (user: Named) => `${user.firstName} ${user.lastName}`.trim()
+/**
+ * « Prénom Nom », tel qu'affiché partout dans le back-office. Tolère une valeur sans nom
+ * (un v-select peut passer l'identifiant brut d'un élément absent de sa liste).
+ */
+export const fullName = (user: Named) => `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()
 
 /** « Prénom Nom », ou un libellé de remplacement quand personne n'est désigné. */
 export const nameOr = (user: Named | null | undefined, fallback = 'Non affecté') => user ? fullName(user) : fallback

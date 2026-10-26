@@ -5,9 +5,11 @@ import { storeToRefs } from 'pinia'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import TeamForm from '@/Components/teams/TeamForm.vue'
+import TotpConfirmDialog from '@/Components/security/TotpConfirmDialog.vue'
+import { nameOr } from '@/utils/people'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import type { TeamInput } from '@/types/administrator'
+import type { EnterpriseUser, TeamInput } from '@/types/administrator'
 
 const route = useRoute();
 const router = useRouter();
@@ -20,29 +22,73 @@ const dirty = ref(false)
 const saving = ref(false)
 const leadersLoading = ref(true)
 
-// Liste complète des chefs d'équipe actifs, et non la seule page d'utilisateurs déjà chargée.
+// À la création : les chefs d'équipe actifs. En modification : les membres de l'équipe.
+const members = ref<EnterpriseUser[]>([])
+const leaderChoices = computed(() => id.value ? members.value : teamLeadOptions.value)
+
 onMounted(async () => {
-  leadersLoading.value = true
-  // L'équipe à modifier vient de la liste complète si elle n'est pas dans la page affichée.
-  try { await Promise.all([store.loadTeamLeadOptions(), store.loadTeamOptions()]) }
-  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les chefs d’équipe.')) }
-  finally { leadersLoading.value = false }
+  try {
+    await Promise.all([store.loadTeamLeadOptions(), store.loadTeamOptions()])
+    if (id.value) members.value = await store.listTeamMembers(id.value)
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible de charger les chefs d’équipe.'))
+  } finally {
+    leadersLoading.value = false
+  }
 })
 
 onBeforeRouteLeave(async () => !dirty.value || await feedback.askConfirmation({ title: 'Quitter sans enregistrer ?', message: 'Les modifications de cette équipe seront perdues.', confirmText: 'Quitter' }))
 
-async function submit(payload: TeamInput){
+// Changement de chef : opération sensible, confirmée par le code TOTP.
+const leadDialog = ref(false)
+const pendingLeadId = ref<string>()
+const leadError = ref<string | null>(null)
+const assigningLead = ref(false)
+const pendingLeadName = computed(() => nameOr(members.value.find((member) => member.id === pendingLeadId.value), 'Ce membre'))
+
+async function done(message: string) {
+  dirty.value = false
+  feedback.success(message)
+  await router.push({ name: 'admin-teams' })
+}
+
+async function submit(payload: TeamInput) {
   saving.value = true
-  try { dirty.value = false;
-  if (id.value) {
-    await store.updateTeam(id.value, payload);
-    feedback.success('Équipe mise à jour.') }
-  else {
-    await store.createTeam(payload); feedback.success('Équipe créée.')
+  try {
+    if (!id.value) {
+      await store.createTeam(payload)
+      return await done('Équipe créée.')
+    }
+    await store.updateTeam(id.value, payload)
+    if (payload.leadUserId && payload.leadUserId !== team.value?.leadUserId) {
+      pendingLeadId.value = payload.leadUserId
+      leadError.value = null
+      leadDialog.value = true
+      return
+    }
+    await done('Équipe mise à jour.')
+  } catch (error) {
+    dirty.value = true
+    feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette équipe.'))
+  } finally {
+    saving.value = false
   }
-  await router.push({ name: 'admin-teams' }) }
-  catch (error) { dirty.value = true; feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette équipe.')) }
-  finally { saving.value = false } }
+}
+
+async function confirmLead(code: string) {
+  if (!id.value || !pendingLeadId.value) return
+  assigningLead.value = true
+  leadError.value = null
+  try {
+    await store.assignTeamLead(id.value, pendingLeadId.value, code)
+    leadDialog.value = false
+    await done('Chef d’équipe désigné.')
+  } catch (error) {
+    leadError.value = getApiErrorMessage(error, 'Impossible de désigner ce chef d’équipe.')
+  } finally {
+    assigningLead.value = false
+  }
+}
 </script>
 <template>
 <div class="mx-auto w-full max-w-[1050px]">
@@ -55,6 +101,15 @@ async function submit(payload: TeamInput){
     </PageHeader>
     <v-progress-linear v-if="id && !team && leadersLoading" indeterminate color="primary" />
     <v-alert v-else-if="id && !team" type="error" variant="tonal" title="Équipe introuvable" />
-    <TeamForm v-else :team="team" :leaders="teamLeadOptions" :leaders-loading="leadersLoading" :loading="saving" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" />
+    <TeamForm v-else :team="team" :leaders="leaderChoices" :leaders-loading="leadersLoading" :loading="saving" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" />
+    <TotpConfirmDialog
+      v-model="leadDialog"
+      title="Changer de chef d’équipe"
+      :message="`${pendingLeadName} deviendra chef de l’équipe « ${team?.name ?? ''} ». Saisissez votre code de vérification pour confirmer.`"
+      confirm-text="Désigner"
+      :loading="assigningLead"
+      :error-message="leadError"
+      @confirm="confirmLead"
+    />
     </div>
   </template>

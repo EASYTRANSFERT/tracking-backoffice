@@ -21,9 +21,10 @@ const { teams, teamDirectoryUsers, teamMemberCounts, teamPage, teamNextCursor, t
 onMounted(() => { store.loadTeamLeadOptions().catch(() => undefined) })
 
 // Effectif et nom du chef de chaque équipe affichée (la liste des utilisateurs est paginée).
-watch(teams, (shown) => {
-  store.loadTeamMemberCounts(shown.map((team) => team.id)).catch(() => undefined)
-  store.ensureUsers(shown.map((team) => team.leadUserId)).catch(() => undefined)
+// Les membres chargés pour l'effectif fournissent déjà le nom du chef : on ne demande que ceux qui manquent.
+watch(teams, async (shown) => {
+  await store.loadTeamMemberCounts(shown.map((team) => team.id)).catch(() => undefined)
+  await store.ensureUsers(shown.map((team) => team.leadUserId)).catch(() => undefined)
 }, { immediate: true })
 const refreshCount = (teamId: string) => { store.loadTeamMemberCounts([teamId]).catch(() => undefined) }
 

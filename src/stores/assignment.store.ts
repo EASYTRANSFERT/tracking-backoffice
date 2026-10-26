@@ -1,11 +1,9 @@
-import { byName, isTeamMember } from '@/utils/people'
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { addDays, fromDayKey, startOfWeek } from '@/Components/sites/site-schedule'
 import { assignmentService } from '@/Services/assignment.service'
-import { userService } from '@/Services/user.service'
-import { mapUser } from '@/stores/mappers'
+import { useAdministratorStore } from '@/stores/administrator.store'
 import type { EnterpriseUser } from '@/types/administrator'
 import type { AssignmentResponse, AssignmentSlot } from '@/types/assignment'
 
@@ -30,11 +28,9 @@ export const useAssignmentStore = defineStore('assignment', () => {
 
   /** Seuls les agents de l'équipe du site peuvent y être planifiés. */
   async function loadTeamMembers(teamId: string) {
-    const response = await userService.list({ teamId, limit: 200 })
-    members.value = response.items.map(mapUser)
-      .filter((user) => isTeamMember(user))
-      .sort(byName)
+    members.value = await useAdministratorStore().listTeamMembers(teamId)
   }
+
 
   async function loadWeek(nextSiteId: string, nextWeekStart = weekStart.value) {
     siteId.value = nextSiteId

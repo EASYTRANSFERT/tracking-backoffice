@@ -11,7 +11,7 @@ import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types
 import type { AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
 import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
 import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
-import type { CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
+import type { AssignTeamLeadRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
 const mockQrCode = '/qrcode.png'
@@ -562,6 +562,26 @@ export const handlers = [
     const payload = (await request.json()) as UpdateTeamRequest
     if (payload.name) team.name = payload.name
     team.updatedAt = now()
+    return HttpResponse.json(team)
+  }),
+  // Désigner le chef : step-up TOTP exigé, choisi parmi les membres ; l'ancien chef perd le rôle s'il ne dirige plus d'équipe.
+  http.put(api('/teams/:id/lead'), async ({ params, request }) => {
+    if (!request.headers.get('Authorization')?.startsWith('Bearer mock-elevated-token')) {
+      return problem(403, 'STEP_UP_REQUIRED', 'Une ré-authentification TOTP récente est requise.')
+    }
+    const team = teams.find((item) => item.id === String(params.id))
+    if (!team) return problem(404, 'NOT_FOUND', "L’équipe demandée n’existe pas.")
+    const { userId } = (await request.json()) as AssignTeamLeadRequest
+    const lead = users.find((user) => user.id === userId)
+    if (!lead) return problem(404, 'NOT_FOUND', 'Compte introuvable.')
+    if (lead.teamId !== team.id) return problem(409, 'TEAM_LEAD_NOT_MEMBER', 'Le chef doit être choisi parmi les membres de l’équipe.')
+    const previous = users.find((user) => user.id === team.leadUserId)
+    team.leadUserId = lead.id
+    team.updatedAt = now()
+    if (!lead.roles.includes('TEAM_LEAD')) lead.roles = [...lead.roles.filter((role) => role !== 'AGENT'), 'TEAM_LEAD']
+    if (previous && previous.id !== lead.id && !teams.some((item) => item.leadUserId === previous.id)) {
+      previous.roles = [...previous.roles.filter((role) => role !== 'TEAM_LEAD'), 'AGENT']
+    }
     return HttpResponse.json(team)
   }),
   http.post(api('/teams/:id/members'), async ({ params, request }) => {

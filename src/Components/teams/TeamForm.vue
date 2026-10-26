@@ -4,7 +4,10 @@ import { reactive, ref, watch } from 'vue'
 
 import type { EnterpriseUser, Team, TeamInput } from '@/types/administrator'
 
-/** leaders : comptes actifs portant le rôle Chef d'équipe (TEAM_LEAD). */
+/**
+ * leaders : à la création, les comptes actifs portant le rôle Chef d'équipe ;
+ * en modification, les membres de l'équipe (l'API choisit le chef parmi eux).
+ */
 const props = defineProps<{ team?: Team; leaders: EnterpriseUser[]; loading?: boolean; leadersLoading?: boolean }>()
 const emit = defineEmits<{
   submit: [payload: TeamInput]
@@ -54,11 +57,10 @@ async function submit() {
           :item-title="fullName"
           item-value="id"
           :loading="leadersLoading"
-          :disabled="Boolean(team)"
           :rules="[required]"
-          :hint="team ? 'Le chef d’équipe ne se modifie pas depuis ce formulaire.' : undefined"
+          :hint="team ? 'Choisi parmi les membres de l’équipe. Le changement demande votre code de vérification.' : undefined"
           :persistent-hint="Boolean(team)"
-          no-data-text="Aucun chef d’équipe actif : créez d’abord un compte au rôle Chef d’équipe."
+          :no-data-text="team ? 'Aucun membre dans cette équipe : ajoutez d’abord des agents.' : 'Aucun chef d’équipe actif : créez d’abord un compte au rôle Chef d’équipe.'"
         />
       </v-card-text>
     </v-card>

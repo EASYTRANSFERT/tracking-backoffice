@@ -8,6 +8,7 @@ import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
 import { mapMission, mapSite, mapTeam, mapUser, roleToApi, toArea } from '@/stores/mappers'
 import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
+import { useAuthStore } from '@/stores/auth.store'
 import { readRejectedImportReport } from '@/utils/matricule-import'
 import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
@@ -57,21 +58,39 @@ export const useAdministratorStore = defineStore('administrator', () => {
    * Charge les comptes absents des listes déjà chargées (la liste des utilisateurs est paginée) :
    * sans cela, un responsable ou un chef d'équipe hors de la première page s'affiche « Non affecté ».
    */
+  // Identifiants que l'API n'a pas su rendre : on ne les redemande pas à chaque affichage.
+  const unresolvedUserIds = new Set<string>()
   async function ensureUsers(ids: (string | null | undefined)[]) {
-    const missing = [...new Set(ids.filter((id): id is string => Boolean(id)))].filter((id) => !findUser(id))
+    const missing = [...new Set(ids.filter((id): id is string => Boolean(id)))].filter((id) => !findUser(id) && !unresolvedUserIds.has(id))
     if (!missing.length) return
-    const found = await Promise.all(missing.map((id) => userService.findOne(id).then(mapUser).catch(() => null)))
-    knownUsers.value = [...knownUsers.value, ...found.filter((user): user is EnterpriseUser => user !== null)]
+    const found = await Promise.all(missing.map((id) => userService.findOne(id).then(mapUser).catch(() => { unresolvedUserIds.add(id); return null })))
+    rememberUsers(found.filter((user): user is EnterpriseUser => user !== null))
+  }
+  function rememberUsers(list: EnterpriseUser[]) {
+    const known = new Set(teamDirectoryUsers.value.map((user) => user.id))
+    knownUsers.value = [...knownUsers.value, ...list.filter((user) => !known.has(user.id))]
+  }
+
+  /** Membres d'une équipe (agents et chef), triés par nom. Leurs noms servent ensuite partout. */
+  async function listTeamMembers(teamId: string) {
+    const members = (await userService.list({ teamId, limit: 200 })).items.map(mapUser).filter((user) => isTeamMember(user)).sort(byName)
+    rememberUsers(members)
+    return members
   }
 
   /** Nombre de membres (agents et chef d'équipe) de chaque équipe demandée. */
   async function loadTeamMemberCounts(teamIds: (string | null | undefined)[]) {
     const unique = [...new Set(teamIds.filter((id): id is string => Boolean(id)))]
-    const counts = await Promise.all(unique.map(async (teamId) => {
-      const members = (await userService.list({ teamId, limit: 200 })).items.map(mapUser)
-      return [teamId, members.filter((user) => isTeamMember(user)).length] as const
-    }))
+    const counts = await Promise.all(unique.map(async (teamId) => [teamId, (await listTeamMembers(teamId)).length] as const))
     teamMemberCounts.value = { ...teamMemberCounts.value, ...Object.fromEntries(counts) }
+  }
+
+  /** Désigne le chef d'équipe : ré-authentification TOTP, puis PUT /teams/{id}/lead. */
+  async function assignTeamLead(teamId: string, userId: string, totpCode: string) {
+    await useAuthStore().stepUp(totpCode)
+    const updated = mapTeam(await teamService.assignLead(teamId, { userId }))
+    replaceTeam(updated)
+    return updated
   }
 
   const getUserById = (id: string) => users.value.find((user) => user.id === id)
@@ -248,7 +267,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (input.name.trim() !== current.name) {
       updated = mapTeam(await teamService.update(id, { name: input.name.trim() }))
     }
-    // Le chef d'équipe ne change pas ici : PUT /teams/{id}/lead exige une ré-authentification TOTP.
+    // Le chef d'équipe se change avec assignTeamLead : PUT /teams/{id}/lead exige une ré-authentification TOTP.
     replaceTeam(updated)
   }
 
@@ -510,7 +529,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, assignMissionSupervisor, openMission, closeMission,
-    teamMemberCounts, loadTeamMemberCounts, findUser, ensureUsers, knownTeams, findTeam, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
+    teamMemberCounts, loadTeamMemberCounts, listTeamMembers, assignTeamLead, findUser, ensureUsers, knownTeams, findTeam, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
     teamLeadOptions, loadTeamLeadOptions, createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }
