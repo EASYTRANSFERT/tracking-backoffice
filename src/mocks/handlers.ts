@@ -11,6 +11,7 @@ import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types
 import type { AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
 import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
 import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
+import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
 import type { AssignTeamLeadRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -124,6 +125,25 @@ const assignments: AssignmentResponse[] = [
   ...[0, 2, 4].map((day) => ['user-3', 'site-1', day, '15:00', '23:00'] as const),
   ...[1, 3].map((day) => ['user-7', 'site-2', day, '22:00', '06:00'] as const),
 ].map(([userId, siteId, day, start, end], index) => mockAssignment(index + 1, userId, siteId, day, start, end))
+
+// Pointages fictifs : une session par cas à examiner (anomalie, sortie manquante, en cours, déjà décidée).
+function mockSession(index: number, userId: string, siteId: string, dayOffset: number, inTime: string, outTime: string | null, extra: Partial<WorkSessionResponse> = {}): WorkSessionResponse {
+  const day = addDays(mockWeek, dayOffset)
+  const inAt = new Date(`${day}T${inTime}:00`).toISOString()
+  const outAt = outTime ? new Date(`${day}T${outTime}:00`).toISOString() : undefined
+  return {
+    id: `ses_mock_${index}`, userId, siteId, assignmentId: `asg_mock_${index}`, inAt, outAt,
+    minutes: outAt ? (new Date(outAt).getTime() - new Date(inAt).getTime()) / 60_000 : undefined,
+    lateMin: 0, earlyMin: 0, flags: [], status: outAt ? 'CLOSED' : 'OPEN', validation: 'PENDING', rulesVersion: '2026.10', ...extra,
+  }
+}
+const sessions: WorkSessionResponse[] = [
+  mockSession(1, 'user-4', 'site-1', 0, '07:12', '15:04', { lateMin: 12, flags: ['OUT_OF_GEOFENCE', 'LOW_ACCURACY'] }),
+  mockSession(2, 'user-3', 'site-1', 0, '15:00', null, { status: 'MISSING_EXIT', flags: ['QR_MISMATCH'] }),
+  mockSession(3, 'user-4', 'site-1', 1, '06:58', '15:01', { validation: 'AUTO_VALIDATED' }),
+  mockSession(4, 'user-7', 'site-2', 1, '22:05', '06:00', { lateMin: 5, flags: ['MOCK_POSITION'], validation: 'REJECTED', validatedBy: 'user-2', validatedAt: '2026-10-20T09:00:00.000Z' }),
+  mockSession(5, 'user-4', 'site-1', 2, '07:01', null, { flags: ['CLOCK_DRIFT'] }),
+]
 
 function assignmentProblem(status: number, code: string, detail: string, location: { userId?: string; slotIndex?: number } = {}) {
   return HttpResponse.json({ title: code, status, detail, code, ...location }, { status, headers: { 'Content-Type': 'application/problem+json' } })
@@ -616,6 +636,33 @@ export const handlers = [
     if (users.some((user) => user.teamId === id)) return problem(409, 'TEAM_NOT_EMPTY', "Cette équipe contient encore des utilisateurs.")
     teams = teams.filter((item) => item.id !== id)
     return new HttpResponse(null, { status: 204 })
+  }),
+  http.get(api('/sessions'), ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const filtered = sessions
+      .filter((session) => (['userId', 'siteId', 'status', 'validation'] as const).every((key) => !params.get(key) || session[key] === params.get(key)))
+      .filter((session) => params.get('flagged') !== 'true' || session.flags.length > 0)
+      .sort((a, b) => b.inAt.localeCompare(a.inAt))
+    return HttpResponse.json(page(request, filtered))
+  }),
+  http.get(api('/sessions/:id'), ({ params }) => {
+    const session = sessions.find((item) => item.id === String(params.id))
+    return session ? HttpResponse.json(session) : problem(404, 'NOT_FOUND', 'Session introuvable ou hors périmètre.')
+  }),
+  http.get(api('/sessions/:id/selfie'), ({ params }) => {
+    const session = sessions.find((item) => item.id === String(params.id))
+    if (!session || session.id === 'ses_mock_3') return problem(404, 'NOT_FOUND', 'Session introuvable, ou aucun selfie rattaché.')
+    return HttpResponse.json({ url: '/kaybiclogo.png', expiresIn: 300 })
+  }),
+  http.post(api('/sessions/:id/decision'), async ({ params, request }) => {
+    const session = sessions.find((item) => item.id === String(params.id))
+    if (!session) return problem(404, 'NOT_FOUND', 'Session introuvable ou hors périmètre.')
+    const payload = (await request.json()) as DecideSessionRequest
+    if (payload.decision === 'REJECT' && (payload.reason?.trim().length ?? 0) < 3) return problem(400, 'VALIDATION_FAILED', 'Le motif du rejet est obligatoire.')
+    if (session.validation !== 'PENDING') return problem(409, 'SESSION_ALREADY_DECIDED', 'Cette session a déjà été décidée.')
+    if (session.status === 'OPEN') return problem(409, 'SESSION_NOT_CLOSED', 'La session est encore en cours.')
+    Object.assign(session, { validation: payload.decision === 'VALIDATE' ? 'VALIDATED' : 'REJECTED', validatedBy: 'user-2', validatedAt: now() })
+    return HttpResponse.json(session)
   }),
 ]
 
