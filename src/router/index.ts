@@ -17,6 +17,12 @@ const router = createRouter({
       component: () => import('@/pages/LoginPage.vue'),
     },
     {
+      // Lien d'invitation envoyé par courriel à la création d'un compte back-office.
+      path: '/password/setup',
+      name: 'password-setup',
+      component: () => import('@/pages/PasswordSetupPage.vue'),
+    },
+    {
       path: '/dashboard',
       component: () => import('@/Components/DashboardLayout.vue'),
       meta: { requiresAuth: true },

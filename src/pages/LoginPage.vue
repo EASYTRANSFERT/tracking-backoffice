@@ -3,10 +3,9 @@ import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
-import AuthCard from '@/Components/AuthCard.vue'
+import AuthLayout from '@/Components/AuthLayout.vue'
 import LoginForm from '@/Components/LoginForm.vue'
 import MfaChallenge from '@/Components/MfaChallenge.vue'
-import ChangeImg from '@/Components/ChangeImg.vue'
 
 import { useAuthStore } from '@/stores/auth.store'
 import { dashboardRouteByRole } from '@/types/roles'
@@ -61,51 +60,25 @@ async function handleTotpConfirmation(code: string) {
 </script>
 
 <template>
-  <main
-    class="grid min-h-screen w-full grid-cols-1 bg-gray-100 md:grid-cols-2"
+  <AuthLayout
+    :title="cardTitle"
+    :description="cardDescription"
   >
-    <section
-      class="relative bg-gradient-to-br from-gray-100 via-white to-red-50 flex min-h-screen items-center justify-center overflow-hidden px-6 py-12 md:min-h-0"
-    >
-      <img
-        src="@/assets/background.svg"
-        alt=""
-        aria-hidden="true"
-        class="pointer-events-none absolute inset-0 h-full w-full object-cover"
-      />
+    <LoginForm
+      v-if="step === 'credentials'"
+      :loading="isLoading"
+      :error-message="errorMessage"
+      @submit="handleLogin"
+    />
 
-      <AuthCard
-        :title="cardTitle"
-        :description="cardDescription"
-      >
-        <LoginForm
-          v-if="step === 'credentials'"
-          :loading="isLoading"
-          :error-message="errorMessage"
-          @submit="handleLogin"
-        />
-
-        <MfaChallenge
-          v-else-if="step === 'totp'"
-          :qr-code="qrCode"
-          :first-setup="isFirstMfaSetup"
-          :loading="isLoading"
-          :error-message="errorMessage"
-          @confirm="handleTotpConfirmation"
-          @back="authStore.resetAuthentication"
-        />
-      </AuthCard>
-    </section>
-
-    <section
-      class="relative hidden min-h-screen overflow-hidden md:block"
-    >
-      <ChangeImg />
-
-      <div
-        class="absolute inset-0 bg-black/5"
-        aria-hidden="true"
-      />
-    </section>
-  </main>
+    <MfaChallenge
+      v-else-if="step === 'totp'"
+      :qr-code="qrCode"
+      :first-setup="isFirstMfaSetup"
+      :loading="isLoading"
+      :error-message="errorMessage"
+      @confirm="handleTotpConfirmation"
+      @back="authStore.resetAuthentication"
+    />
+  </AuthLayout>
 </template>
