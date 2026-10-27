@@ -246,6 +246,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /** Premier mot de passe d'un compte, choisi depuis le lien d'invitation. */
+  async function setupPassword(token: string, password: string): Promise<boolean> {
+    isLoading.value = true
+    errorMessage.value = null
+    try {
+      await authService.setupPassword({ token, password })
+      return true
+    } catch (error) {
+      // 401 PASSWORD_SETUP_TOKEN_INVALID : lien expiré ou déjà utilisé, l'API ne permet pas d'en redemander un.
+      errorMessage.value = isAxiosError(error) && error.response?.status === 401
+        ? 'Ce lien n’est plus valide : demandez à l’opérateur de vous renvoyer une invitation.'
+        : getApiErrorMessage(error, 'Impossible de définir le mot de passe.')
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function restoreSession(): Promise<boolean> {
     const persistedSession = authSessionStorage.read()
 
@@ -394,6 +412,7 @@ export const useAuthStore = defineStore('auth', () => {
     restoreSession,
     stepUp,
     changePassword,
+    setupPassword,
     logout,
     expireSession,
     resetAuthentication,

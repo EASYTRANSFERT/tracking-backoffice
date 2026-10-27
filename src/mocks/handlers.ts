@@ -3,7 +3,7 @@ import { http, HttpResponse, type DefaultBodyType } from 'msw'
 import { mockEnterpriseUsers, mockMissions, mockSites, mockTeams } from '@/mocks/administrator-data'
 import { mockAuthUsers, findMockAuthUserByCredentials, findMockAuthUserById } from '@/mocks/auth-users'
 import { mockCompanies, mockOffers } from '@/mocks/operator-data'
-import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, LoginRequest, RefreshRequest, SessionResponse, TotpCodeRequest } from '@/types/auth'
+import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, LoginRequest, RefreshRequest, SessionResponse, SetupPasswordRequest, TotpCodeRequest } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, AssignMissionSupervisorRequest, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
@@ -346,6 +346,13 @@ export const handlers = [
     return HttpResponse.json<SessionResponse>({ accessToken: `mock-access-token-${Date.now()}`, refreshToken: `mock-refresh-token-${Date.now()}`, tokenType: 'Bearer', expiresIn: 900 })
   }),
   http.post(api('/auth/logout'), () => new HttpResponse(null, { status: 204 })),
+  // Lien d'invitation fictif : tout jeton est accepté, sauf « expire » pour voir le refus.
+  http.post(api('/auth/password/setup'), async ({ request }) => {
+    const payload = (await request.json()) as SetupPasswordRequest
+    if (!payload.token || payload.token === 'expire') return problem(401, 'PASSWORD_SETUP_TOKEN_INVALID', 'Le lien d’invitation est invalide ou expiré.')
+    if (payload.password === 'Password123') return problem(400, 'PASSWORD_BREACHED', 'Ce mot de passe figure dans une fuite de données connue.')
+    return new HttpResponse(null, { status: 204 })
+  }),
   http.post(api('/auth/step-up'), async ({ request }) => {
     const payload = (await request.json()) as TotpCodeRequest
     if (payload.code !== '123456') return problem(401, 'TOTP_INVALID', 'Le code de vérification est incorrect.')

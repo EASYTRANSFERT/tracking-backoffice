@@ -7,6 +7,7 @@ import type {
   LoginRequest,
   RefreshRequest,
   SessionResponse,
+  SetupPasswordRequest,
   TotpCodeRequest,
 } from '@/types/auth'
 
@@ -49,6 +50,10 @@ export const authService = {
 
   async logout(payload: RefreshRequest): Promise<void> {
     await publicApiClient.post('/auth/logout', payload)
+  },
+
+  async setupPassword(payload: SetupPasswordRequest): Promise<void> {
+    await publicApiClient.post('/auth/password/setup', payload)
   },
 
   async stepUp(

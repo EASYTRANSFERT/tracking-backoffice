@@ -33,3 +33,10 @@ export interface AccessTokenResponse {
   tokenType: string
   expiresIn: number
 }
+
+/** Mot de passe choisi depuis le lien d'invitation reçu par courriel. */
+export interface SetupPasswordRequest {
+  /** Jeton lu dans le lien (?token=), à usage unique et de durée limitée. */
+  token: string
+  password: string
+}
