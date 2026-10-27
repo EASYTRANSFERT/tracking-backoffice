@@ -63,4 +63,9 @@ export const tenantService = {
 
     return response.data
   },
+
+  /** Nouveau lien de choix du mot de passe ; le précédent cesse de valoir. */
+  async resendInvitation(id: string, userId: string): Promise<void> {
+    await apiClient.post(`/platform/tenants/${id}/users/${userId}/invitation`, undefined, { headers: idempotencyHeaders() })
+  },
 }

@@ -416,9 +416,17 @@ export const handlers = [
       status: 'ACTIVE',
       createdAt: timestamp,
       updatedAt: timestamp,
+      // Une adresse contenant « echec » simule un courriel d'invitation qui n'est pas parti.
+      invitationSent: !payload.email?.includes('echec'),
     }
     users.unshift(user)
     return HttpResponse.json(user, { status: 201 })
+  }),
+  http.post(api('/platform/tenants/:id/users/:userId/invitation'), ({ params }) => {
+    const user = users.find((item) => item.id === String(params.userId))
+    if (!user) return problem(404, 'NOT_FOUND', 'Le compte n’existe pas.')
+    if (!user.email) return problem(409, 'PASSWORD_SETUP_NOT_ALLOWED', 'Ce compte n’a pas d’adresse électronique.')
+    return new HttpResponse(null, { status: 202 })
   }),
   http.get(api('/platform/offers'), ({ request }) => HttpResponse.json(page(request, offers))),
   http.post(api('/platform/offers'), async ({ request }) => {

@@ -21,6 +21,8 @@ export interface UserResponse {
   status: ApiUserStatus
   createdAt: string
   updatedAt: string
+  /** Compte back-office : vrai si le courriel d'invitation (choix du mot de passe) est parti. */
+  invitationSent?: boolean
 }
 
 export interface CreateUserRequest {

@@ -8,6 +8,7 @@ import { mockCompanies, mockOffers, mockPlatformActivities, mockSupportIntervent
 import type { OfferResponse, TenantResponse } from '@/types/platform'
 import type { Company, CompanyInput, Offer, OfferInput, SupportIntervention } from '@/types/operator'
 import type { EnterpriseUserInput } from '@/types/administrator'
+import type { UserResponse } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const PAGE_SIZE = 10
@@ -59,6 +60,8 @@ export const useOperatorStore = defineStore('operator', () => {
   const supportInterventions = ref(mockMode ? structuredClone(mockSupportInterventions) : [])
   const isLoading = ref(false)
   const hasLoaded = ref(false)
+  /** Administrateurs créés pendant la session, par entreprise : l'API ne permet pas encore de les relister. */
+  const invitedAdministrators = ref<Record<string, UserResponse[]>>({})
   const canUpdateOffers = computed(() => mockMode)
   const companyNextCursor = ref<string | null>(null)
   const companyCursorHistory = ref<(string | undefined)[]>([])
@@ -213,24 +216,28 @@ export const useOperatorStore = defineStore('operator', () => {
     replaceCompany(mapTenant(await tenantService.activate(id)))
   }
 
+  /**
+   * Premier administrateur d'une entreprise. Il choisit lui-même son mot de passe depuis le lien
+   * reçu par courriel : aucun mot de passe n'est envoyé.
+   */
   async function createCompanyAdministrator(id: string, input: EnterpriseUserInput) {
     const phone = input.phone.replace(/[\s().-]/g, '')
 
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
       throw new Error('Le téléphone doit inclure un indicatif pays, par exemple +225.')
     }
-    if (!input.password || input.password.length < 13) {
-      throw new Error('Le mot de passe temporaire doit contenir au moins 13 caractères.')
-    }
 
-    return tenantService.createUser(id, {
-      //matricule: input.employeeNumber,
-      names: fullName(input),
-      email: input.email,
-      phone,
-      role: 'ADMIN',
-      password: input.password,
-    })
+    const created = await tenantService.createUser(id, { names: fullName(input), email: input.email, phone, role: 'ADMIN' })
+    invitedAdministrators.value = { ...invitedAdministrators.value, [id]: [created, ...(invitedAdministrators.value[id] ?? [])] }
+    return created
+  }
+
+  async function resendAdministratorInvitation(id: string, userId: string) {
+    await tenantService.resendInvitation(id, userId)
+    invitedAdministrators.value = {
+      ...invitedAdministrators.value,
+      [id]: (invitedAdministrators.value[id] ?? []).map((user) => user.id === userId ? { ...user, invitationSent: true } : user),
+    }
   }
 
   async function createOffer(input: OfferInput) {
@@ -260,6 +267,7 @@ export const useOperatorStore = defineStore('operator', () => {
     offers.value = mockMode ? structuredClone(mockOffers) : []
     activities.value = mockMode ? structuredClone(mockPlatformActivities) : []
     supportInterventions.value = mockMode ? structuredClone(mockSupportInterventions) : []
+    invitedAdministrators.value = {}
     companyNextCursor.value = null
     offerNextCursor.value = null
     companyCursorHistory.value = []
@@ -276,7 +284,7 @@ export const useOperatorStore = defineStore('operator', () => {
     getCompanyById, getOfferById, loadCatalog, loadCompany,
     nextCompanyPage, previousCompanyPage, nextOfferPage, previousOfferPage,
     createCompany, updateCompany, suspendCompany, reactivateCompany,
-    createCompanyAdministrator,
+    createCompanyAdministrator, resendAdministratorInvitation, invitedAdministrators,
     createOffer, updateOffer, createSupportIntervention,
     resetData,
   }
