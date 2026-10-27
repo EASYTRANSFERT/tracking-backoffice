@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
+import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import SiteShiftList from '@/Components/sites/SiteShiftList.vue'
@@ -116,6 +117,7 @@ watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { imme
 
         <SiteShiftList :key="site.id" :site="site" :team="team" />
       </template>
+      <AttendanceTable v-if="sites.length" :sites="sites" can-decide />
     </div>
   </div>
 </template>

@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
+import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
 import MissionSupervisorDialog from '@/Components/missions/MissionSupervisorDialog.vue'
@@ -171,7 +172,7 @@ async function closeMission() {
       <div class="h-fit space-y-6">
       <v-card>
         <v-card-title class="flex items-center justify-between gap-3 px-5 py-5">
-          <span>Superviseur</span>
+          <span class="p-3">Superviseur</span>
           <v-btn v-if="mission.status !== 'completed'" variant="tonal" color="primary" size="small" prepend-icon="mdi-account-switch-outline" @click="supervisorDialog = true">{{ mission.supervisorUserId ? 'Changer' : 'Attribuer' }}</v-btn>
         </v-card-title>
         <v-divider />
@@ -191,6 +192,7 @@ async function closeMission() {
       </v-card>
       </div>
     </div>
+    <AttendanceTable v-if="mission && missionSites.length" class="mt-6" :sites="missionSites" />
 
 
     <MissionSupervisorDialog v-model="supervisorDialog" :supervisors="store.supervisors" :current-id="mission?.supervisorUserId" :loading="store.isDirectoryLoading" :saving="isAssigningSupervisor" @confirm="assignSupervisor" />
