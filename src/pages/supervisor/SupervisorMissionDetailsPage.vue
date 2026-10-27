@@ -58,7 +58,7 @@ watch(() => site.value?.teamId, (teamId) => {
 
     <div v-else class="space-y-6">
       <v-card>
-        <v-card-title class="flex items-center justify-between px-6 py-5"><span>Informations de la mission</span><AppStatusChip :status="mission.status" /></v-card-title>
+        <v-card-title class="flex items-center justify-between px-6 py-5"><span class="p-3">Informations de la mission</span><AppStatusChip :status="mission.status" /></v-card-title>
         <v-divider />
         <v-card-text class="grid gap-x-8 gap-y-5 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
           <div><p class="text-xs text-[#848484]">Référence</p><p class="mt-1 font-semibold">{{ mission.code }}</p></div>
