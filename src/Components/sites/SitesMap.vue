@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { nameOr } from '@/utils/people'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as L from 'leaflet'
 
-import type { EnterpriseUser, Site, SiteStatus } from '@/types/administrator'
+import type { Site, SiteStatus } from '@/types/administrator'
 
 const props = defineProps<{
   sites: Site[]
-  users: EnterpriseUser[]
+  supervisorName: (site: Site) => string
 }>()
 
 const emit = defineEmits<{ view: [site: Site] }>()
@@ -45,11 +44,6 @@ function hasValidCoordinates(site: Site) {
   )
 }
 
-function managerName(id?: string) {
-  const user = props.users.find((item) => item.id === id)
-  return nameOr(user)
-}
-
 function createPopup(site: Site) {
   const content = document.createElement('div')
   content.className = 'min-w-[210px] font-sans'
@@ -67,7 +61,7 @@ function createPopup(site: Site) {
 
   const details = document.createElement('p')
   details.className = 'mt-1.5 text-[11px] text-[#747985]'
-  details.textContent = `${managerName(site.managerId)} · ${site.radiusM ?? 100} m`
+  details.textContent = `${props.supervisorName(site)} · ${site.radiusM ?? 100} m`
   content.append(details)
 
   const button = document.createElement('button')
