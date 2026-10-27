@@ -10,12 +10,10 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
 import SiteShiftList from '@/Components/sites/SiteShiftList.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useAssignmentStore } from '@/stores/assignment.store'
-import { useAuthStore } from '@/stores/auth.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
 const route = useRoute()
-const authStore = useAuthStore()
 const store = useSupervisorStore()
 const feedback = useUiFeedbackStore()
 const { isLoading, hasLoaded, teamsById } = storeToRefs(store)
@@ -34,7 +32,6 @@ const leader = computed(() => members.value.find((member) => member.id === team.
 const formatDate = (value?: string) => value
   ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
   : 'Non renseignée'
-const managerLabel = (managerId?: string) => managerId === authStore.currentUser?.id ? 'Vous' : 'Un autre superviseur'
 
 async function load() {
   try {
@@ -88,7 +85,6 @@ watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { imme
             </v-card-title>
             <v-divider />
             <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2">
-              <div><p class="text-xs text-[#848484]">Superviseur du site</p><p class="mt-1 font-semibold">{{ managerLabel(site.managerId) }}</p></div>
               <div><p class="text-xs text-[#848484]">Zone autorisée</p><p class="mt-1 font-medium">{{ site.radiusM ? `${site.radiusM} m autour du périmètre` : 'Non renseignée' }}</p></div>
               <div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-semibold">{{ site.teamId ? team?.name ?? '…' : 'Aucune équipe affectée' }}</p></div>
               <div><p class="text-xs text-[#848484]">Chef d’équipe</p><p class="mt-1 font-semibold">{{ leader ? fullName(leader) : site.teamId ? 'Non désigné' : '—' }}</p></div>

@@ -49,13 +49,12 @@ async function archive() {
   }
 }
 const team = ref<Team>()
-// Le superviseur du site est le compte désigné dans managerId.
-const supervisor = computed(() => store.findUser(site.value?.managerId))
+const supervisor = computed(() => store.findSiteSupervisor(site.value))
 const teamLead = computed(() => store.findUser(team.value?.leadUserId))
 const peopleLoading = ref(false)
 
 // Les noms ne sont pas forcément dans la page d'utilisateurs déjà chargée : on charge ceux qui manquent.
-watch(() => [site.value?.managerId, team.value?.leadUserId], async (ids) => {
+watch(() => [store.siteSupervisorId(site.value), team.value?.leadUserId], async (ids) => {
   peopleLoading.value = true
   try { await store.ensureUsers(ids) } finally { peopleLoading.value = false }
 }, { immediate: true })
@@ -146,7 +145,7 @@ watch(() => site.value?.teamId, async (teamId) => {
       </div>
 
       <div class="space-y-6">
-        <SiteGovernanceCard :supervisor="supervisor" :team-lead="teamLead" :has-team="Boolean(site.teamId)" :loading="peopleLoading" />
+        <SiteGovernanceCard :supervisor="supervisor" :team-lead="teamLead" :has-mission="Boolean(site.missionId)" :has-team="Boolean(site.teamId)" :loading="peopleLoading" />
         <QrCodeCard :site="site" :loading="generatingId === site.id" :printing="printingId === site.id" @print="print" @regenerate="generate" />
       </div>
     </div>

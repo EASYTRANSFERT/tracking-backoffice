@@ -325,6 +325,9 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   const getMissionSites = (missionId: string) => sites.value.filter((site) => site.missionId === missionId)
   /** Sites actifs sans mission, qu'on peut rattacher depuis la page d'une mission. */
+  // Le superviseur appartient à la mission : un site affiche celui de sa mission, jamais son responsibleId (managerId).
+  const siteSupervisorId = (site?: Site) => site?.missionId ? getMissionById(site.missionId)?.supervisorUserId : undefined
+  const findSiteSupervisor = (site?: Site) => findUser(siteSupervisorId(site))
   const sitesWithoutMission = computed(() => sites.value.filter((site) => !site.missionId && site.status !== 'inactive'))
 
   async function attachSitesToMission(missionId: string, siteIds: string[]) {
@@ -341,10 +344,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const loadedIds = new Set(loaded.map((site) => site.id))
     sites.value = [...sites.value.filter((site) => !loadedIds.has(site.id)), ...loaded]
 
-    await Promise.all([
-      loadTeamMemberCounts(loaded.map((site) => site.teamId)),
-      ensureUsers(loaded.map((site) => site.managerId)),
-    ])
+    await loadTeamMemberCounts(loaded.map((site) => site.teamId))
     return loaded
   }
 
@@ -529,7 +529,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, assignMissionSupervisor, openMission, closeMission,
-    teamMemberCounts, loadTeamMemberCounts, listTeamMembers, assignTeamLead, findUser, ensureUsers, knownTeams, findTeam, getMissionSites, loadMissionSites, sitesWithoutMission, attachSitesToMission,
+    teamMemberCounts, loadTeamMemberCounts, listTeamMembers, assignTeamLead, findUser, ensureUsers, knownTeams, findTeam, getMissionSites, loadMissionSites, siteSupervisorId, findSiteSupervisor, sitesWithoutMission, attachSitesToMission,
     teamLeadOptions, loadTeamLeadOptions, createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }
