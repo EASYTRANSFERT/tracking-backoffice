@@ -65,7 +65,7 @@ async function submit() {
   <v-dialog :model-value="modelValue" max-width="640" scrollable @update:model-value="emit('update:modelValue', $event)">
     <v-card v-if="current">
       <v-card-title class="flex items-center justify-between gap-3 px-6 pt-6">
-        <span>Examen du pointage</span>
+        <span class="p-3">Examen du pointage</span>
         <v-chip size="small" variant="tonal" :color="validationConfig[current.validation].color">{{ validationConfig[current.validation].label }}</v-chip>
       </v-card-title>
       <v-card-subtitle class="px-6">{{ store.agentName(current.userId) }} · {{ siteName }}</v-card-subtitle>

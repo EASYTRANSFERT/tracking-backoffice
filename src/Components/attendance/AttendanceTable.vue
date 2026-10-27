@@ -61,8 +61,8 @@ function review(session: WorkSessionResponse) {
         <div><h2 class="text-base font-bold">Pointages</h2><p class="mt-1 text-xs text-[#747985]">{{ canDecide ? 'Examinez les sessions et tranchez celles qui sont à valider.' : 'Sessions de travail des agents sur les sites de la mission.' }}</p></div>
       </div>
       <div class="grid gap-3 sm:grid-cols-2 xl:w-[820px] xl:grid-cols-[auto_1fr_1fr_1fr]">
-        <v-btn-toggle v-model="flagged" mandatory color="primary" variant="outlined" density="comfortable">
-          <v-btn :value="true" prepend-icon="mdi-alert-outline">Avec anomalies</v-btn>
+        <v-btn-toggle v-model="flagged" mandatory color="primary" variant="outlined" density="comfortable" class="gap-3">
+          <v-btn :value="true" prepend-icon="mdi-alert-outline" >Anomalies</v-btn>
           <v-btn :value="false">Toutes</v-btn>
         </v-btn-toggle>
         <v-text-field v-model="query" placeholder="Agent ou site" prepend-inner-icon="mdi-magnify" density="compact" hide-details clearable />
