@@ -5,9 +5,10 @@ import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
 import { teamService } from '@/Services/team.service'
 import { mapMission, mapSite, mapTeam } from '@/stores/mappers'
+import { useAdministratorStore } from '@/stores/administrator.store'
 import { useAuthStore } from '@/stores/auth.store'
 
-import type { Mission, Site, Team } from '@/types/administrator'
+import type { EnterpriseUser, Mission, Site, Team } from '@/types/administrator'
 
 /**
  * Périmètre du superviseur, en lecture seule.
@@ -21,6 +22,9 @@ export const useSupervisorStore = defineStore('supervisor', () => {
   const sites = ref<Site[]>([])
   const missions = ref<Mission[]>([])
   const teamsById = ref<Record<string, Team>>({})
+  /** Agents et chef de l'équipe du site affiché. */
+  const members = ref<EnterpriseUser[]>([])
+  const isMembersLoading = ref(false)
   const isLoading = ref(false)
   const hasLoaded = ref(false)
 
@@ -77,8 +81,24 @@ export const useSupervisorStore = defineStore('supervisor', () => {
     teamsById.value = { ...teamsById.value, ...Object.fromEntries(teams.map((team) => [team.id, team])) }
   }
 
+  let membersTeamId: string | undefined
+  async function loadTeamMembers(teamId?: string) {
+    membersTeamId = teamId
+    members.value = []
+    if (!teamId) return
+    isMembersLoading.value = true
+    try {
+      const loaded = await useAdministratorStore().listTeamMembers(teamId)
+      // Ignore une réponse arrivée après un changement de site.
+      if (membersTeamId === teamId) members.value = loaded
+    } finally {
+      isMembersLoading.value = false
+    }
+  }
+
   function reset() {
     sites.value = []
+    members.value = []
     missions.value = []
     teamsById.value = {}
     hasLoaded.value = false
@@ -86,6 +106,6 @@ export const useSupervisorStore = defineStore('supervisor', () => {
 
   return {
     sites, missions, teamCount, teamsById, isLoading, hasLoaded,
-    siteCountByMission, getMissionById, getMissionSites, loadScope, loadMissionTeams, reset,
+    siteCountByMission, getMissionById, getMissionSites, loadScope, loadMissionTeams, members, isMembersLoading, loadTeamMembers, reset,
   }
 })

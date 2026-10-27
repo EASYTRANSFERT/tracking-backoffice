@@ -8,18 +8,14 @@ import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
-import SiteShiftList from '@/Components/sites/SiteShiftList.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
-import { useAssignmentStore } from '@/stores/assignment.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
 const route = useRoute()
 const store = useSupervisorStore()
 const feedback = useUiFeedbackStore()
-const { isLoading, hasLoaded, teamsById } = storeToRefs(store)
-// Les agents de l'équipe du site affiché sont ceux que charge le planning ci-dessous.
-const { members, isLoading: isMembersLoading } = storeToRefs(useAssignmentStore())
+const { isLoading, hasLoaded, teamsById, members, isMembersLoading } = storeToRefs(store)
 
 const missionId = computed(() => String(route.params.missionId))
 const mission = computed(() => store.getMissionById(missionId.value))
@@ -44,13 +40,16 @@ async function load() {
   }
 }
 watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { immediate: true })
+watch(() => site.value?.teamId, (teamId) => {
+  store.loadTeamMembers(teamId).catch((error) => feedback.error(getApiErrorMessage(error, 'Impossible de charger les agents de ce site.')))
+}, { immediate: true })
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-[1280px]">
     <PageHeader>
       <template #title>{{ mission?.title ?? 'Détail de la mission' }}</template>
-      <template #description>Sites de votre périmètre, leurs équipes, leurs agents et leur planning.</template>
+      <template #description>Sites de votre périmètre, leurs équipes, leurs agents et leurs pointages.</template>
       <template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'supervisor-missions' }">Retour aux missions</v-btn></template>
     </PageHeader>
 
@@ -114,8 +113,6 @@ watch(missionId, () => { selectedSiteId.value = undefined; void load() }, { imme
             <v-card-text v-else-if="!isMembersLoading" class="px-6 py-8 text-center text-sm text-[#747985]">{{ site.teamId ? 'L’équipe n’a pas encore d’agent.' : 'L’administrateur doit affecter une équipe à ce site.' }}</v-card-text>
           </v-card>
         </div>
-
-        <SiteShiftList :key="site.id" :site="site" :team="team" />
       </template>
       <AttendanceTable v-if="sites.length" :sites="sites" can-decide />
     </div>
