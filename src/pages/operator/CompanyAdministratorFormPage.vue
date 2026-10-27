@@ -31,14 +31,11 @@ async function submit(payload: EnterpriseUserInput) {
 
   isLoading.value = true
   try {
-    await store.createCompanyAdministrator(company.value.id, payload)
+    const created = await store.createCompanyAdministrator(company.value.id, payload)
     isDirty.value = false
-    feedback.success('Le compte administrateur a été créé.')
-    await router.push({
-      name: 'company-details',
-      params: { companyId: company.value.id },
-      query: { adminCreated: '1' },
-    })
+    if (created.invitationSent === false) feedback.error('Le compte administrateur a été créé, mais le courriel d’invitation n’est pas parti : renvoyez-le depuis la fiche de l’entreprise.')
+    else feedback.success(`Compte créé : une invitation a été envoyée à ${created.email ?? payload.email}.`)
+    await router.push({ name: 'company-details', params: { companyId: company.value.id } })
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible de créer ce compte administrateur.'))
   } finally {
@@ -75,11 +72,12 @@ async function submit(payload: EnterpriseUserInput) {
         type="info"
         variant="tonal"
         title="Compte d’amorçage"
-        text="Ce compte permettra au premier administrateur de se connecter à l’espace de cette entreprise."
+        text="L’administrateur recevra par courriel un lien pour choisir son mot de passe, puis configurera la double authentification à sa première connexion."
       />
       <UserForm
         :teams="[]"
         fixed-role="administrator"
+        invitation
         title="Compte administrateur"
         description="Identité et accès du premier administrateur de l’entreprise"
         submit-label="Créer le compte administrateur"

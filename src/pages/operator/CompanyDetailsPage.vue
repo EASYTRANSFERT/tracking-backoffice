@@ -21,11 +21,23 @@ const companyId = computed(() => route.params.companyId as string)
 const company = computed(() => store.getCompanyById(companyId.value))
 const offer = computed(() => company.value ? store.getOfferById(company.value.offerId) : undefined)
 const statusDialog = ref(false)
-const showSuccess = ref(route.query.created === '1' || route.query.updated === '1' || route.query.adminCreated === '1')
-const successMessage = computed(() => {
-  if (route.query.adminCreated === '1') return 'Compte administrateur créé avec succès.'
-  return route.query.created === '1' ? 'Entreprise créée avec succès.' : 'Entreprise mise à jour avec succès.'
-})
+const showSuccess = ref(route.query.created === '1' || route.query.updated === '1')
+const successMessage = computed(() => route.query.created === '1' ? 'Entreprise créée avec succès.' : 'Entreprise mise à jour avec succès.')
+// Administrateurs créés pendant cette session : l'API ne permet pas encore de les relister.
+const administrators = computed(() => store.invitedAdministrators[companyId.value] ?? [])
+const resendingId = ref<string>()
+
+async function resendInvitation(userId: string) {
+  resendingId.value = userId
+  try {
+    await store.resendAdministratorInvitation(companyId.value, userId)
+    feedback.success('Invitation renvoyée : le lien précédent ne fonctionne plus.')
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible de renvoyer l’invitation.'))
+  } finally {
+    resendingId.value = undefined
+  }
+}
 const formattedDate = computed(() => company.value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(company.value.createdAt)) : '')
 
 async function updateStatus(reason: string) {
@@ -81,6 +93,17 @@ async function updateStatus(reason: string) {
         <v-col cols="12" lg="4">
           <AppSectionCard title="Offre attribuée" description="Formule actuellement appliquée" icon="mdi-cash-multiple">
             <template v-if="offer"><p class="text-2xl font-bold text-[#252830]">{{ offer.name }}</p><p class="mt-2 text-sm leading-6 text-[#747985]">{{ offer.description }}</p><v-divider class="my-5" /><div class="flex justify-between text-sm"><span class="text-[#747985]">Limite d’agents</span><strong>{{ offer.maxActiveAgents }}</strong></div></template>
+          </AppSectionCard>
+          <AppSectionCard v-if="administrators.length" class="mt-6" title="Administrateurs" description="Comptes créés pendant cette session" icon="mdi-account-key-outline">
+            <div class="space-y-4">
+              <div v-for="admin in administrators" :key="admin.id" class="space-y-2">
+                <div><p class="font-semibold text-[#252830]">{{ admin.names }}</p><p class="text-xs text-[#747985]">{{ admin.email }}</p></div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <v-chip size="small" variant="tonal" :color="admin.invitationSent === false ? 'warning' : 'success'" :prepend-icon="admin.invitationSent === false ? 'mdi-email-alert-outline' : 'mdi-email-check-outline'">{{ admin.invitationSent === false ? 'Invitation non envoyée' : 'Invitation envoyée' }}</v-chip>
+                  <v-btn size="small" variant="text" color="primary" prepend-icon="mdi-email-sync-outline" :loading="resendingId === admin.id" @click="resendInvitation(admin.id)">Renvoyer l’invitation</v-btn>
+                </div>
+              </div>
+            </div>
           </AppSectionCard>
           <v-card class="mt-6 pa-6 text-center"><CompanyStatusIcon :suspended="company.status === 'suspended'" :size="58" /><p class="mt-3 text-sm font-semibold text-[#252830]">{{ company.status === 'suspended' ? 'Accès limités' : 'Services opérationnels' }}</p><p class="mt-1 text-xs leading-5 text-[#747985]">État actuel des services de cette entreprise.</p></v-card>
         </v-col>
