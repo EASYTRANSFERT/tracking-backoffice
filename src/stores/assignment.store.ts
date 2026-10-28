@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { addDays, fromDayKey, startOfWeek } from '@/Components/sites/site-schedule'
 import { assignmentService } from '@/Services/assignment.service'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { listAllPages } from '@/utils/pagination'
 import type { EnterpriseUser } from '@/types/administrator'
 import type { AssignmentResponse, AssignmentSlot } from '@/types/assignment'
 
@@ -39,13 +40,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
     try {
       const from = fromDayKey(nextWeekStart).toISOString()
       const to = fromDayKey(addDays(nextWeekStart, 7)).toISOString()
-      const items: AssignmentResponse[] = []
-      let cursor: string | undefined
-      do {
-        const page = await assignmentService.list({ siteId: nextSiteId, status: 'PLANNED', from, to, cursor, limit: 200 })
-        items.push(...page.items)
-        cursor = page.nextCursor ?? undefined
-      } while (cursor)
+      const items = await listAllPages((page) => assignmentService.list({ ...page, siteId: nextSiteId, status: 'PLANNED', from, to }))
       // Ignore une réponse arrivée après un changement de semaine ou de site.
       if (siteId.value === nextSiteId && weekStart.value === nextWeekStart) assignments.value = items
     } finally {

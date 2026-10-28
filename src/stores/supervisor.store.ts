@@ -8,6 +8,7 @@ import { mapMission, mapSite, mapTeam } from '@/stores/mappers'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useAuthStore } from '@/stores/auth.store'
 
+import { listAllPages } from '@/utils/pagination'
 import type { EnterpriseUser, Mission, Site, Team } from '@/types/administrator'
 
 /**
@@ -63,14 +64,7 @@ export const useSupervisorStore = defineStore('supervisor', () => {
   }
 
   async function listAllMissions(): Promise<Mission[]> {
-    const items: Mission[] = []
-    let cursor: string | undefined
-    do {
-      const page = await missionService.list({ cursor, limit: 200 })
-      items.push(...page.items.map(mapMission))
-      cursor = page.nextCursor ?? undefined
-    } while (cursor)
-    return items
+    return (await listAllPages((page) => missionService.list(page))).map(mapMission)
   }
 
   /** Équipe de chaque site de la mission. Ses agents sont chargés par le planning (assignment.store). */
