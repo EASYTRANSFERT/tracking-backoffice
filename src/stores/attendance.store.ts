@@ -1,19 +1,26 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { checkService } from '@/Services/check.service'
 import { sessionService } from '@/Services/session.service'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { nameOr } from '@/utils/people'
 import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
+import type { CheckResponse } from '@/types/check'
 
 /**
  * Pointages (sessions de travail) des sites d'une mission, partagés par l'administrateur
- * (consultation) et le superviseur (consultation et décision).
+ * (consultation) et le superviseur (consultation et décision), ainsi que les contrôles de présence
+ * de leurs équipes, que tous deux peuvent lancer.
  */
 export const useAttendanceStore = defineStore('attendance', () => {
   const sessions = ref<WorkSessionResponse[]>([])
   const isLoading = ref(false)
   const isDeciding = ref(false)
+  const checks = ref<CheckResponse[]>([])
+  const isChecksLoading = ref(false)
+  /** Équipe dont le contrôle est en cours de lancement. */
+  const triggeringTeamId = ref<string | null>(null)
 
   /** L'API ne renvoie que userId : le nom vient des comptes déjà connus. */
   const agentName = (userId: string) => nameOr(useAdministratorStore().findUser(userId), 'Agent')
@@ -58,9 +65,37 @@ export const useAttendanceStore = defineStore('attendance', () => {
     sessions.value = sessions.value.map((session) => session.id === updated.id ? updated : session)
   }
 
+  // Une requête par équipe, au plus récent d'abord.
+  async function loadTeamChecks(teamIds: string[]) {
+    isChecksLoading.value = true
+    try {
+      const pages = await Promise.all(teamIds.map((teamId) => checkService.list({ teamId, limit: 200 })))
+      checks.value = pages.flatMap((page) => page.items).sort((a, b) => b.dueAt.localeCompare(a.dueAt))
+      await useAdministratorStore().ensureUsers(checks.value.map((check) => check.userId))
+    } finally {
+      isChecksLoading.value = false
+    }
+  }
+
+  /** Un contrôle par agent pointé de l'équipe ; le chef d'équipe y répond depuis l'application. */
+  async function triggerTeamCheck(teamId: string) {
+    triggeringTeamId.value = teamId
+    try {
+      const campaign = await checkService.trigger({ teamId })
+      checks.value = [...campaign.checks, ...checks.value]
+      await useAdministratorStore().ensureUsers(campaign.checks.map((check) => check.userId))
+      return campaign
+    } finally {
+      triggeringTeamId.value = null
+    }
+  }
+
   function reset() {
     sessions.value = []
   }
 
-  return { sessions, isLoading, isDeciding, agentName, loadSiteSessions, loadSession, loadSelfie, decide, reset }
+  return {
+    sessions, isLoading, isDeciding, agentName, loadSiteSessions, loadSession, loadSelfie, decide, reset,
+    checks, isChecksLoading, triggeringTeamId, loadTeamChecks, triggerTeamCheck,
+  }
 })

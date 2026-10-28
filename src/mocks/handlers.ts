@@ -12,6 +12,7 @@ import type { AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequ
 import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
 import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
 import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
+import type { CheckResponse, TriggerCheckRequest } from '@/types/check'
 import type { AssignTeamLeadRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -144,6 +145,13 @@ const sessions: WorkSessionResponse[] = [
   mockSession(4, 'user-7', 'site-2', 1, '22:05', '06:00', { lateMin: 5, flags: ['MOCK_POSITION'], validation: 'REJECTED', validatedBy: 'user-2', validatedAt: '2026-10-20T09:00:00.000Z' }),
   mockSession(5, 'user-4', 'site-1', 2, '07:01', null, { flags: ['CLOCK_DRIFT'] }),
 ]
+
+// Contrôles de présence fictifs : un contrôle passé déjà confirmé, les suivants naissent du bouton « Lancer un contrôle ».
+const checks: CheckResponse[] = [
+  { id: 'chk_mock_1', campaignId: 'ccp_mock_1', teamId: 'team-1', sessionId: 'ses_mock_1', userId: 'user-4', dueAt: '2026-10-26T10:00:00.000Z', deadlineAt: '2026-10-26T10:15:00.000Z', result: 'ANSWERED', answeredAt: '2026-10-26T10:06:00.000Z', attestedBy: 'user-3', remote: false, triggeredBy: 'user-2' },
+  { id: 'chk_mock_2', campaignId: 'ccp_mock_1', teamId: 'team-1', sessionId: 'ses_mock_2', userId: 'user-3', dueAt: '2026-10-26T10:00:00.000Z', deadlineAt: '2026-10-26T10:15:00.000Z', result: 'MISSED', remote: false, triggeredBy: 'user-2' },
+]
+const lastCheckByTeam: Record<string, number> = {}
 
 function assignmentProblem(status: number, code: string, detail: string, location: { userId?: string; slotIndex?: number } = {}) {
   return HttpResponse.json({ title: code, status, detail, code, ...location }, { status, headers: { 'Content-Type': 'application/problem+json' } })
@@ -651,6 +659,33 @@ export const handlers = [
     if (users.some((user) => user.teamId === id)) return problem(409, 'TEAM_NOT_EMPTY', "Cette équipe contient encore des utilisateurs.")
     teams = teams.filter((item) => item.id !== id)
     return new HttpResponse(null, { status: 204 })
+  }),
+  http.get(api('/checks'), ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const filtered = checks
+      .filter((check) => (['teamId', 'campaignId', 'userId', 'result'] as const).every((key) => !params.get(key) || check[key] === params.get(key)))
+      .sort((a, b) => b.dueAt.localeCompare(a.dueAt))
+    return HttpResponse.json(page(request, filtered))
+  }),
+  http.post(api('/checks/trigger'), async ({ request }) => {
+    const { teamId } = (await request.json()) as TriggerCheckRequest
+    const team = teams.find((item) => item.id === teamId)
+    if (!team) return problem(404, 'NOT_FOUND', 'L’équipe n’existe pas ou sort du périmètre.')
+    if (!team.leadUserId) return problem(409, 'CHECK_TEAM_WITHOUT_LEAD', 'L’équipe n’a pas de chef d’équipe.')
+    if (Date.now() - (lastCheckByTeam[teamId] ?? 0) < 60 * 60_000) return problem(429, 'CHECK_TRIGGER_RATE_LIMITED', 'Un contrôle a déjà été lancé pour cette équipe.')
+    const teamSiteIds = new Set(sites.filter((site) => site.teamId === teamId).map((site) => site.id))
+    const open = sessions.filter((session) => teamSiteIds.has(session.siteId) && session.status === 'OPEN')
+    if (!open.length) return problem(409, 'CHECK_NO_OPEN_SESSION', 'Aucun agent de l’équipe n’est en session ouverte.')
+    lastCheckByTeam[teamId] = Date.now()
+    const campaignId = `ccp_${Date.now()}`
+    const dueAt = now()
+    const deadlineAt = new Date(Date.now() + 15 * 60_000).toISOString()
+    const created: CheckResponse[] = open.map((session, index) => ({
+      id: `chk_${Date.now()}_${index}`, campaignId, teamId, sessionId: session.id, userId: session.userId,
+      dueAt, deadlineAt, result: 'PENDING', remote: false, triggeredBy: 'user-2',
+    }))
+    checks.unshift(...created)
+    return HttpResponse.json({ campaignId, teamId, dueAt, deadlineAt, checks: created }, { status: 201 })
   }),
   http.get(api('/sessions'), ({ request }) => {
     const params = new URL(request.url).searchParams
