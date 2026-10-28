@@ -17,6 +17,8 @@ const authStore = useAuthStore()
 const store = useSupervisorStore()
 const feedback = useUiFeedbackStore()
 const { missions, sites, teamCount, isLoading } = storeToRefs(store)
+// Entreprise du superviseur, chargée à la connexion (GET /platform/tenants/{id} avec le tid du jeton).
+const { tenant } = storeToRefs(authStore)
 
 const firstName = computed(() => authStore.currentUser?.names.split(/\s+/)[0] ?? 'Utilisateur')
 const countByStatus = (status: Mission['status']) => missions.value.filter((mission) => mission.status === status).length
@@ -33,7 +35,10 @@ const viewMission = (mission: Mission) => router.push({ name: 'supervisor-missio
   <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
       <template #title>Bonjour {{ firstName }}</template>
-      <template #description>Suivez vos missions, leurs équipes et leurs agents.</template>
+      <template #description>
+        <span v-if="tenant" class="mr-2 inline-flex items-center gap-1 font-semibold text-[#292d38]"><v-icon icon="mdi-domain" size="16" color="primary" />{{ tenant.name }}</span>
+        Suivez vos missions, leurs équipes et leurs agents.
+      </template>
       <template #actions><span /></template>
     </PageHeader>
 
