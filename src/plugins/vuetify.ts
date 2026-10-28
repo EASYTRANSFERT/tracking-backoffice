@@ -66,6 +66,11 @@ export default createVuetify({
       scrollable: true,
     },
 
+    // En-tête figé : avec beaucoup de lignes, c'est le tableau qui défile (hauteur bornée dans main.css).
+    VTable: {
+      fixedHeader: true,
+    },
+
     VChip: {
       rounded: 'xl',
       size: 'small',

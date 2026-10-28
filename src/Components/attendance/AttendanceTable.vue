@@ -39,7 +39,8 @@ const teams = computed(() => [...new Set(props.sites.map((site) => site.teamId).
   .map((id) => ({ id, name: props.teamName?.(id) ?? props.sites.filter((site) => site.teamId === id).map((site) => site.name).join(', ') })))
 // Avec un seul site, la colonne Site répéterait le même nom sur chaque ligne.
 const showSite = computed(() => props.sites.length > 1)
-const checkOf = (session: WorkSessionResponse) => store.latestCheckBySession.get(session.id)
+// Dernier contrôle de la session ; l'historique complet est dans l'examen du pointage.
+const checkOf = (session: WorkSessionResponse) => store.checksBySession.get(session.id)?.[0]
 
 const filtered = computed(() => store.sessions.filter((session) =>
   matchesSearch(query.value, store.agentName(session.userId), siteName(session.siteId)) &&
@@ -102,8 +103,8 @@ function review(session: WorkSessionResponse) {
     <v-divider />
     <v-progress-linear v-if="store.isLoading" indeterminate color="primary" />
 
-    <div v-if="filtered.length" class="overflow-x-auto">
-      <v-table hover :class="showSite ? 'min-w-[1080px]' : 'min-w-[960px]'">
+    <div v-if="filtered.length">
+      <v-table hover :class="showSite ? '[&_table]:min-w-[1080px]' : '[&_table]:min-w-[960px]'">
         <thead><tr><th>Agent</th><th v-if="showSite">Site</th><th>Entrée</th><th>Sortie</th><th>Durée</th><th>Anomalies</th><th>Contrôle</th><th>Décision</th><th class="text-right">Action</th></tr></thead>
         <tbody>
           <tr v-for="session in displayed" :key="session.id" class="cursor-pointer" @click="review(session)">
@@ -120,7 +121,13 @@ function review(session: WorkSessionResponse) {
               <span v-else class="text-xs text-[#848484]">Aucune</span>
             </td>
             <td>
-              <v-chip v-if="checkOf(session)" size="small" variant="tonal" :color="checkResultConfig[checkOf(session)!.result].color" :prepend-icon="checkResultConfig[checkOf(session)!.result].icon" :title="`Contrôle lancé le ${formatDateTime(checkOf(session)!.dueAt)}, échéance ${formatDateTime(checkOf(session)!.deadlineAt)}`">{{ checkResultConfig[checkOf(session)!.result].label }}</v-chip>
+              <template v-if="checkOf(session)">
+                <div class="flex items-center gap-1">
+                  <v-chip size="small" variant="tonal" :color="checkResultConfig[checkOf(session)!.result].color" :prepend-icon="checkResultConfig[checkOf(session)!.result].icon">{{ checkResultConfig[checkOf(session)!.result].label }}</v-chip>
+                  <v-icon v-if="checkOf(session)!.remote" icon="mdi-map-marker-off-outline" size="16" color="warning" title="Réponse à distance : le chef d’équipe n’était pas sur le site." />
+                </div>
+                <span class="mt-1 block whitespace-nowrap text-xs text-[#848484]">{{ checkOf(session)!.triggeredBy ? `par ${store.agentName(checkOf(session)!.triggeredBy!, 'Utilisateur')} · ` : '' }}{{ formatDateTime(checkOf(session)!.dueAt) }}</span>
+              </template>
               <span v-else class="text-xs text-[#848484]">—</span>
             </td>
             <td><v-chip size="small" :color="validationConfig[session.validation].color" variant="tonal">{{ validationConfig[session.validation].label }}</v-chip></td>

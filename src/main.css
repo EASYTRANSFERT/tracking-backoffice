@@ -27,3 +27,11 @@
     color: var(--color-kaybic-ink);
   }
 }
+
+@layer components {
+  /* Un tableau trop long ou trop large défile sur lui-même, sans allonger ni élargir la page. */
+  .v-table > .v-table__wrapper {
+    max-height: 560px;
+    overflow: auto;
+  }
+}
