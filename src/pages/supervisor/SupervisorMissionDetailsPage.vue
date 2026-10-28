@@ -6,8 +6,6 @@ import { useRoute } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
-import TeamCheckTable from '@/Components/attendance/TeamCheckTable.vue'
-import { useTeamCheck } from '@/composables/useTeamCheck'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -28,7 +26,7 @@ const site = computed(() => sites.value.find((item) => item.id === selectedSiteI
 const team = computed(() => site.value?.teamId ? teamsById.value[site.value.teamId] : undefined)
 // Un contrôle de présence ne vise que des agents pointés : il n'a de sens que mission en cours.
 const canTriggerCheck = computed(() => mission.value?.status === 'ongoing')
-const { triggeringTeamId, trigger: triggerCheck } = useTeamCheck()
+const teamName = (teamId: string) => teamsById.value[teamId]?.name ?? 'Équipe'
 const leader = computed(() => members.value.find((member) => member.id === team.value?.leadUserId))
 
 const formatDate = (value?: string) => value
@@ -94,12 +92,6 @@ watch(() => site.value?.teamId, (teamId) => {
               <div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-semibold">{{ site.teamId ? team?.name ?? '…' : 'Aucune équipe affectée' }}</p></div>
               <div><p class="text-xs text-[#848484]">Chef d’équipe</p><p class="mt-1 font-semibold">{{ leader ? fullName(leader) : site.teamId ? 'Non désigné' : '—' }}</p></div>
             </v-card-text>
-            <template v-if="canTriggerCheck && site.teamId">
-              <v-divider />
-              <v-card-actions class="px-6 py-4">
-                <v-btn variant="tonal" color="primary" prepend-icon="mdi-account-check-outline" :loading="triggeringTeamId === site.teamId" @click="triggerCheck(site.teamId, team?.name ?? 'Équipe')">Lancer un contrôle</v-btn>
-              </v-card-actions>
-            </template>
           </v-card>
 
           <v-card>
@@ -125,8 +117,7 @@ watch(() => site.value?.teamId, (teamId) => {
           </v-card>
         </div>
       </template>
-      <AttendanceTable v-if="sites.length" :sites="sites" can-decide />
-      <TeamCheckTable v-if="sites.length" :sites="sites" />
+      <AttendanceTable v-if="sites.length" :sites="sites" can-decide :can-check="canTriggerCheck" :team-name="teamName" />
     </div>
   </div>
 </template>
