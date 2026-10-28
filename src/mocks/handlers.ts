@@ -148,7 +148,7 @@ const sessions: WorkSessionResponse[] = [
 
 // Contrôles de présence fictifs : un contrôle passé déjà confirmé, les suivants naissent du bouton « Lancer un contrôle ».
 const checks: CheckResponse[] = [
-  { id: 'chk_mock_1', campaignId: 'ccp_mock_1', teamId: 'team-1', sessionId: 'ses_mock_1', userId: 'user-4', dueAt: '2026-10-26T10:00:00.000Z', deadlineAt: '2026-10-26T10:15:00.000Z', result: 'ANSWERED', answeredAt: '2026-10-26T10:06:00.000Z', attestedBy: 'user-3', remote: false, triggeredBy: 'user-2' },
+  { id: 'chk_mock_1', campaignId: 'ccp_mock_1', teamId: 'team-1', sessionId: 'ses_mock_1', userId: 'user-4', dueAt: '2026-10-26T10:00:00.000Z', deadlineAt: '2026-10-26T10:15:00.000Z', result: 'ANSWERED', answeredAt: '2026-10-26T10:06:00.000Z', attestedBy: 'user-3', remote: true, triggeredBy: 'user-2' },
   { id: 'chk_mock_2', campaignId: 'ccp_mock_1', teamId: 'team-1', sessionId: 'ses_mock_2', userId: 'user-3', dueAt: '2026-10-26T10:00:00.000Z', deadlineAt: '2026-10-26T10:15:00.000Z', result: 'MISSED', remote: false, triggeredBy: 'user-2' },
 ]
 const lastCheckByTeam: Record<string, number> = {}
@@ -666,6 +666,12 @@ export const handlers = [
       .filter((check) => (['teamId', 'campaignId', 'userId', 'result'] as const).every((key) => !params.get(key) || check[key] === params.get(key)))
       .sort((a, b) => b.dueAt.localeCompare(a.dueAt))
     return HttpResponse.json(page(request, filtered))
+  }),
+  http.get(api('/checks/:id/selfie'), ({ params }) => {
+    const check = checks.find((item) => item.id === String(params.id))
+    if (!check) return problem(404, 'NOT_FOUND', 'Contrôle introuvable ou hors périmètre.')
+    if (check.result !== 'ANSWERED') return problem(404, 'CHECK_SELFIE_UNAVAILABLE', 'Aucun selfie rattaché à ce contrôle.')
+    return HttpResponse.json({ url: '/kaybiclogo.png', expiresIn: 300 })
   }),
   http.post(api('/checks/trigger'), async ({ request }) => {
     const { teamId } = (await request.json()) as TriggerCheckRequest

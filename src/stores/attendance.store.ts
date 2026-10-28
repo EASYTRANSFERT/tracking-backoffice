@@ -20,17 +20,19 @@ export const useAttendanceStore = defineStore('attendance', () => {
   const isDeciding = ref(false)
   const checks = ref<CheckResponse[]>([])
   const isChecksLoading = ref(false)
-  /** Dernier contrôle de chaque session : checks est trié du plus récent au plus ancien. */
-  const latestCheckBySession = computed(() => {
-    const latest = new Map<string, CheckResponse>()
-    for (const check of checks.value) if (!latest.has(check.sessionId)) latest.set(check.sessionId, check)
-    return latest
+  /** Contrôles de chaque session, du plus récent au plus ancien (checks est déjà trié ainsi). */
+  const checksBySession = computed(() => {
+    const bySession = new Map<string, CheckResponse[]>()
+    for (const check of checks.value) bySession.set(check.sessionId, [...(bySession.get(check.sessionId) ?? []), check])
+    return bySession
   })
   /** Équipe dont le contrôle est en cours de lancement. */
   const triggeringTeamId = ref<string | null>(null)
 
-  /** L'API ne renvoie que userId : le nom vient des comptes déjà connus. */
-  const agentName = (userId: string) => nameOr(useAdministratorStore().findUser(userId), 'Agent')
+  /** L'API ne renvoie que des identifiants : le nom vient des comptes déjà connus. */
+  const agentName = (userId: string, fallback = 'Agent') => nameOr(useAdministratorStore().findUser(userId), fallback)
+  // Agents contrôlés, auteurs des contrôles et chefs d'équipe qui y ont répondu.
+  const checkPeople = (list: CheckResponse[]) => list.flatMap((check) => [check.userId, check.triggeredBy, check.attestedBy])
 
   // L'API ne filtre pas par mission : toutes les pages de chaque site, au plus récent d'abord.
   async function loadSiteSessions(siteIds: string[], flagged: boolean) {
@@ -78,10 +80,15 @@ export const useAttendanceStore = defineStore('attendance', () => {
     try {
       const perTeam = await Promise.all(teamIds.map((teamId) => listAllPages((page) => checkService.list({ ...page, teamId }))))
       checks.value = perTeam.flat().sort((a, b) => b.dueAt.localeCompare(a.dueAt))
-      await useAdministratorStore().ensureUsers(checks.value.map((check) => check.userId))
+      await useAdministratorStore().ensureUsers(checkPeople(checks.value))
     } finally {
       isChecksLoading.value = false
     }
+  }
+
+  /** Selfie d'un contrôle répondu ; lien signé valable 5 minutes, chaque appel est journalisé. */
+  async function loadCheckSelfie(checkId: string) {
+    return (await checkService.getSelfie(checkId)).url
   }
 
   /** Un contrôle par agent pointé de l'équipe ; le chef d'équipe y répond depuis l'application. */
@@ -90,7 +97,7 @@ export const useAttendanceStore = defineStore('attendance', () => {
     try {
       const campaign = await checkService.trigger({ teamId })
       checks.value = [...campaign.checks, ...checks.value]
-      await useAdministratorStore().ensureUsers(campaign.checks.map((check) => check.userId))
+      await useAdministratorStore().ensureUsers(checkPeople(campaign.checks))
       return campaign
     } finally {
       triggeringTeamId.value = null
@@ -103,6 +110,6 @@ export const useAttendanceStore = defineStore('attendance', () => {
 
   return {
     sessions, isLoading, isDeciding, agentName, loadSiteSessions, loadSession, loadSelfie, decide, reset,
-    checks, latestCheckBySession, isChecksLoading, triggeringTeamId, loadTeamChecks, triggerTeamCheck,
+    checks, checksBySession, isChecksLoading, triggeringTeamId, loadTeamChecks, loadCheckSelfie, triggerTeamCheck,
   }
 })

@@ -22,6 +22,13 @@ export interface CheckResponse {
   triggeredBy?: string
 }
 
+/** Selfie pris par le chef d'équipe en réponse au contrôle. */
+export interface CheckSelfieResponse {
+  /** URL signée, valable 5 minutes. */
+  url: string
+  expiresIn: number
+}
+
 export interface TriggerCheckRequest {
   teamId: string
 }
