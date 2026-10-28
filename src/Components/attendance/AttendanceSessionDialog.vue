@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
-import { flagLabels, formatDateTime, formatMinutes, isDecidable, statusLabels, validationConfig } from '@/Components/attendance/attendance-labels'
+import { checkResultConfig, flagLabels, formatDateTime, formatMinutes, isDecidable, statusLabels, validationConfig } from '@/Components/attendance/attendance-labels'
 import { useAttendanceStore } from '@/stores/attendance.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -27,6 +27,7 @@ const isSelfieLoading = ref(false)
 
 // La liste peut dater : on relit la session à l'ouverture (GET /sessions/{id}).
 const current = computed(() => store.sessions.find((item) => item.id === props.session?.id) ?? props.session)
+const check = computed(() => current.value ? store.latestCheckBySession.get(current.value.id) : undefined)
 const showDecision = computed(() => props.canDecide && current.value && isDecidable(current.value))
 const canSubmit = computed(() => decision.value === 'VALIDATE' || reason.value.trim().length >= 3)
 
@@ -77,6 +78,7 @@ async function submit() {
           <div><p class="text-xs text-[#848484]">Durée travaillée</p><p class="mt-1 font-medium">{{ formatMinutes(current.minutes) }}</p></div>
           <div><p class="text-xs text-[#848484]">Retard</p><p class="mt-1 font-medium">{{ current.lateMin ? formatMinutes(current.lateMin) : 'Aucun' }}</p></div>
           <div><p class="text-xs text-[#848484]">Départ anticipé</p><p class="mt-1 font-medium">{{ current.earlyMin ? formatMinutes(current.earlyMin) : 'Aucun' }}</p></div>
+          <div v-if="check" class="sm:col-span-3"><p class="text-xs text-[#848484]">Contrôle de présence</p><p class="mt-1 font-medium">{{ checkResultConfig[check.result].label }} · lancé le {{ formatDateTime(check.dueAt) }}<template v-if="check.answeredAt">, réponse le {{ formatDateTime(check.answeredAt) }}<template v-if="check.remote"> (à distance)</template></template><template v-else>, échéance {{ formatDateTime(check.deadlineAt) }}</template></p></div>
           <div v-if="current.validatedAt" class="sm:col-span-3"><p class="text-xs text-[#848484]">Décision</p><p class="mt-1 font-medium">{{ validationConfig[current.validation].label }} le {{ formatDateTime(current.validatedAt) }}<template v-if="current.validatedBy"> par {{ store.agentName(current.validatedBy) }}</template></p></div>
         </div>
 

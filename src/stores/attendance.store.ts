@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { checkService } from '@/Services/check.service'
@@ -19,6 +19,12 @@ export const useAttendanceStore = defineStore('attendance', () => {
   const isDeciding = ref(false)
   const checks = ref<CheckResponse[]>([])
   const isChecksLoading = ref(false)
+  /** Dernier contrôle de chaque session : checks est trié du plus récent au plus ancien. */
+  const latestCheckBySession = computed(() => {
+    const latest = new Map<string, CheckResponse>()
+    for (const check of checks.value) if (!latest.has(check.sessionId)) latest.set(check.sessionId, check)
+    return latest
+  })
   /** Équipe dont le contrôle est en cours de lancement. */
   const triggeringTeamId = ref<string | null>(null)
 
@@ -96,6 +102,6 @@ export const useAttendanceStore = defineStore('attendance', () => {
 
   return {
     sessions, isLoading, isDeciding, agentName, loadSiteSessions, loadSession, loadSelfie, decide, reset,
-    checks, isChecksLoading, triggeringTeamId, loadTeamChecks, triggerTeamCheck,
+    checks, latestCheckBySession, isChecksLoading, triggeringTeamId, loadTeamChecks, triggerTeamCheck,
   }
 })
