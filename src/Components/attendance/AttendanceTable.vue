@@ -52,6 +52,8 @@ const displayed = computed(() => filtered.value.slice(start.value, start.value +
 const validationItems = [{ title: 'Toutes les décisions', value: 'all' }, ...Object.entries(validationConfig).map(([value, config]) => ({ title: config.label, value }))]
 
 watch([query, validation, date], () => { page.value = 1 })
+// Une décision ou un rechargement peut raccourcir la liste : on ne reste pas sur une page devenue vide.
+watch(pageCount, (count) => { if (page.value > count) page.value = count })
 watch([siteIds, flagged], async ([ids]) => {
   page.value = 1
   if (!ids.length) { store.reset(); return }

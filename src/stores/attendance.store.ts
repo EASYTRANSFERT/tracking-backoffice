@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { checkService } from '@/Services/check.service'
 import { sessionService } from '@/Services/session.service'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { listAllPages } from '@/utils/pagination'
 import { nameOr } from '@/utils/people'
 import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
 import type { CheckResponse } from '@/types/check'
@@ -31,12 +32,12 @@ export const useAttendanceStore = defineStore('attendance', () => {
   /** L'API ne renvoie que userId : le nom vient des comptes déjà connus. */
   const agentName = (userId: string) => nameOr(useAdministratorStore().findUser(userId), 'Agent')
 
-  // L'API ne filtre pas par mission : une requête par site, au plus récent d'abord.
+  // L'API ne filtre pas par mission : toutes les pages de chaque site, au plus récent d'abord.
   async function loadSiteSessions(siteIds: string[], flagged: boolean) {
     isLoading.value = true
     try {
-      const pages = await Promise.all(siteIds.map((siteId) => sessionService.list({ siteId, flagged: flagged || undefined, limit: 200 })))
-      sessions.value = pages.flatMap((page) => page.items).sort((a, b) => b.inAt.localeCompare(a.inAt))
+      const perSite = await Promise.all(siteIds.map((siteId) => listAllPages((page) => sessionService.list({ ...page, siteId, flagged: flagged || undefined }))))
+      sessions.value = perSite.flat().sort((a, b) => b.inAt.localeCompare(a.inAt))
       await useAdministratorStore().ensureUsers(sessions.value.map((session) => session.userId))
     } finally {
       isLoading.value = false
@@ -71,12 +72,12 @@ export const useAttendanceStore = defineStore('attendance', () => {
     sessions.value = sessions.value.map((session) => session.id === updated.id ? updated : session)
   }
 
-  // Une requête par équipe, au plus récent d'abord.
+  // Toutes les pages de chaque équipe, au plus récent d'abord.
   async function loadTeamChecks(teamIds: string[]) {
     isChecksLoading.value = true
     try {
-      const pages = await Promise.all(teamIds.map((teamId) => checkService.list({ teamId, limit: 200 })))
-      checks.value = pages.flatMap((page) => page.items).sort((a, b) => b.dueAt.localeCompare(a.dueAt))
+      const perTeam = await Promise.all(teamIds.map((teamId) => listAllPages((page) => checkService.list({ ...page, teamId }))))
+      checks.value = perTeam.flat().sort((a, b) => b.dueAt.localeCompare(a.dueAt))
       await useAdministratorStore().ensureUsers(checks.value.map((check) => check.userId))
     } finally {
       isChecksLoading.value = false
