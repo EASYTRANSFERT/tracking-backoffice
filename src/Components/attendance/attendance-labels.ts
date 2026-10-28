@@ -1,3 +1,4 @@
+import type { ApiCheckResult } from '@/types/check'
 import type { ApiSessionStatus, ApiSessionValidation, SessionFlag, WorkSessionResponse } from '@/types/attendance'
 
 /** Libellés français des pointages, partagés par la liste et l'examen d'une session. */
@@ -41,4 +42,11 @@ export const formatMinutes = (value?: number) => {
   const hours = Math.floor(value / 60)
   const minutes = Math.round(value % 60)
   return hours ? `${hours} h ${String(minutes).padStart(2, '0')}` : `${minutes} min`
+}
+
+export const checkResultConfig: Record<ApiCheckResult, { label: string; color: string; icon: string }> = {
+  PENDING: { label: 'En attente', color: 'warning', icon: 'mdi-timer-sand' },
+  ANSWERED: { label: 'Présent', color: 'success', icon: 'mdi-check-circle-outline' },
+  MISSED: { label: 'Sans réponse', color: 'error', icon: 'mdi-alarm-off' },
+  ABSENT: { label: 'Absent', color: 'error', icon: 'mdi-account-off-outline' },
 }

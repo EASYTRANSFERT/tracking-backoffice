@@ -5,6 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
+import TeamCheckTable from '@/Components/attendance/TeamCheckTable.vue'
+import { useTeamCheck } from '@/composables/useTeamCheck'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
 import MissionSupervisorDialog from '@/Components/missions/MissionSupervisorDialog.vue'
@@ -39,6 +41,9 @@ async function assignSupervisor(supervisorUserId: string) {
 }
 const isSitesLoading = ref(false)
 // L'API refuse d'ajouter un site à une mission terminée ou annulée (MISSION_STATUS_CONFLICT).
+// Un contrôle de présence ne vise que des agents pointés : il n'a de sens que mission en cours.
+const canTriggerCheck = computed(() => mission.value?.status === 'ongoing')
+const { triggeringTeamId, trigger: triggerCheck } = useTeamCheck()
 const canAddSite = computed(() => mission.value?.status === 'scheduled' || mission.value?.status === 'ongoing')
 const teamName = (teamId?: string) => {
   const team = teamId ? store.teamOptions.find((item) => item.id === teamId) ?? store.getTeamById(teamId) : undefined
@@ -151,13 +156,14 @@ async function closeMission() {
           <v-progress-linear v-if="isSitesLoading" indeterminate color="primary" />
           <div v-if="missionSites.length" class="overflow-x-auto">
             <v-table hover class="min-w-[640px]">
-              <thead><tr><th>Site</th><th>Équipe</th><th>Agents</th><th>Statut</th></tr></thead>
+              <thead><tr><th>Site</th><th>Équipe</th><th>Agents</th><th>Statut</th><th v-if="canTriggerCheck" class="text-right">Contrôle</th></tr></thead>
               <tbody>
                 <tr v-for="site in missionSites" :key="site.id" class="cursor-pointer" @click="openSite(site.id)">
                   <td><p class="font-semibold text-[#292d38]">{{ site.name }}</p><p class="text-xs text-[#848484]">{{ [site.address, site.city].filter(Boolean).join(', ') || 'Adresse à compléter' }}</p></td>
                   <td class="text-sm text-[#535865]">{{ teamName(site.teamId) }}</td>
                   <td class="text-sm text-[#535865]">{{ memberCount(site.teamId) }}</td>
                   <td><AppStatusChip :status="site.status" /></td>
+                  <td v-if="canTriggerCheck" class="text-right" @click.stop><v-btn v-if="site.teamId" size="small" variant="tonal" color="primary" prepend-icon="mdi-account-check-outline" :loading="triggeringTeamId === site.teamId" @click="triggerCheck(site.teamId, teamName(site.teamId))">Lancer un contrôle</v-btn></td>
                 </tr>
               </tbody>
             </v-table>
@@ -193,6 +199,7 @@ async function closeMission() {
       </div>
     </div>
     <AttendanceTable v-if="mission && missionSites.length" class="mt-6" :sites="missionSites" />
+    <TeamCheckTable v-if="mission && missionSites.length" class="mt-6" :sites="missionSites" />
 
 
     <MissionSupervisorDialog v-model="supervisorDialog" :supervisors="store.supervisors" :current-id="mission?.supervisorUserId" :loading="store.isDirectoryLoading" :saving="isAssigningSupervisor" @confirm="assignSupervisor" />
