@@ -10,6 +10,7 @@ import { mapMission, mapSite, mapTeam, mapUser, roleToApi, toArea } from '@/stor
 import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
 import { useAuthStore } from '@/stores/auth.store'
 import { readRejectedImportReport } from '@/utils/matricule-import'
+import { listAllPages } from '@/utils/pagination'
 import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteCoordinate, SiteResponse, UpdateSiteRequest } from '@/types/site'
@@ -17,7 +18,6 @@ import type { TeamResponse } from '@/types/team'
 import type { MatriculeImportReport } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
-const PAGE_SIZE = 10
 const sameArea = (a: SiteCoordinate[], b: SiteCoordinate[]) => JSON.stringify(toArea(a)) === JSON.stringify(toArea(b))
 
 function toIso(value?: string) {
@@ -101,29 +101,20 @@ export const useAdministratorStore = defineStore('administrator', () => {
   /** Équipes connues : la page affichée et la liste complète des choix (teamOptions). */
   const knownTeams = computed(() => [...new Map([...teams.value, ...teamOptions.value].map((team) => [team.id, team])).values()])
   const findTeam = (id?: string | null) => id ? knownTeams.value.find((team) => team.id === id) : undefined
-  const userNextCursor = ref<string | null>(null)
-  const userCursorHistory = ref<(string | undefined)[]>([])
-  const userPage = ref(1)
-  const teamNextCursor = ref<string | null>(null)
-  const teamCursorHistory = ref<(string | undefined)[]>([])
-  const teamPage = ref(1)
 
   async function loadDirectory(force = false) {
     if (hasLoadedDirectory.value && !force) return
     isDirectoryLoading.value = true
     try {
-      const [userPage, teamPage, supervisorPage] = await Promise.all([
-        userService.list({ limit: PAGE_SIZE }),
-        teamService.list({ limit: PAGE_SIZE }),
+      // Toutes les pages : la recherche et les filtres des tableaux portent sur l'ensemble, pas sur la seule page chargée.
+      const [allUsers, allTeams, supervisorPage] = await Promise.all([
+        listAllPages((page) => userService.list(page)),
+        listAllPages((page) => teamService.list(page)),
         userService.list({ limit: 200, role: 'SUPERVISOR', status: 'ACTIVE' }),
       ])
-      users.value = userPage.items.map(mapUser)
-      teams.value = teamPage.items.map(mapTeam)
+      users.value = allUsers.map(mapUser)
+      teams.value = allTeams.map(mapTeam)
       supervisors.value = supervisorPage.items.map(mapUser)
-      userNextCursor.value = userPage.nextCursor ?? null
-      teamNextCursor.value = teamPage.nextCursor ?? null
-      userCursorHistory.value = []
-      teamCursorHistory.value = []
       hasLoadedDirectory.value = true
     } finally {
       isDirectoryLoading.value = false
@@ -148,44 +139,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const mission = mapMission(await missionService.findOne(id))
     replaceMission(mission)
     return mission
-  }
-
-  async function loadUserPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
-    isDirectoryLoading.value = true
-    try {
-      const result = await userService.list({ cursor, limit: PAGE_SIZE })
-      users.value = result.items.map(mapUser)
-      userNextCursor.value = result.nextCursor ?? null
-      if (direction === 'next') { userCursorHistory.value.push(cursor); userPage.value += 1 }
-      else if (direction === 'previous') userPage.value = Math.max(1, userPage.value - 1)
-      else { userCursorHistory.value = []; userPage.value = 1 }
-    } finally { isDirectoryLoading.value = false }
-  }
-
-  async function nextUserPage() { if (userNextCursor.value) await loadUserPage(userNextCursor.value, 'next') }
-  async function previousUserPage() {
-    if (!userCursorHistory.value.length) return
-    userCursorHistory.value.pop()
-    await loadUserPage(userCursorHistory.value.at(-1), 'previous')
-  }
-
-  async function loadTeamPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
-    isDirectoryLoading.value = true
-    try {
-      const result = await teamService.list({ cursor, limit: PAGE_SIZE })
-      teams.value = result.items.map(mapTeam)
-      teamNextCursor.value = result.nextCursor ?? null
-      if (direction === 'next') { teamCursorHistory.value.push(cursor); teamPage.value += 1 }
-      else if (direction === 'previous') teamPage.value = Math.max(1, teamPage.value - 1)
-      else { teamCursorHistory.value = []; teamPage.value = 1 }
-    } finally { isDirectoryLoading.value = false }
-  }
-
-  async function nextTeamPage() { if (teamNextCursor.value) await loadTeamPage(teamNextCursor.value, 'next') }
-  async function previousTeamPage() {
-    if (!teamCursorHistory.value.length) return
-    teamCursorHistory.value.pop()
-    await loadTeamPage(teamCursorHistory.value.at(-1), 'previous')
   }
 
   async function createUser(input: EnterpriseUserInput) {
@@ -216,6 +169,11 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (!user) return
     if (user.status === 'disabled') throw new Error("L’API ne fournit pas d’endpoint de réactivation utilisateur.")
     replaceUser(mapUser(await userService.disable(id)))
+  }
+
+  /** Recharge un compte dont l'état a changé côté API (ex. changement de téléphone). */
+  async function refreshUser(id: string) {
+    replaceUser(mapUser(await userService.findOne(id)))
   }
 
   function replaceUser(user: EnterpriseUser) {
@@ -508,12 +466,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
     teams.value = mockMode ? structuredClone(mockTeams) : []
     sites.value = []
     missions.value = []
-    userNextCursor.value = null
-    teamNextCursor.value = null
-    userCursorHistory.value = []
-    teamCursorHistory.value = []
-    userPage.value = 1
-    teamPage.value = 1
     hasLoadedDirectory.value = false
     hasLoadedMissions.value = false
     hasLoadedSites.value = false
@@ -521,15 +473,13 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   return {
     users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportSites,
-    userNextCursor, userCursorHistory, userPage, teamNextCursor, teamCursorHistory, teamPage,
     activeUsersCount, activeSitesCount, ongoingMissionsCount,
     getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
-    nextUserPage, previousUserPage, nextTeamPage, previousTeamPage,
     createUser, updateUser, toggleUserStatus, importMatricules,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, assignMissionSupervisor, openMission, closeMission,
-    teamMemberCounts, loadTeamMemberCounts, listTeamMembers, assignTeamLead, findUser, ensureUsers, knownTeams, findTeam, getMissionSites, loadMissionSites, siteSupervisorId, findSiteSupervisor, sitesWithoutMission, attachSitesToMission,
+    teamMemberCounts, loadTeamMemberCounts, listTeamMembers, assignTeamLead, findUser, ensureUsers, refreshUser, knownTeams, findTeam, getMissionSites, loadMissionSites, siteSupervisorId, findSiteSupervisor, sitesWithoutMission, attachSitesToMission,
     teamLeadOptions, loadTeamLeadOptions, createTeam, updateTeam, deleteTeam, loadTeamAgentDirectory, addTeamMembers, removeTeamMembers,
     resetData,
   }

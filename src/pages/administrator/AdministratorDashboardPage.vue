@@ -28,11 +28,11 @@ const viewMission = (mission: Mission) => router.push({ name: 'admin-mission-det
         <v-btn color="primary" prepend-icon="mdi-plus" size="large" :to="{ name: 'admin-mission-create' }">Nouvelle mission</v-btn>
       </template>
     </PageHeader>
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <DashboardStatCard title="Agents actifs" :value="activeUsersCount" icon="mdi-account-group-outline" change="Sur la page chargée" />
-      <DashboardStatCard title="Nombres d'Équipes" :value="teams.length" icon="mdi-account-multiple-outline" change="Sur la page chargée" />
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <DashboardStatCard title="Agents actifs" :value="activeUsersCount" icon="mdi-account-group-outline" change="Dans l’entreprise" />
+      <DashboardStatCard title="Nombres d'Équipes" :value="teams.length" icon="mdi-account-multiple-outline" change="Dans l’entreprise" />
       <DashboardStatCard title="Appareils en cours d'activation" :value="pendingEnrollments" icon="mdi-cellphone-check" change="En attente" change-color="warning" :to="{ name: 'admin-devices' }" />
-      <DashboardStatCard title="Accès API" value="OK" icon="mdi-cloud-check-outline" change="Annuaire disponible" change-color="success" /></div>
+    </div>
     <div class="mt-6">
       <MissionTable :missions="missions" :loading="isMissionsLoading" :page-size="4" title="Missions récentes" description="Suivez les dernières missions planifiées et leur état d’avancement." :show-actions="false" @view="viewMission" />
     </div>

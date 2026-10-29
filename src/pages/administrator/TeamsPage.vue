@@ -15,7 +15,7 @@ import type { EnterpriseUser, Team } from '@/types/administrator'
 const router = useRouter()
 const store = useAdministratorStore()
 const feedback = useUiFeedbackStore()
-const { teams, teamDirectoryUsers, teamMemberCounts, teamPage, teamNextCursor, teamCursorHistory } = storeToRefs(store)
+const { teams, teamDirectoryUsers, teamMemberCounts } = storeToRefs(store)
 
 // Les noms des chefs d'équipe ne sont pas forcément dans la page d'utilisateurs déjà chargée.
 onMounted(() => { store.loadTeamLeadOptions().catch(() => undefined) })
@@ -111,14 +111,9 @@ async function removeMember(userId: string) {
       :teams="teams"
       :users="teamDirectoryUsers"
       :member-counts="teamMemberCounts"
-      :cursor-page="teamPage"
-      :has-next-page="Boolean(teamNextCursor)"
-      :has-previous-page="teamCursorHistory.length > 0"
       @edit="router.push({ name: 'admin-team-edit', params: { teamId: $event.id } })"
       @manage-members="manageMembers"
       @remove="remove"
-      @next-page="store.nextTeamPage"
-      @previous-page="store.previousTeamPage"
     />
 
     <TeamMembersDialog
