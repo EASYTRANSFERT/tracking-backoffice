@@ -125,11 +125,7 @@ async function submit() {
               />
               <!-- Colonne réservée dès qu'il y a des points ajoutés : tous les boutons de carte restent alignés. -->
               <div v-if="points.length > SITE_POINT_COUNT" class="mt-2 w-10 shrink-0">
-                <v-tooltip v-if="index >= SITE_POINT_COUNT" :text="`Retirer le point ${index + 1}`" location="top">
-                  <template #activator="{ props: tooltipProps }">
-                    <v-btn v-bind="tooltipProps" icon="mdi-close" color="error" variant="text" :aria-label="`Retirer le point ${index + 1}`" @click="removePoint(index)" />
-                  </template>
-                </v-tooltip>
+                <v-btn v-if="index >= SITE_POINT_COUNT" icon="mdi-close" color="error" variant="text" :aria-label="`Retirer le point ${index + 1}`" @click="removePoint(index)" />
               </div>
             </div>
             <v-btn variant="outlined" color="primary" prepend-icon="mdi-plus" :disabled="!canAddPoint" @click="addPoint">Ajouter un point</v-btn>
