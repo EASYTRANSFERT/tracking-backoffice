@@ -8,9 +8,9 @@ const today = () => now().slice(0, 10)
 
 // Une période en validation, une close, une ouverte : de quoi parcourir tout le cycle en mode démonstration.
 const periods: PeriodResponse[] = [
-  { id: 'per_mock_003', from: '2026-10-01', to: '2026-10-31', state: 'OPEN', createdBy: 'user-1' },
-  { id: 'per_mock_002', from: '2026-09-01', to: '2026-09-30', state: 'IN_VALIDATION', createdBy: 'user-1', validationStartedAt: '2026-10-01T00:00:00.000Z' },
-  { id: 'per_mock_001', from: '2026-08-01', to: '2026-08-31', state: 'CLOSED', createdBy: 'user-1', validationStartedAt: '2026-09-01T00:00:00.000Z', closeRequestedBy: 'user-1', closeRequestedAt: '2026-09-02T08:00:00.000Z', closedBy: 'user-1', closedAt: '2026-09-02T08:00:05.000Z', forced: false, unvalidatedCount: 0 },
+  { id: 'per_mock_003', teamId: 'team-1', from: '2026-10-01', to: '2026-10-31', state: 'OPEN', createdBy: 'user-1' },
+  { id: 'per_mock_002', teamId: 'team-2', from: '2026-09-01', to: '2026-09-30', state: 'IN_VALIDATION', createdBy: 'user-1', validationStartedAt: '2026-10-01T00:00:00.000Z' },
+  { id: 'per_mock_001', teamId: 'team-1', from: '2026-08-01', to: '2026-08-31', state: 'CLOSED', createdBy: 'user-1', validationStartedAt: '2026-09-01T00:00:00.000Z', closeRequestedBy: 'user-1', closeRequestedAt: '2026-09-02T08:00:00.000Z', closedBy: 'user-1', closedAt: '2026-09-02T08:00:05.000Z', forced: false, unvalidatedCount: 0 },
 ]
 // Blocages simulés de la période en validation : levés par une clôture forcée.
 const blockersOf = (period: PeriodResponse): PeriodBlockers => period.id === 'per_mock_002'

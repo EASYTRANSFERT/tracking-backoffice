@@ -9,26 +9,32 @@ import PeriodTable from '@/Components/periods/PeriodTable.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { usePeriodAccess } from '@/composables/usePeriodAccess'
 import { usePeriodStore } from '@/stores/period.store'
+import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
-import { periodErrorMessage, periodStateOptions } from '@/utils/period-format'
+import { periodErrorMessage, periodsOfTeams, periodStateOptions } from '@/utils/period-format'
 import type { ApiPeriodState, PeriodResponse } from '@/types/period'
 
 const router = useRouter()
 const store = usePeriodStore()
 const { readonly, detailsRoute } = usePeriodAccess()
 const administratorStore = useAdministratorStore()
+const supervisorStore = useSupervisorStore()
 const { knownTeams } = storeToRefs(administratorStore)
 const feedback = useUiFeedbackStore()
 const { periods, isLoading, isSaving } = storeToRefs(store)
 
 const state = ref<ApiPeriodState | null>(null)
-const filtered = computed(() => periods.value.filter((period) => !state.value || period.state === state.value))
+// L'administrateur voit toutes les périodes ; le superviseur, celles des équipes de ses sites.
+const visiblePeriods = computed(() => readonly.value ? periodsOfTeams(periods.value, supervisorStore.scopeTeamIds) : periods.value)
+const teamName = (teamId?: string) => (readonly.value ? supervisorStore.teamsById[teamId ?? '']?.name : administratorStore.findTeam(teamId)?.name) ?? '—'
+const filtered = computed(() => visiblePeriods.value.filter((period) => !state.value || period.state === state.value))
 const createOpen = ref(false)
 const createError = ref<string | null>(null)
 
 onMounted(async () => {
-  if (!readonly.value) administratorStore.loadTeamOptions().catch(() => undefined)
+  if (readonly.value) supervisorStore.loadScope().then(() => supervisorStore.loadScopeTeams()).catch(() => undefined)
+  else administratorStore.loadTeamOptions().catch(() => undefined)
   try { await store.loadPeriods(true) }
   catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les périodes.')) }
 })
@@ -71,7 +77,7 @@ async function create(teamId: string, from: string, to: string) {
         <v-select v-model="state" :items="periodStateOptions" placeholder="Tous les états" density="compact" hide-details clearable class="lg:max-w-[240px]" />
       </div>
       <v-divider />
-      <PeriodTable v-if="filtered.length" :periods="filtered" @view="view" />
+      <PeriodTable v-if="filtered.length" :periods="filtered" :team-name="teamName" @view="view" />
       <AppEmptyState v-else-if="!isLoading" icon="mdi-calendar-blank-outline" title="Aucune période" :description="readonly ? 'Aucune période n’a encore été créée.' : 'Créez une période pour valider puis clôturer les pointages de l’entreprise.'">
         <v-btn v-if="!readonly" color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
       </AppEmptyState>
