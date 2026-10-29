@@ -28,7 +28,8 @@ const periodId = computed(() => route.params.periodId as string)
 const period = computed(() => store.findPeriod(periodId.value))
 const loadError = ref<string | null>(null)
 
-const canReopen = computed(() => period.value?.state === 'IN_VALIDATION')
+// Rouvrir reste proposé quel que soit l'état ; seule une période clôturée (immuable) ou en cours de clôture ne peut plus l'être.
+const canReopen = computed(() => Boolean(period.value) && period.value?.state !== 'CLOSED' && period.value?.state !== 'CLOSING')
 const canClose = computed(() => period.value?.state === 'IN_VALIDATION')
 const blockers = computed<PeriodBlockers | null>(() => closeBlockers.value ?? period.value?.blockers ?? null)
 const blockedCount = computed(() => (blockers.value?.pending ?? 0) + (blockers.value?.open ?? 0))
@@ -45,6 +46,7 @@ function userName(id?: string) {
 const reopenOpen = ref(false)
 const reopenError = ref<string | null>(null)
 const closeOpen = ref(false)
+const closeForced = ref(false)
 const closeError = ref<string | null>(null)
 const closeBlockers = ref<PeriodBlockers | null>(null)
 const stepUpDone = ref(false)
@@ -82,7 +84,8 @@ async function reopen(reason: string) {
   }
 }
 
-function openClose() {
+function openClose(forced = false) {
+  closeForced.value = forced
   closeError.value = null
   closeBlockers.value = null
   stepUpDone.value = false
@@ -182,20 +185,21 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
           <v-progress-linear v-if="period.state === 'CLOSING'" indeterminate color="primary" class="mt-4" />
           <v-divider class="my-5" />
           <div v-if="!readonly" class="space-y-3">
-            <v-btn block color="primary" variant="flat" prepend-icon="mdi-lock-check-outline" :disabled="!canClose" @click="openClose">Clôturer la période</v-btn>
+            <v-btn block color="primary" variant="flat" prepend-icon="mdi-lock-check-outline" :disabled="!canClose" @click="openClose(false)">Clôturer la période</v-btn>
+            <v-btn block variant="tonal" color="error" prepend-icon="mdi-lock-alert-outline" :disabled="!canClose" @click="openClose(true)">Forcer la clôture</v-btn>
             <v-btn block variant="tonal" color="warning" prepend-icon="mdi-lock-open-variant-outline" :disabled="!canReopen" @click="openReopen">Rouvrir pour correction</v-btn>
           </div>
           <p v-if="readonly" class="mt-4 text-xs leading-5 text-[#747985]">Consultation seule : la validation, la clôture et la réouverture sont réservées à l’administrateur.</p>
           <p v-else class="mt-4 text-xs leading-5 text-[#747985]">
             <template v-if="period.state === 'CLOSED'">Une période clôturée est immuable : elle ne se rouvre jamais.</template>
             <template v-else-if="period.state === 'IN_VALIDATION'">La clôture demande votre code TOTP. Elle est refusée tant que des sessions sont en attente ou ouvertes, sauf clôture forcée avec motif.</template>
-            <template v-else>Les actions de clôture et de réouverture sont disponibles une fois la période en validation.</template>
+            <template v-else>La clôture (simple ou forcée) est disponible une fois la période en validation ; la réouverture n’est acceptée par l’API que pour une période en validation.</template>
           </p>
         </v-card-text>
       </v-card>
     </div>
 
     <PeriodReopenDialog v-if="!readonly" v-model="reopenOpen" :loading="store.isSaving" :error-message="reopenError" @submit="reopen" />
-    <PeriodCloseDialog v-if="!readonly" :period="closeOpen ? period ?? null : null" :blockers="blockers" :step-up-done="stepUpDone" :loading="store.isSaving" :error-message="closeError" @submit="close" @cancel="closeOpen = false" />
+    <PeriodCloseDialog v-if="!readonly" :period="closeOpen ? period ?? null : null" :blockers="blockers" :step-up-done="stepUpDone" :forced="closeForced" :loading="store.isSaving" :error-message="closeError" @submit="close" @cancel="closeOpen = false" />
   </div>
 </template>

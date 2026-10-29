@@ -13,6 +13,8 @@ const props = defineProps<{
   blockers?: PeriodBlockers | null
   /** Vrai quand un step-up récent est déjà valide (après un refus de clôture) : le code n'est plus redemandé. */
   stepUpDone?: boolean
+  /** Ouvert par « Forcer la clôture » : la clôture est forcée d'emblée, motif obligatoire, même sans blocage connu. */
+  forced?: boolean
   loading?: boolean
   errorMessage?: string | null
 }>()
@@ -25,6 +27,7 @@ const validationError = ref<string | null>(null)
 
 const blockedCount = computed(() => (props.blockers?.pending ?? 0) + (props.blockers?.open ?? 0))
 const isBlocked = computed(() => blockedCount.value > 0)
+const forcing = computed(() => Boolean(props.forced) || (isBlocked.value && force.value))
 
 watch(() => props.period?.id, () => { code.value = ''; reason.value = ''; force.value = false; validationError.value = null })
 
@@ -32,10 +35,10 @@ function onCodeInput(value: string) { code.value = value.replace(/\D/g, '').slic
 
 function submit() {
   validationError.value = null
-  if (isBlocked.value && !force.value) { validationError.value = 'Traitez les sessions bloquantes, ou choisissez de forcer la clôture.'; return }
-  if (isBlocked.value && reason.value.trim().length < 5) { validationError.value = 'Indiquez le motif de la clôture forcée.'; return }
+  if (isBlocked.value && !forcing.value) { validationError.value = 'Traitez les sessions bloquantes, ou choisissez de forcer la clôture.'; return }
+  if (forcing.value && reason.value.trim().length < 5) { validationError.value = 'Indiquez le motif de la clôture forcée.'; return }
   if (!props.stepUpDone && !/^\d{6}$/.test(code.value)) { validationError.value = 'Saisissez le code à 6 chiffres de votre application d’authentification.'; return }
-  emit('submit', { code: props.stepUpDone ? undefined : code.value, force: isBlocked.value && force.value, reason: isBlocked.value && force.value ? reason.value.trim() : undefined })
+  emit('submit', { code: props.stepUpDone ? undefined : code.value, force: forcing.value, reason: forcing.value ? reason.value.trim() : undefined })
 }
 </script>
 
@@ -43,8 +46,8 @@ function submit() {
   <v-dialog :model-value="Boolean(period)" persistent max-width="560">
     <v-card v-if="period" rounded="xl" class="pa-2">
       <v-card-title class="d-flex align-center ga-3 text-h6">
-        <v-avatar :color="isBlocked ? 'error-lighten-5' : 'red-lighten-5'" size="42"><v-icon :color="isBlocked ? 'error' : 'primary'" icon="mdi-lock-check-outline" /></v-avatar>
-        Clôturer la période ?
+        <v-avatar :color="isBlocked || forced ? 'error-lighten-5' : 'red-lighten-5'" size="42"><v-icon :color="isBlocked || forced ? 'error' : 'primary'" :icon="forced ? 'mdi-lock-alert-outline' : 'mdi-lock-check-outline'" /></v-avatar>
+        {{ forced ? 'Forcer la clôture ?' : 'Clôturer la période ?' }}
       </v-card-title>
       <v-form @submit.prevent="submit">
         <v-card-text class="space-y-4">
@@ -56,7 +59,13 @@ function submit() {
             <p class="font-semibold">{{ blockedCount }} session{{ blockedCount > 1 ? 's' : '' }} empêche{{ blockedCount > 1 ? 'nt' : '' }} la clôture</p>
             <p class="text-sm">{{ blockers?.pending ?? 0 }} en attente de décision · {{ blockers?.open ?? 0 }} encore ouverte{{ (blockers?.open ?? 0) > 1 ? 's' : '' }}.</p>
           </v-alert>
-          <template v-if="isBlocked">
+          <template v-if="forced">
+            <v-alert type="error" variant="tonal" density="compact">
+              Les sessions non décidées seront figées sans décision et resteront <strong>hors des totaux</strong>. Cette action est définitive.
+            </v-alert>
+            <v-textarea v-model="reason" label="Motif de la clôture forcée" rows="2" auto-grow counter="500" maxlength="500" :disabled="loading" />
+          </template>
+          <template v-else-if="isBlocked">
             <v-switch v-model="force" color="error" hide-details label="Forcer la clôture malgré ces sessions" :disabled="loading" />
             <v-alert v-if="force" type="error" variant="tonal" density="compact">
               Ces sessions seront figées sans décision et resteront <strong>hors des totaux</strong>. Cette action est définitive.
@@ -68,7 +77,7 @@ function submit() {
         </v-card-text>
         <v-card-actions class="justify-end px-4 pb-4">
           <v-btn variant="text" :disabled="loading" @click="emit('cancel')">Annuler</v-btn>
-          <v-btn type="submit" :color="isBlocked && force ? 'error' : 'primary'" variant="flat" :loading="loading">{{ isBlocked && force ? 'Forcer la clôture' : 'Clôturer' }}</v-btn>
+          <v-btn type="submit" :color="forcing ? 'error' : 'primary'" variant="flat" :loading="loading">{{ forcing ? 'Forcer la clôture' : 'Clôturer' }}</v-btn>
         </v-card-actions>
       </v-form>
     </v-card>
