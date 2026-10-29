@@ -94,6 +94,12 @@ const router = createRouter({
           meta: { title: 'Supervision', allowedRoles: ['operator'] },
         },
         {
+          path: 'audit-logs',
+          name: 'audit-logs',
+          component: () => import('@/pages/AuditLogsPage.vue'),
+          meta: { title: 'Journal d’audit', allowedRoles: ['operator'] },
+        },
+        {
           path: 'account/password',
           name: 'change-password',
           component: () => import('@/pages/ChangePasswordPage.vue'),
@@ -141,6 +147,12 @@ const router = createRouter({
           name: 'admin-user-import',
           component: () => import('@/pages/administrator/UserImportPage.vue'),
           meta: { title: 'Importer les matricules', allowedRoles: ['administrator'] },
+        },
+        {
+          path: 'assignments/import',
+          name: 'admin-assignment-import',
+          component: () => import('@/pages/administrator/AssignmentImportPage.vue'),
+          meta: { title: 'Importer les affectations', allowedRoles: ['administrator'] },
         },
         {
           path: 'users/:userId',
@@ -203,6 +215,18 @@ const router = createRouter({
           meta: { title: 'Modifier le site', allowedRoles: ['administrator'] },
         },
         {
+          path: 'periods',
+          name: 'admin-periods',
+          component: () => import('@/pages/administrator/PeriodsPage.vue'),
+          meta: { title: 'Périodes', allowedRoles: ['administrator'] },
+        },
+        {
+          path: 'periods/:periodId',
+          name: 'admin-period-details',
+          component: () => import('@/pages/administrator/PeriodDetailsPage.vue'),
+          meta: { title: 'Détail de la période', allowedRoles: ['administrator'] },
+        },
+        {
           path: 'missions',
           name: 'admin-missions',
           component: () => import('@/pages/administrator/MissionsPage.vue'),
@@ -243,6 +267,12 @@ const router = createRouter({
           name: 'admin-qr-codes',
           component: () => import('@/pages/administrator/QrCodesPage.vue'),
           meta: { title: 'QR codes', allowedRoles: ['administrator'] },
+        },
+        {
+          path: 'audit-logs',
+          name: 'admin-audit-logs',
+          component: () => import('@/pages/AuditLogsPage.vue'),
+          meta: { title: 'Journal d’audit', allowedRoles: ['administrator'] },
         },
         {
           path: 'settings',

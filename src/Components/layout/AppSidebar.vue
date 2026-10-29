@@ -79,6 +79,7 @@ const routeGroups: Record<string, string[]> = {
     'admin-mission-details',
     'admin-mission-edit',
   ],
+  'admin-periods': ['admin-periods', 'admin-period-details'],
   'admin-devices': ['admin-devices', 'admin-device-details'],
   'supervisor-missions': ['supervisor-missions', 'supervisor-mission-details'],
 }
@@ -104,7 +105,7 @@ async function handleLogout() {
   >
     <div class="flex h-full min-h-0 flex-col overflow-hidden">
       <div class="flex h-[108px] items-center px-7">
-        <img src="@/assets/kaybiclogo.png" alt="Kaybic Africa" class="h-16 w-auto object-contain" />
+        <img src="@/assets/icon.svg" alt="Kaybic Africa" class="h-auto w-full max-w-52 object-contain" />
       </div>
       <v-divider />
 

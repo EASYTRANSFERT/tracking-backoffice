@@ -23,6 +23,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['operator'],
   },
   {
+    title: 'Journal d’audit',
+    routeName: 'audit-logs',
+    icon: 'mdi-history',
+    allowedRoles: ['operator'],
+  },
+  {
     title: 'Supervision',
     routeName: 'platform-monitoring',
     icon: 'mdi-monitor-dashboard',
@@ -60,6 +66,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['administrator'],
   },
   {
+    title: 'Périodes',
+    routeName: 'admin-periods',
+    icon: 'mdi-calendar-range',
+    allowedRoles: ['administrator'],
+  },
+  {
     title: 'Appareils',
     routeName: 'admin-devices',
     icon: 'mdi-cellphone-link',
@@ -69,6 +81,12 @@ export const dashboardNavigation: NavigationItem[] = [
     title: 'QR codes',
     routeName: 'admin-qr-codes',
     icon: 'mdi-qrcode-scan',
+    allowedRoles: ['administrator'],
+  },
+  {
+    title: 'Journal d’audit',
+    routeName: 'admin-audit-logs',
+    icon: 'mdi-history',
     allowedRoles: ['administrator'],
   },
   {
