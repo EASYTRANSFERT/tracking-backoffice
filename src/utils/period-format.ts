@@ -15,6 +15,11 @@ export const periodStateConfig = (state: ApiPeriodState) =>
 export const periodStateOptions = (['OPEN', 'IN_VALIDATION', 'CLOSING', 'CLOSED'] as const).map((value) => ({ title: periodStateConfig(value).label, value }))
 
 /** 2026-10-31 → « 31/10/2026 » (une journée sans heure : aucun fuseau à appliquer). */
+/** La journée AAAA-MM-JJ appartient-elle à l'une des périodes (bornes incluses) ? */
+export function dayInPeriods(day: string, periods: PeriodResponse[]) {
+  return periods.some((period) => period.from <= day && day <= period.to)
+}
+
 /** Périodes d'un superviseur : celles des équipes qui travaillent sur les sites de ses missions. */
 export function periodsOfTeams(periods: PeriodResponse[], teamIds: Set<string>) {
   return periods.filter((period) => period.teamId && teamIds.has(period.teamId))

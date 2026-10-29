@@ -17,6 +17,8 @@ export const usePeriodStore = defineStore('period', () => {
   const hasLoaded = ref(false)
   const isLoading = ref(false)
   const isSaving = ref(false)
+  /** Périodes de chaque équipe qui a un planning : elles bornent les jours planifiables. */
+  const teamPeriods = ref<Record<string, PeriodResponse[]>>({})
 
   const findPeriod = (id: string) => periods.value.find((period) => period.id === id)
 
@@ -30,6 +32,13 @@ export const usePeriodStore = defineStore('period', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  /** Toutes les périodes d'une équipe (GET /periods?teamId=). */
+  async function loadTeamPeriods(teamId: string) {
+    const loaded = await listAllPages((page) => periodService.list({ ...page, teamId }))
+    teamPeriods.value = { ...teamPeriods.value, [teamId]: loaded }
+    return loaded
   }
 
   /** Détail d'une période, avec ses blocages de clôture à l'instant. */
@@ -93,5 +102,5 @@ export const usePeriodStore = defineStore('period', () => {
     hasLoaded.value = false
   }
 
-  return { periods, hasLoaded, isLoading, isSaving, findPeriod, loadPeriods, loadPeriod, createPeriod, reopenPeriod, closePeriod, resetData }
+  return { periods, teamPeriods, loadTeamPeriods, hasLoaded, isLoading, isSaving, findPeriod, loadPeriods, loadPeriod, createPeriod, reopenPeriod, closePeriod, resetData }
 })

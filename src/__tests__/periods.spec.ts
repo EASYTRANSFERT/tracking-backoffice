@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { periodService } from '@/Services/period.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { usePeriodStore } from '@/stores/period.store'
-import { formatPeriodDay, formatPeriodRange, periodErrorMessage, periodsOfTeams, readClosureBlockers } from '@/utils/period-format'
+import { dayInPeriods, formatPeriodDay, formatPeriodRange, periodErrorMessage, periodsOfTeams, readClosureBlockers } from '@/utils/period-format'
 import type { PeriodResponse } from '@/types/period'
 
 const period = (state: string, extra: Partial<PeriodResponse> = {}): PeriodResponse => ({ id: 'per_1', from: '2026-10-01', to: '2026-10-31', state, createdBy: 'usr_1', ...extra })
@@ -83,5 +83,30 @@ describe('periodsOfTeams', () => {
 
     expect(periodsOfTeams([mine, other, noTeam], new Set(['tea_1']))).toEqual([mine])
     expect(periodsOfTeams([mine, other], new Set())).toEqual([])
+  })
+})
+
+describe('team planning days', () => {
+  const periods = [period('OPEN', { from: '2026-10-01', to: '2026-10-31' }), period('CLOSED', { id: 'per_2', from: '2026-12-10', to: '2026-12-12' })]
+
+  it('allows the days of a period, bounds included, and nothing else', () => {
+    expect(dayInPeriods('2026-10-01', periods)).toBe(true)
+    expect(dayInPeriods('2026-10-31', periods)).toBe(true)
+    expect(dayInPeriods('2026-12-11', periods)).toBe(true)
+    expect(dayInPeriods('2026-11-15', periods)).toBe(false)
+    expect(dayInPeriods('2026-09-30', periods)).toBe(false)
+    expect(dayInPeriods('2026-10-01', [])).toBe(false)
+  })
+
+  it('loads the periods of the team with the teamId query', async () => {
+    setActivePinia(createPinia())
+    const list = vi.spyOn(periodService, 'list').mockResolvedValue({ items: periods, nextCursor: null })
+
+    const store = usePeriodStore()
+    await store.loadTeamPeriods('tea_1')
+
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ teamId: 'tea_1' }))
+    expect(store.teamPeriods['tea_1']).toEqual(periods)
+    vi.restoreAllMocks()
   })
 })

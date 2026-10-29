@@ -67,6 +67,8 @@ export interface PeriodListQuery {
   cursor?: string
   limit?: number
   state?: ApiPeriodState
+  /** Périodes d'une seule équipe. */
+  teamId?: string
 }
 
 export interface PeriodPageResponse {

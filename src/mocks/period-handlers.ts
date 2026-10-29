@@ -24,8 +24,10 @@ export function periodHandlers(api: (path: string) => string, problem: Problem) 
 
   return [
     http.get(api('/periods'), ({ request }) => {
-      const state = new URL(request.url).searchParams.get('state')
-      const items = [...periods].sort((a, b) => b.from.localeCompare(a.from)).filter((period) => !state || period.state === state)
+      const params = new URL(request.url).searchParams
+      const state = params.get('state')
+      const teamId = params.get('teamId')
+      const items = [...periods].sort((a, b) => b.from.localeCompare(a.from)).filter((period) => (!state || period.state === state) && (!teamId || period.teamId === teamId))
       return HttpResponse.json({ items, nextCursor: null })
     }),
     http.get(api('/periods/:id'), ({ params }) => {
