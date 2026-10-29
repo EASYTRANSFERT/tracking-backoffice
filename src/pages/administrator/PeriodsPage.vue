@@ -6,6 +6,7 @@ import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import PeriodCreateDialog from '@/Components/periods/PeriodCreateDialog.vue'
 import PeriodTable from '@/Components/periods/PeriodTable.vue'
+import { useAdministratorStore } from '@/stores/administrator.store'
 import { usePeriodStore } from '@/stores/period.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -14,6 +15,8 @@ import type { ApiPeriodState, PeriodResponse } from '@/types/period'
 
 const router = useRouter()
 const store = usePeriodStore()
+const administratorStore = useAdministratorStore()
+const { knownTeams } = storeToRefs(administratorStore)
 const feedback = useUiFeedbackStore()
 const { periods, isLoading, isSaving } = storeToRefs(store)
 
@@ -23,6 +26,7 @@ const createOpen = ref(false)
 const createError = ref<string | null>(null)
 
 onMounted(async () => {
+  administratorStore.loadTeamOptions().catch(() => undefined)
   try { await store.loadPeriods(true) }
   catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les périodes.')) }
 })
@@ -34,10 +38,10 @@ function openCreate() {
   createOpen.value = true
 }
 
-async function create(from: string, to: string) {
+async function create(teamId: string, from: string, to: string) {
   createError.value = null
   try {
-    const created = await store.createPeriod(from, to)
+    const created = await store.createPeriod(teamId, from, to)
     feedback.success('Période créée.')
     createOpen.value = false
     void view(created)
@@ -70,6 +74,6 @@ async function create(from: string, to: string) {
         <v-btn color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
       </AppEmptyState>
     </v-card>
-    <PeriodCreateDialog v-model="createOpen" :loading="isSaving" :error-message="createError" @submit="create" />
+    <PeriodCreateDialog v-model="createOpen" :teams="knownTeams" :loading="isSaving" :error-message="createError" @submit="create" />
   </div>
 </template>
