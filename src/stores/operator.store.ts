@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 
 import { offerService } from '@/Services/offer.service'
 import { tenantService } from '@/Services/tenant.service'
+import { listAllPages } from '@/utils/pagination'
 import { mockCompanies, mockOffers, mockPlatformActivities, mockSupportInterventions } from '@/mocks/operator-data'
 import type { OfferResponse, TenantResponse } from '@/types/platform'
 import type { Company, CompanyInput, Offer, OfferInput, SupportIntervention } from '@/types/operator'
@@ -11,7 +12,6 @@ import type { EnterpriseUserInput } from '@/types/administrator'
 import type { UserResponse } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
-const PAGE_SIZE = 10
 
 function mapTenant(tenant: TenantResponse): Company {
   const status = tenant.status === 'ACTIVE' ? 'active' : tenant.status === 'SUSPENDED' ? 'suspended' : 'pending'
@@ -63,12 +63,6 @@ export const useOperatorStore = defineStore('operator', () => {
   /** Administrateurs créés pendant la session, par entreprise : l'API ne permet pas encore de les relister. */
   const invitedAdministrators = ref<Record<string, UserResponse[]>>({})
   const canUpdateOffers = computed(() => mockMode)
-  const companyNextCursor = ref<string | null>(null)
-  const companyCursorHistory = ref<(string | undefined)[]>([])
-  const companyPage = ref(1)
-  const offerNextCursor = ref<string | null>(null)
-  const offerCursorHistory = ref<(string | undefined)[]>([])
-  const offerPage = ref(1)
 
   const activeCompaniesCount = computed(() => companies.value.filter((company) => company.status === 'active').length)
   const suspendedCompaniesCount = computed(() => companies.value.filter((company) => company.status === 'suspended').length)
@@ -81,82 +75,17 @@ export const useOperatorStore = defineStore('operator', () => {
     if (hasLoaded.value && !force) return
     isLoading.value = true
     try {
-      const [tenantResult, offerResult] = await Promise.all([
-        tenantService.list({ limit: PAGE_SIZE }),
-        offerService.list({ limit: PAGE_SIZE }),
+      // Toutes les pages : la recherche et les filtres des tableaux portent sur l'ensemble, pas sur la seule page chargée.
+      const [allTenants, allOffers] = await Promise.all([
+        listAllPages((page) => tenantService.list(page)),
+        listAllPages((page) => offerService.list(page)),
       ])
-      companies.value = tenantResult.items.map(mapTenant)
-      offers.value = offerResult.items.map(mapOffer)
-      companyNextCursor.value = tenantResult.nextCursor ?? null
-      offerNextCursor.value = offerResult.nextCursor ?? null
-      companyCursorHistory.value = []
-      offerCursorHistory.value = []
-      companyPage.value = 1
-      offerPage.value = 1
+      companies.value = allTenants.map(mapTenant)
+      offers.value = allOffers.map(mapOffer)
       hasLoaded.value = true
     } finally {
       isLoading.value = false
     }
-  }
-
-  async function loadCompanyPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
-    isLoading.value = true
-    try {
-      const result = await tenantService.list({ cursor, limit: PAGE_SIZE })
-      companies.value = result.items.map(mapTenant)
-      companyNextCursor.value = result.nextCursor ?? null
-      if (direction === 'next') {
-        companyCursorHistory.value.push(cursor)
-        companyPage.value += 1
-      } else if (direction === 'previous') {
-        companyPage.value = Math.max(1, companyPage.value - 1)
-      } else {
-        companyCursorHistory.value = []
-        companyPage.value = 1
-      }
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  async function nextCompanyPage() {
-    if (companyNextCursor.value) await loadCompanyPage(companyNextCursor.value, 'next')
-  }
-
-  async function previousCompanyPage() {
-    if (!companyCursorHistory.value.length) return
-    companyCursorHistory.value.pop()
-    await loadCompanyPage(companyCursorHistory.value.at(-1), 'previous')
-  }
-
-  async function loadOfferPage(cursor?: string, direction: 'next' | 'previous' | 'reset' = 'reset') {
-    isLoading.value = true
-    try {
-      const result = await offerService.list({ cursor, limit: PAGE_SIZE })
-      offers.value = result.items.map(mapOffer)
-      offerNextCursor.value = result.nextCursor ?? null
-      if (direction === 'next') {
-        offerCursorHistory.value.push(cursor)
-        offerPage.value += 1
-      } else if (direction === 'previous') {
-        offerPage.value = Math.max(1, offerPage.value - 1)
-      } else {
-        offerCursorHistory.value = []
-        offerPage.value = 1
-      }
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  async function nextOfferPage() {
-    if (offerNextCursor.value) await loadOfferPage(offerNextCursor.value, 'next')
-  }
-
-  async function previousOfferPage() {
-    if (!offerCursorHistory.value.length) return
-    offerCursorHistory.value.pop()
-    await loadOfferPage(offerCursorHistory.value.at(-1), 'previous')
   }
 
   async function loadCompany(id: string) {
@@ -268,21 +197,13 @@ export const useOperatorStore = defineStore('operator', () => {
     activities.value = mockMode ? structuredClone(mockPlatformActivities) : []
     supportInterventions.value = mockMode ? structuredClone(mockSupportInterventions) : []
     invitedAdministrators.value = {}
-    companyNextCursor.value = null
-    offerNextCursor.value = null
-    companyCursorHistory.value = []
-    offerCursorHistory.value = []
-    companyPage.value = 1
-    offerPage.value = 1
     hasLoaded.value = false
   }
 
   return {
     companies, offers, activities, supportInterventions, isLoading, hasLoaded, canUpdateOffers,
-    companyNextCursor, companyCursorHistory, companyPage, offerNextCursor, offerCursorHistory, offerPage,
     activeCompaniesCount, suspendedCompaniesCount, activeOffersCount, activeAgentsCount,
     getCompanyById, getOfferById, loadCatalog, loadCompany,
-    nextCompanyPage, previousCompanyPage, nextOfferPage, previousOfferPage,
     createCompany, updateCompany, suspendCompany, reactivateCompany,
     createCompanyAdministrator, resendAdministratorInvitation, invitedAdministrators,
     createOffer, updateOffer, createSupportIntervention,

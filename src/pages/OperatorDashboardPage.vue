@@ -17,9 +17,6 @@ const {
   activeCompaniesCount,
   activeOffersCount,
   suspendedCompaniesCount,
-  companyPage,
-  companyNextCursor,
-  companyCursorHistory,
 } = storeToRefs(store)
 </script>
 
@@ -35,7 +32,7 @@ const {
           title="Entreprises actives"
           :value="activeCompaniesCount"
           :icon-src="companyIcon"
-          change="Sur la page chargée"
+          change="Toutes entreprises confondues"
         />
       </v-col>
 
@@ -44,16 +41,16 @@ const {
           title="Offres disponibles"
           :value="activeOffersCount"
           :icon-src="offerIcon"
-          change="Sur la page chargée"
+          change="Dans le catalogue"
         />
       </v-col>
 
       <v-col cols="12" sm="6" lg="3">
-        <DashboardStatCard title="Demandes en attente" :value="companies.filter((company) => company.status === 'pending').length" icon="mdi-clock-outline" change="Sur la page chargée" change-color="warning" />
+        <DashboardStatCard title="Demandes en attente" :value="companies.filter((company) => company.status === 'pending').length" icon="mdi-clock-outline" change="Toutes entreprises confondues" change-color="warning" />
       </v-col>
 
       <v-col cols="12" sm="6" lg="3">
-        <DashboardStatCard title="Entreprises suspendues" :value="suspendedCompaniesCount" :icon-src="companyIcon" crossed-out change="Sur la page chargée" change-color="secondary" />
+        <DashboardStatCard title="Entreprises suspendues" :value="suspendedCompaniesCount" :icon-src="companyIcon" crossed-out change="Toutes entreprises confondues" change-color="secondary" />
       </v-col>
     </v-row>
 
@@ -65,14 +62,9 @@ const {
           title="Entreprises récentes"
           description="Les derniers comptes ajoutés à la plateforme"
           :searchable="false"
-          :cursor-page="companyPage"
-          :has-next-page="Boolean(companyNextCursor)"
-          :has-previous-page="companyCursorHistory.length > 0"
           @view="router.push({ name: 'company-details', params: { companyId: $event.id } })"
           @edit="router.push({ name: 'company-edit', params: { companyId: $event.id } })"
           @change-status="router.push({ name: 'company-details', params: { companyId: $event.id } })"
-          @next-page="store.nextCompanyPage"
-          @previous-page="store.previousCompanyPage"
         />
       </v-col>
 

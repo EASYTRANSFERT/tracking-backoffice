@@ -14,7 +14,7 @@ import type { Company } from '@/types/operator'
 const router = useRouter()
 const store = useOperatorStore()
 const feedback = useUiFeedbackStore()
-const { companies, offers, companyPage, companyNextCursor, companyCursorHistory } = storeToRefs(store)
+const { companies, offers } = storeToRefs(store)
 const selectedCompany = ref<Company>()
 const statusDialog = ref(false)
 
@@ -47,14 +47,9 @@ async function updateStatus(reason: string) {
     <CompanyTable
       :companies="companies"
       :offers="offers"
-      :cursor-page="companyPage"
-      :has-next-page="Boolean(companyNextCursor)"
-      :has-previous-page="companyCursorHistory.length > 0"
       @view="router.push({ name: 'company-details', params: { companyId: $event.id } })"
       @edit="router.push({ name: 'company-edit', params: { companyId: $event.id } })"
       @change-status="openStatusDialog"
-      @next-page="store.nextCompanyPage"
-      @previous-page="store.previousCompanyPage"
     />
 
     <CompanyStatusDialog
