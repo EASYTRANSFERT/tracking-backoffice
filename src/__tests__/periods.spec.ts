@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { periodService } from '@/Services/period.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { usePeriodStore } from '@/stores/period.store'
-import { formatPeriodDay, formatPeriodRange, periodErrorMessage, readClosureBlockers } from '@/utils/period-format'
+import { formatPeriodDay, formatPeriodRange, periodErrorMessage, periodsOfTeams, readClosureBlockers } from '@/utils/period-format'
 import type { PeriodResponse } from '@/types/period'
 
 const period = (state: string, extra: Partial<PeriodResponse> = {}): PeriodResponse => ({ id: 'per_1', from: '2026-10-01', to: '2026-10-31', state, createdBy: 'usr_1', ...extra })
@@ -72,5 +72,16 @@ describe('period store', () => {
 
     expect(create).toHaveBeenCalledWith({ teamId: 'tea_1', from: '2026-10-01', to: '2026-10-31' })
     expect(store.findPeriod('per_1')?.teamId).toBe('tea_1')
+  })
+})
+
+describe('periodsOfTeams', () => {
+  it('keeps only the periods of the supervisor\'s teams', () => {
+    const mine = period('OPEN', { id: 'per_mine', teamId: 'tea_1' })
+    const other = period('OPEN', { id: 'per_other', teamId: 'tea_2' })
+    const noTeam = period('OPEN', { id: 'per_none', teamId: undefined })
+
+    expect(periodsOfTeams([mine, other, noTeam], new Set(['tea_1']))).toEqual([mine])
+    expect(periodsOfTeams([mine, other], new Set())).toEqual([])
   })
 })

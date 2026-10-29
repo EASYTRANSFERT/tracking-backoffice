@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios'
 
-import type { ApiPeriodState, PeriodBlockers } from '@/types/period'
+import type { ApiPeriodState, PeriodBlockers, PeriodResponse } from '@/types/period'
 
 const stateConfigs: Record<string, { label: string; color: string; icon: string }> = {
   OPEN: { label: 'Ouverte', color: 'info', icon: 'mdi-calendar-clock' },
@@ -15,6 +15,11 @@ export const periodStateConfig = (state: ApiPeriodState) =>
 export const periodStateOptions = (['OPEN', 'IN_VALIDATION', 'CLOSING', 'CLOSED'] as const).map((value) => ({ title: periodStateConfig(value).label, value }))
 
 /** 2026-10-31 → « 31/10/2026 » (une journée sans heure : aucun fuseau à appliquer). */
+/** Périodes d'un superviseur : celles des équipes qui travaillent sur les sites de ses missions. */
+export function periodsOfTeams(periods: PeriodResponse[], teamIds: Set<string>) {
+  return periods.filter((period) => period.teamId && teamIds.has(period.teamId))
+}
+
 export function formatPeriodDay(day?: string) {
   const [year, month, date] = (day ?? '').split('-')
   return year && month && date ? `${date}/${month}/${year}` : '—'

@@ -34,6 +34,8 @@ export const useSupervisorStore = defineStore('supervisor', () => {
     .filter((site) => site.missionId === missionId)
     .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   /** Équipes qui travaillent sur les sites du superviseur. */
+  /** Identifiants des équipes qui travaillent sur ses sites. */
+  const scopeTeamIds = computed(() => new Set(sites.value.map((site) => site.teamId).filter((id): id is string => Boolean(id))))
   const teamCount = computed(() => new Set(sites.value.map((site) => site.teamId).filter(Boolean)).size)
   const siteCountByMission = computed(() => sites.value.reduce<Record<string, number>>((counts, site) => {
     if (site.missionId) counts[site.missionId] = (counts[site.missionId] ?? 0) + 1
@@ -75,6 +77,13 @@ export const useSupervisorStore = defineStore('supervisor', () => {
     teamsById.value = { ...teamsById.value, ...Object.fromEntries(teams.map((team) => [team.id, team])) }
   }
 
+  /** Nom des équipes de tous ses sites (pas seulement ceux d'une mission). */
+  async function loadScopeTeams() {
+    const missing = [...scopeTeamIds.value].filter((teamId) => !teamsById.value[teamId])
+    const teams = await Promise.all(missing.map((teamId) => teamService.findOne(teamId).then(mapTeam).catch(() => null)))
+    teamsById.value = { ...teamsById.value, ...Object.fromEntries(teams.filter((team): team is Team => team !== null).map((team) => [team.id, team])) }
+  }
+
   let membersTeamId: string | undefined
   async function loadTeamMembers(teamId?: string) {
     membersTeamId = teamId
@@ -100,6 +109,6 @@ export const useSupervisorStore = defineStore('supervisor', () => {
 
   return {
     sites, missions, teamCount, teamsById, isLoading, hasLoaded,
-    siteCountByMission, getMissionById, getMissionSites, loadScope, loadMissionTeams, members, isMembersLoading, loadTeamMembers, reset,
+    siteCountByMission, scopeTeamIds, getMissionById, getMissionSites, loadScope, loadScopeTeams, loadMissionTeams, members, isMembersLoading, loadTeamMembers, reset,
   }
 })
