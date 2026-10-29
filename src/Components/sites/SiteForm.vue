@@ -114,20 +114,15 @@ async function submit() {
                 :disabled="!isPointEnabled(index)"
                 @update:model-value="setPointFromResult(index, $event)"
               />
-              <v-tooltip :text="`Placer le point ${index + 1} sur la carte`" location="top">
-                <template #activator="{ props: tooltipProps }">
-                  <v-btn
-                    v-bind="tooltipProps"
-                    class="mt-2"
-                    icon="mdi-map-marker-plus-outline"
-                    color="primary"
-                    variant="tonal"
-                    :disabled="!isPointEnabled(index)"
-                    :aria-label="`Placer le point ${index + 1} sur la carte`"
-                    @click="openMap(index)"
-                  />
-                </template>
-              </v-tooltip>
+              <v-btn
+                class="mt-2"
+                icon="mdi-map-marker-plus-outline"
+                color="primary"
+                variant="tonal"
+                :disabled="!isPointEnabled(index)"
+                :aria-label="`Placer le point ${index + 1} sur la carte`"
+                @click="openMap(index)"
+              />
               <!-- Colonne réservée dès qu'il y a des points ajoutés : tous les boutons de carte restent alignés. -->
               <div v-if="points.length > SITE_POINT_COUNT" class="mt-2 w-10 shrink-0">
                 <v-tooltip v-if="index >= SITE_POINT_COUNT" :text="`Retirer le point ${index + 1}`" location="top">
