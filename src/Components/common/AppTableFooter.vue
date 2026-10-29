@@ -9,6 +9,9 @@ withDefaults(defineProps<{
   mode?: 'numbered' | 'cursor'
   hasNext?: boolean
   hasPrevious?: boolean
+  /** Affiche le choix du nombre de lignes par page quand des tailles sont proposées. */
+  pageSize?: number
+  pageSizeOptions?: number[]
 }>(), {
   mode: 'numbered',
   hasNext: false,
@@ -19,6 +22,7 @@ const emit = defineEmits<{
   'update:page': [page: number]
   next: []
   previous: []
+  'update:pageSize': [pageSize: number]
 }>()
 </script>
 
@@ -33,7 +37,18 @@ const emit = defineEmits<{
       </template>
     </p>
 
-    <div class="flex justify-start sm:justify-end">
+    <div class="flex flex-wrap items-center justify-start gap-4 sm:justify-end">
+      <div v-if="pageSizeOptions?.length" class="flex items-center gap-2 text-xs text-[#747985]">
+        <span>Lignes par page</span>
+        <v-select
+          :model-value="pageSize"
+          :items="pageSizeOptions"
+          density="compact"
+          hide-details
+          class="w-24"
+          @update:model-value="emit('update:pageSize', $event)"
+        />
+      </div>
       <v-pagination
         v-if="mode === 'numbered'"
         :model-value="page"

@@ -4,7 +4,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import LocationAutocomplete from '@/Components/sites/LocationAutocomplete.vue'
 import SitePerimeterMap from '@/Components/sites/SitePerimeterMap.vue'
 import SitePointMapDialog from '@/Components/sites/SitePointMapDialog.vue'
-import { delimitsSurface, formatCoordinates, SITE_POINT_COUNT } from '@/Components/sites/site-map'
+import { delimitsSurface, formatCoordinates, SITE_POINT_COUNT, SITE_POINT_MAX } from '@/Components/sites/site-map'
 import type { EnterpriseUser, Mission, Site, SiteInput, SitePoint, Team } from '@/types/administrator'
 import type { GeocodingResult } from '@/types/geocoding'
 
@@ -45,6 +45,15 @@ function setPoint(index: number, point: SitePoint | null) {
 function setPointFromResult(index: number, result: GeocodingResult | null) {
   setPoint(index, result ? { latitude: result.latitude, longitude: result.longitude, address: result.displayName } : null)
 }
+// Le contour part de trois points ; on peut en ajouter autant que nécessaire (50 au plus, limite de l'API).
+const canAddPoint = computed(() => points.value.length < SITE_POINT_MAX && Boolean(points.value.at(-1)))
+function addPoint() {
+  if (canAddPoint.value) points.value.push(null)
+}
+// Les trois premiers points sont obligatoires : seuls les points ajoutés se retirent.
+function removePoint(index: number) {
+  if (index >= SITE_POINT_COUNT) points.value.splice(index, 1)
+}
 function openMap(index: number) {
   mapPointIndex.value = index
   mapDialogOpen.value = true
@@ -52,7 +61,7 @@ function openMap(index: number) {
 async function submit() {
   const result = await form.value?.validate()
   if (placedCount.value < SITE_POINT_COUNT) {
-    perimeterError.value = `Ajoutez les ${SITE_POINT_COUNT} points du périmètre pour positionner le site.`
+    perimeterError.value = `Ajoutez au moins ${SITE_POINT_COUNT} points du périmètre pour positionner le site.`
     return
   }
   if (isFlatPerimeter.value) return
@@ -84,12 +93,12 @@ async function submit() {
       <v-card>
         <v-card-title class="flex items-center gap-3 px-6 py-5">
           <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-crosshairs-gps" color="primary" /></v-avatar>
-          <div><h2 class="text-base font-bold">Périmètre de pointage</h2><p class="mt-1 text-xs font-normal text-[#747985]">Trois points délimitant la zone de présence autorisée</p></div>
+          <div><h2 class="text-base font-bold">Périmètre de pointage</h2><p class="mt-1 text-xs font-normal text-[#747985]">Trois points au minimum délimitant la zone de présence autorisée</p></div>
         </v-card-title>
         <v-divider />
         <v-card-text class="space-y-5 px-6 py-6">
           <v-alert type="warning" variant="tonal" density="compact" icon="mdi-alert-outline">
-            Pour positionner le site sur la carte, vous devez renseigner trois points délimitant son périmètre.
+            Pour positionner le site sur la carte, vous devez renseigner au moins trois points délimitant son périmètre. Vous pouvez en ajouter d’autres pour épouser la forme du site.
           </v-alert>
           <div class="space-y-3">
             <div v-for="(point, index) in points" :key="index" class="flex items-start gap-3">
@@ -119,7 +128,17 @@ async function submit() {
                   />
                 </template>
               </v-tooltip>
+              <!-- Colonne réservée dès qu'il y a des points ajoutés : tous les boutons de carte restent alignés. -->
+              <div v-if="points.length > SITE_POINT_COUNT" class="mt-2 w-10 shrink-0">
+                <v-tooltip v-if="index >= SITE_POINT_COUNT" :text="`Retirer le point ${index + 1}`" location="top">
+                  <template #activator="{ props: tooltipProps }">
+                    <v-btn v-bind="tooltipProps" icon="mdi-close" color="error" variant="text" :aria-label="`Retirer le point ${index + 1}`" @click="removePoint(index)" />
+                  </template>
+                </v-tooltip>
+              </div>
             </div>
+            <v-btn variant="outlined" color="primary" prepend-icon="mdi-plus" :disabled="!canAddPoint" @click="addPoint">Ajouter un point</v-btn>
+            <p v-if="points.length >= SITE_POINT_MAX" class="text-xs text-[#747985]">Maximum de {{ SITE_POINT_MAX }} points atteint.</p>
           </div>
           <v-alert v-if="isFlatPerimeter" type="error" variant="tonal" density="compact" text="Les points sont alignés ou confondus : ils doivent délimiter une surface, pas une ligne." />
           <v-alert v-if="perimeterError" type="error" variant="tonal" density="compact" :text="perimeterError" />
@@ -130,7 +149,7 @@ async function submit() {
             </div>
             <SitePerimeterMap :points="points" @select="openMap" />
           </div>
-          <v-alert type="info" variant="tonal" text="La zone formée par les trois points représente le périmètre de pointage. Le QR code sera généré après l’enregistrement." />
+          <v-alert type="info" variant="tonal" text="La zone formée par les points représente le périmètre de pointage. Le QR code sera généré après l’enregistrement." />
         </v-card-text>
       </v-card>
     </div>

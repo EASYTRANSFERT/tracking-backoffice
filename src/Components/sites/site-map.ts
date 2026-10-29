@@ -2,7 +2,9 @@ import * as L from 'leaflet'
 
 import type { SitePoint } from '@/types/administrator'
 
+/** Minimum pour délimiter une surface, et maximum accepté par l'API. */
 export const SITE_POINT_COUNT = 3
+export const SITE_POINT_MAX = 50
 export const DEFAULT_CENTER: L.LatLngExpression = [5.3484, -4.0305]
 export const DEFAULT_ZOOM = 12
 export const POINT_ZOOM = 17
