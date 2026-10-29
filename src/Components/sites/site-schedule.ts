@@ -74,3 +74,8 @@ export function toSlot(dayKey: string, start: string, end: string): AssignmentSl
 export function endsNextDay(start: string, end: string) {
   return Boolean(start && end) && end <= start
 }
+
+/** Bornes ISO d'une semaine (lundi inclus, lundi suivant exclu), telles que les attend GET /assignments. */
+export function weekRange(weekStart: string) {
+  return { from: fromDayKey(weekStart).toISOString(), to: fromDayKey(addDays(weekStart, 7)).toISOString() }
+}

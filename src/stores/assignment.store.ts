@@ -1,12 +1,13 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { addDays, fromDayKey, startOfWeek } from '@/Components/sites/site-schedule'
+import { startOfWeek, weekRange } from '@/Components/sites/site-schedule'
 import { assignmentService } from '@/Services/assignment.service'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { readRejectedAssignmentReport } from '@/utils/assignment-import'
 import { listAllPages } from '@/utils/pagination'
 import type { EnterpriseUser } from '@/types/administrator'
-import type { AssignmentResponse, AssignmentSlot } from '@/types/assignment'
+import type { AssignmentImportReport, AssignmentResponse, AssignmentSlot } from '@/types/assignment'
 
 /** Planning d'un site : les membres de son équipe en lignes, les jours de la semaine en colonnes. */
 export const useAssignmentStore = defineStore('assignment', () => {
@@ -38,9 +39,8 @@ export const useAssignmentStore = defineStore('assignment', () => {
     weekStart.value = nextWeekStart
     isLoading.value = true
     try {
-      const from = fromDayKey(nextWeekStart).toISOString()
-      const to = fromDayKey(addDays(nextWeekStart, 7)).toISOString()
-      const items = await listAllPages((page) => assignmentService.list({ ...page, siteId: nextSiteId, status: 'PLANNED', from, to }))
+      const range = weekRange(nextWeekStart)
+      const items = await listAllPages((page) => assignmentService.list({ ...page, siteId: nextSiteId, status: 'PLANNED', ...range }))
       // Ignore une réponse arrivée après un changement de semaine ou de site.
       if (siteId.value === nextSiteId && weekStart.value === nextWeekStart) assignments.value = items
     } finally {
@@ -85,8 +85,24 @@ export const useAssignmentStore = defineStore('assignment', () => {
     }
   }
 
+  /**
+   * Import d'un classeur : simulation (dryRun) puis application. Un fichier refusé (422)
+   * renvoie quand même son rapport ligne par ligne, pour l'afficher.
+   */
+  async function importFile(file: File, dryRun: boolean): Promise<AssignmentImportReport> {
+    try {
+      const report = await assignmentService.importFile(file, dryRun)
+      if (report.applied) await reload()
+      return report
+    } catch (error) {
+      const report = readRejectedAssignmentReport(error)
+      if (report) return report
+      throw error
+    }
+  }
+
   return {
     siteId, weekStart, assignments, members, isLoading, isSaving, byMemberAndDay,
-    loadTeamMembers, loadWeek, reload, plan, reschedule, cancel,
+    loadTeamMembers, loadWeek, reload, plan, reschedule, cancel, importFile,
   }
 })
