@@ -45,13 +45,14 @@ export function mapSite(site: SiteResponse, previous?: Site): Site {
 export const roleToApi: Record<EnterpriseUser['role'], ApiUserRole> = {
   administrator: 'ADMIN', supervisor: 'SUPERVISOR', teamLeader: 'TEAM_LEAD', agent: 'AGENT',
 }
-const roleFromApi: Partial<Record<ApiUserRole, EnterpriseUser['role']>> = {
-  ADMIN: 'administrator', SUPERVISOR: 'supervisor', TEAM_LEAD: 'teamLeader', AGENT: 'agent',
-}
+// Du plus élevé au plus bas : un compte peut porter plusieurs rôles (ex. ['AGENT', 'TEAM_LEAD']), on affiche le plus élevé.
+const roleFromApi: [ApiUserRole, EnterpriseUser['role']][] = [
+  ['ADMIN', 'administrator'], ['SUPERVISOR', 'supervisor'], ['TEAM_LEAD', 'teamLeader'], ['AGENT', 'agent'],
+]
 
 export function mapUser(user: UserResponse): EnterpriseUser {
   const [firstName = '', ...lastNameParts] = user.names.trim().split(/\s+/)
-  const apiRole = user.roles.find((role) => roleFromApi[role])
+  const role = roleFromApi.find(([apiRole]) => user.roles.includes(apiRole))?.[1]
   return {
     id: user.id,
     employeeNumber: user.matricule,
@@ -59,7 +60,7 @@ export function mapUser(user: UserResponse): EnterpriseUser {
     lastName: lastNameParts.join(' '),
     email: user.email ?? '',
     phone: user.phone,
-    role: apiRole ? roleFromApi[apiRole]! : 'agent',
+    role: role ?? 'agent',
     teamId: user.teamId,
     status: user.status === 'ACTIVE' ? 'active' : user.status === 'DISABLED' ? 'disabled' : 'invited',
     createdAt: user.createdAt,
