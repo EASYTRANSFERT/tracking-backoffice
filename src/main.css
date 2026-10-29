@@ -8,6 +8,9 @@
 @import 'vuetify/styles' layer(vuetify);
 @import "tailwindcss";
 
+/* Variante `dark:` pilotée par l'attribut posé sur <html> (composables/useColorMode.ts), pas par le réglage du système. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
   --color-kaybic-red: #d80f16;
@@ -59,3 +62,85 @@
   background: #252830;
   color: #fff;
 }
+
+/*
+ * Mode sombre : fond noir pur. Les composants Vuetify suivent le thème `kaybicDark` ;
+ * les couleurs écrites en dur dans les gabarits (gris, blanc, vert…) sont ramenées ici
+ * à leur équivalent sombre, pour ne pas toucher chaque page.
+ */
+[data-theme='dark'] {
+  --dark-text: #f2f2f2;
+  --dark-text-soft: #d0d2d8;
+  --dark-text-muted: #a0a4ae;
+  --dark-border: #262626;
+  --dark-surface: #0b0b0b;
+  --dark-surface-raised: #161616;
+}
+
+[data-theme='dark'] body {
+  background: #000;
+  color: var(--dark-text);
+}
+
+/* Sur fond noir, l'ombre ne dessine plus les cartes : un filet les détache. */
+[data-theme='dark'] .v-card {
+  border: 1px solid var(--dark-border);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .v-tooltip > .v-overlay__content {
+  background: #2a2a2a;
+}
+
+/* Textes */
+[data-theme='dark'] .text-\[\#252830\],
+[data-theme='dark'] .text-\[\#292d38\],
+[data-theme='dark'] .text-gray-900,
+[data-theme='dark'] .text-gray-800,
+[data-theme='dark'] .text-gray-700 {
+  color: var(--dark-text);
+}
+
+[data-theme='dark'] .text-\[\#3f434d\],
+[data-theme='dark'] .text-\[\#535865\],
+[data-theme='dark'] .text-gray-600 {
+  color: var(--dark-text-soft);
+}
+
+[data-theme='dark'] .text-\[\#747985\],
+[data-theme='dark'] .text-\[\#848484\],
+[data-theme='dark'] .text-\[\#9a9ea8\],
+[data-theme='dark'] .text-\[\#9a9da5\],
+[data-theme='dark'] .text-\[\#b8bcc6\],
+[data-theme='dark'] .text-gray-500,
+[data-theme='dark'] .text-gray-400 {
+  color: var(--dark-text-muted);
+}
+
+[data-theme='dark'] .text-\[\#1E7D4F\],
+[data-theme='dark'] .text-\[\#2e7d4f\] { color: #4caf7a; }
+[data-theme='dark'] .text-\[\#a76000\] { color: #e0a040; }
+[data-theme='dark'] .text-\[\#34406A\] { color: #9fb0e8; }
+[data-theme='dark'] .text-\[\#B00C12\],
+[data-theme='dark'] .text-red-700,
+[data-theme='dark'] .text-red-600 { color: #ff6a6f; }
+
+/* Fonds et filets */
+[data-theme='dark'] .bg-white { background-color: var(--dark-surface); }
+
+[data-theme='dark'] .bg-gray-50,
+[data-theme='dark'] .bg-gray-100,
+[data-theme='dark'] .bg-\[\#FAFAFB\],
+[data-theme='dark'] .bg-\[\#f7f7f8\],
+[data-theme='dark'] .bg-\[\#eef1f4\],
+[data-theme='dark'] .hover\:bg-\[\#f7f7f8\]:hover { background-color: var(--dark-surface-raised); }
+
+[data-theme='dark'] .bg-\[\#FDE9EA\] { background-color: rgb(229 37 43 / 0.18); }
+
+[data-theme='dark'] .border-gray-200,
+[data-theme='dark'] .border-gray-300,
+[data-theme='dark'] .border-\[\#eceef2\],
+[data-theme='dark'] .border-\[\#d9dce2\] { border-color: var(--dark-border); }
+
+/* Icônes de menu en PNG sombre : on les éclaircit quand elles sont inactives. */
+[data-theme='dark'] nav img.grayscale { filter: grayscale(1) invert(1); }

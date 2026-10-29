@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import AppLogo from '@/Components/common/AppLogo.vue'
 import { dashboardNavigation } from '@/config/dashboard-navigation'
 import { roleLabelByRole } from '@/types/roles'
 import { useAuthStore } from '@/stores/auth.store'
@@ -105,7 +106,7 @@ async function handleLogout() {
   >
     <div class="flex h-full min-h-0 flex-col overflow-hidden">
       <div class="flex h-[108px] items-center px-7">
-        <img src="@/assets/icon.svg" alt="Kaybic Africa" class="h-auto w-full max-w-52 object-contain" />
+        <AppLogo class="h-auto w-full max-w-52 object-contain" />
       </div>
       <v-divider />
 

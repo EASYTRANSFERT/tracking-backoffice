@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 
+import ColorModeToggle from '@/Components/common/ColorModeToggle.vue'
 import UserMenu from '@/Components/layout/UserMenu.vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { dashboardRouteByRole } from '@/types/roles'
@@ -73,6 +74,8 @@ function goBack() {
       color="secondary"
       aria-label="Notifications"
     />-->
+
+    <ColorModeToggle />
 
     <UserMenu />
 
