@@ -105,7 +105,19 @@ function review(session: WorkSessionResponse) {
 
     <div v-if="filtered.length">
       <v-table hover :class="showSite ? '[&_table]:min-w-[1080px]' : '[&_table]:min-w-[960px]'">
-        <thead><tr><th>Agent</th><th v-if="showSite">Site</th><th>Entrée</th><th>Sortie</th><th>Durée</th><th>Anomalies</th><th>Contrôle</th><th>Décision</th><th class="text-right">Action</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th v-if="showSite">Site</th>
+            <th>Entrée</th>
+            <th>Sortie</th>
+            <th>Durée</th>
+            <th>Anomalies</th>
+            <th>Contrôle</th>
+            <th>Décision</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
         <tbody>
           <tr v-for="session in displayed" :key="session.id" class="cursor-pointer" @click="review(session)">
             <td class="whitespace-nowrap font-semibold text-[#292d38]">{{ store.agentName(session.userId) }}</td>
@@ -124,9 +136,7 @@ function review(session: WorkSessionResponse) {
               <template v-if="checkOf(session)">
                 <div class="flex items-center gap-1">
                   <v-chip size="small" variant="tonal" :color="checkResultConfig[checkOf(session)!.result].color" :prepend-icon="checkResultConfig[checkOf(session)!.result].icon">{{ checkResultConfig[checkOf(session)!.result].label }}</v-chip>
-                  <v-icon v-if="checkOf(session)!.remote" icon="mdi-map-marker-off-outline" size="16" color="warning" title="Réponse à distance : le chef d’équipe n’était pas sur le site." />
                 </div>
-                <span class="mt-1 block whitespace-nowrap text-xs text-[#848484]">{{ checkOf(session)!.triggeredBy ? `par ${store.agentName(checkOf(session)!.triggeredBy!, 'Utilisateur')} · ` : '' }}{{ formatDateTime(checkOf(session)!.dueAt) }}</span>
               </template>
               <span v-else class="text-xs text-[#848484]">—</span>
             </td>

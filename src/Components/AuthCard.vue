@@ -17,19 +17,19 @@ defineProps<Props>()
   class="relative z-10 border border-white/70 px-10 py-12 backdrop-blur-2xl sm:px-14"
   >
     <header class="mb-8 text-center">
-      <h1 class="text-4xl font-bold tracking-tight text-gray-700">
+      <img
+        src="@/assets/icon.svg"
+        alt="Kaybic Africa"
+        class="mx-auto h-auto w-full max-w-72 object-contain"
+      />
+
+      <h1 class="mt-4 text-2xl font-bold tracking-tight text-gray-700">
         {{ title }}
       </h1>
 
-      <img
-        src="@/assets/kaybiclogo.png"
-        alt="Kaybic Africa"
-        class="mx-auto mt-4 h-16 w-auto object-contain"
-      />
-
       <p
         v-if="description"
-        class="mt-5 text-sm leading-6 text-gray-600"
+        class="mt-3 text-sm leading-6 text-gray-600"
       >
         {{ description }}
       </p>

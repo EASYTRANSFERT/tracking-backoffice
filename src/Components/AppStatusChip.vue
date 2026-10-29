@@ -24,13 +24,13 @@ const props = defineProps<{
 const statusConfig = computed(() => {
   return {
     active: { label: 'Actif', color: 'success', icon: 'mdi-check-circle' },
-    inactive: { label: 'Inactive', color: 'secondary', icon: 'mdi-minus-circle' },
+    inactive: { label: 'Inactif', color: 'secondary', icon: 'mdi-minus-circle' },
     pending: { label: 'En attente', color: 'warning', icon: 'mdi-clock' },
     suspended: { label: 'Suspendue', color: 'error', icon: 'mdi-cancel' },
     open: { label: 'Ouverte', color: 'error', icon: 'mdi-alert-circle' },
     in_progress: { label: 'En cours', color: 'warning', icon: 'mdi-progress-clock' },
     resolved: { label: 'Résolue', color: 'success', icon: 'mdi-check-circle' },
-    invited: { label: 'Invité', color: 'info', icon: 'mdi-email-check-outline' },
+    invited: { label: 'En attente d\'activation', color: 'warning', icon: 'mdi-email-check-outline' },
     disabled: { label: 'Désactivé', color: 'secondary', icon: 'mdi-account-off-outline' },
     scheduled: { label: 'Planifiée', color: 'info', icon: 'mdi-calendar-clock' },
     ongoing: { label: 'En cours', color: 'warning', icon: 'mdi-progress-clock' },
