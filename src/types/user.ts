@@ -38,7 +38,7 @@ export interface CreateTenantUserRequest extends CreateUserRequest {
   role: 'ADMIN'
 }
 
-export type UpdateUserRequest = Omit<CreateUserRequest, 'password'>
+export type UpdateUserRequest = CreateUserRequest
 
 export interface UpdatePasswordRequest {
   currentPassword: string

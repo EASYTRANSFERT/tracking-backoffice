@@ -9,6 +9,7 @@ import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { EnterpriseUser } from '@/types/administrator'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { fullName, nameOr } from '@/utils/people'
+import { matchesSearch } from '@/utils/search'
 
 const route = useRoute()
 const store = useAdministratorStore()
@@ -19,6 +20,9 @@ const members = ref<EnterpriseUser[]>([])
 const loading = ref(true)
 const lead = computed(() => members.value.find((member) => member.id === team.value?.leadUserId) ?? store.findUser(team.value?.leadUserId ?? ''))
 const agents = computed(() => members.value.filter((member) => member.id !== team.value?.leadUserId))
+const search = ref('')
+const orderedMembers = computed(() => [...(lead.value ? [lead.value] : []), ...agents.value])
+const displayedMembers = computed(() => orderedMembers.value.filter((member) => matchesSearch(search.value, fullName(member), member.employeeNumber, member.email, member.phone)))
 const formatDate = (value: string) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(value))
 
 onMounted(async () => {
@@ -63,10 +67,14 @@ onMounted(async () => {
       </div>
 
       <v-card>
-        <v-card-title class="px-6 py-5 text-base font-bold">Membres de l’équipe</v-card-title>
+        <div class="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center">
+          <h2 class="text-base font-bold">Membres de l’équipe</h2>
+          <v-spacer />
+          <v-text-field v-model="search" prepend-inner-icon="mdi-magnify" placeholder="Rechercher un membre" density="compact" hide-details clearable class="w-full sm:max-w-xs" />
+        </div>
         <v-divider />
-        <v-list v-if="members.length" class="py-0" lines="two">
-          <template v-for="(member, index) in [...(lead ? [lead] : []), ...agents]" :key="member.id">
+        <v-list v-if="displayedMembers.length" class="py-0" lines="two">
+          <template v-for="(member, index) in displayedMembers" :key="member.id">
             <v-list-item :title="fullName(member)" :subtitle="`${member.employeeNumber} · ${member.email || member.phone}`" :to="{ name: 'admin-user-details', params: { userId: member.id } }">
               <template #prepend><v-avatar color="red-lighten-5" size="38"><v-icon icon="mdi-account-outline" color="primary" /></v-avatar></template>
               <template #append>
@@ -74,10 +82,10 @@ onMounted(async () => {
                 <AppStatusChip v-else :status="member.status" />
               </template>
             </v-list-item>
-            <v-divider v-if="index < members.length - 1" />
+            <v-divider v-if="index < displayedMembers.length - 1" />
           </template>
         </v-list>
-        <p v-else class="px-6 py-8 text-center text-sm text-[#747985]">Aucun agent n’est encore affecté à cette équipe.</p>
+        <p v-else class="px-6 py-8 text-center text-sm text-[#747985]">{{ search ? 'Aucun membre ne correspond à cette recherche.' : 'Aucun agent n’est encore affecté à cette équipe.' }}</p>
       </v-card>
     </template>
   </div>

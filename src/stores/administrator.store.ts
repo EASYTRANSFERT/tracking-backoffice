@@ -161,6 +161,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
       phone: input.phone,
       role: roleToApi[input.role],
       teamId: input.teamId,
+      password: input.password || undefined,
     })))
   }
 
