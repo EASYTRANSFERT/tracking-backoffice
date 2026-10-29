@@ -21,6 +21,24 @@
     font-family: var(--font-sans);
   }
 
+  /* Vuetify impose sa propre police (Roboto) sur l'application, les champs et les boutons. */
+  body,
+  .v-application,
+  .v-application [class*='text-'],
+  .v-btn,
+  .v-field,
+  .v-label,
+  .v-list-item,
+  .v-tab,
+  .v-table,
+  .v-tooltip,
+  button,
+  input,
+  select,
+  textarea {
+    font-family: var(--font-sans);
+  }
+
   body {
     min-width: 320px;
     background: var(--color-kaybic-background);
@@ -34,4 +52,10 @@
     max-height: 560px;
     overflow: auto;
   }
+}
+
+/* Info-bulles lisibles : le fond par défaut de Vuetify (surface-variant) est presque blanc, comme son texte. */
+.v-tooltip > .v-overlay__content {
+  background: #252830;
+  color: #fff;
 }
