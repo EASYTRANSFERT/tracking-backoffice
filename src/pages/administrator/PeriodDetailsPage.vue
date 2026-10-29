@@ -7,6 +7,7 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
 import PeriodCloseDialog from '@/Components/periods/PeriodCloseDialog.vue'
 import PeriodReopenDialog from '@/Components/periods/PeriodReopenDialog.vue'
 import PeriodStateChip from '@/Components/periods/PeriodStateChip.vue'
+import { usePeriodAccess } from '@/composables/usePeriodAccess'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { CLOSURE_POLL_INTERVAL_MS, usePeriodStore } from '@/stores/period.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
@@ -17,6 +18,7 @@ import type { PeriodBlockers } from '@/types/period'
 
 const route = useRoute()
 const store = usePeriodStore()
+const { readonly, listRoute } = usePeriodAccess()
 const administratorStore = useAdministratorStore()
 const feedback = useUiFeedbackStore()
 
@@ -105,7 +107,7 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
     <PageHeader>
       <template #title>{{ period ? `Période du ${formatPeriodRange(period)}` : 'Période' }}</template>
       <template #description>Blocages de clôture, historique et actions de la période.</template>
-      <template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-periods' }">Retour aux périodes</v-btn></template>
+      <template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: listRoute }">Retour aux périodes</v-btn></template>
     </PageHeader>
 
     <AppErrorState v-if="loadError && !period" title="Période introuvable" :description="loadError" />
@@ -169,11 +171,12 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
           <div class="flex items-center justify-between"><span class="font-bold">État</span><PeriodStateChip :state="period.state" /></div>
           <v-progress-linear v-if="period.state === 'CLOSING'" indeterminate color="primary" class="mt-4" />
           <v-divider class="my-5" />
-          <div class="space-y-3">
+          <div v-if="!readonly" class="space-y-3">
             <v-btn block color="primary" variant="flat" prepend-icon="mdi-lock-check-outline" :disabled="!canClose" @click="openClose">Clôturer la période</v-btn>
             <v-btn block variant="tonal" color="warning" prepend-icon="mdi-lock-open-variant-outline" :disabled="!canReopen" @click="openReopen">Rouvrir pour correction</v-btn>
           </div>
-          <p class="mt-4 text-xs leading-5 text-[#747985]">
+          <p v-if="readonly" class="mt-4 text-xs leading-5 text-[#747985]">Consultation seule : la validation, la clôture et la réouverture sont réservées à l’administrateur.</p>
+          <p v-else class="mt-4 text-xs leading-5 text-[#747985]">
             <template v-if="period.state === 'CLOSED'">Une période clôturée est immuable : elle ne se rouvre jamais.</template>
             <template v-else-if="period.state === 'IN_VALIDATION'">La clôture demande votre code TOTP. Elle est refusée tant que des sessions sont en attente ou ouvertes, sauf clôture forcée avec motif.</template>
             <template v-else>Les actions de clôture et de réouverture sont disponibles une fois la période en validation.</template>
@@ -182,7 +185,7 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
       </v-card>
     </div>
 
-    <PeriodReopenDialog v-model="reopenOpen" :loading="store.isSaving" :error-message="reopenError" @submit="reopen" />
-    <PeriodCloseDialog :period="closeOpen ? period ?? null : null" :blockers="blockers" :step-up-done="stepUpDone" :loading="store.isSaving" :error-message="closeError" @submit="close" @cancel="closeOpen = false" />
+    <PeriodReopenDialog v-if="!readonly" v-model="reopenOpen" :loading="store.isSaving" :error-message="reopenError" @submit="reopen" />
+    <PeriodCloseDialog v-if="!readonly" :period="closeOpen ? period ?? null : null" :blockers="blockers" :step-up-done="stepUpDone" :loading="store.isSaving" :error-message="closeError" @submit="close" @cancel="closeOpen = false" />
   </div>
 </template>

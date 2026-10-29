@@ -7,6 +7,7 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
 import PeriodCreateDialog from '@/Components/periods/PeriodCreateDialog.vue'
 import PeriodTable from '@/Components/periods/PeriodTable.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { usePeriodAccess } from '@/composables/usePeriodAccess'
 import { usePeriodStore } from '@/stores/period.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -15,6 +16,7 @@ import type { ApiPeriodState, PeriodResponse } from '@/types/period'
 
 const router = useRouter()
 const store = usePeriodStore()
+const { readonly, detailsRoute } = usePeriodAccess()
 const administratorStore = useAdministratorStore()
 const { knownTeams } = storeToRefs(administratorStore)
 const feedback = useUiFeedbackStore()
@@ -26,12 +28,12 @@ const createOpen = ref(false)
 const createError = ref<string | null>(null)
 
 onMounted(async () => {
-  administratorStore.loadTeamOptions().catch(() => undefined)
+  if (!readonly.value) administratorStore.loadTeamOptions().catch(() => undefined)
   try { await store.loadPeriods(true) }
   catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les périodes.')) }
 })
 
-const view = (period: PeriodResponse) => router.push({ name: 'admin-period-details', params: { periodId: period.id } })
+const view = (period: PeriodResponse) => router.push({ name: detailsRoute.value, params: { periodId: period.id } })
 
 function openCreate() {
   createError.value = null
@@ -55,8 +57,8 @@ async function create(teamId: string, from: string, to: string) {
   <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
       <template #title>Périodes</template>
-      <template #description>Validez les pointages d’une période, puis clôturez-la pour figer les totaux.</template>
-      <template #actions><v-btn color="primary" prepend-icon="mdi-calendar-plus" size="large" @click="openCreate">Nouvelle période</v-btn></template>
+      <template #description>{{ readonly ? 'Consultez les périodes de validation des pointages.' : 'Validez les pointages d’une période, puis clôturez-la pour figer les totaux.' }}</template>
+      <template v-if="!readonly" #actions><v-btn color="primary" prepend-icon="mdi-calendar-plus" size="large" @click="openCreate">Nouvelle période</v-btn></template>
     </PageHeader>
     <v-progress-linear v-if="isLoading" indeterminate color="primary" class="mb-4" />
     <v-card class="overflow-hidden">
@@ -70,10 +72,10 @@ async function create(teamId: string, from: string, to: string) {
       </div>
       <v-divider />
       <PeriodTable v-if="filtered.length" :periods="filtered" @view="view" />
-      <AppEmptyState v-else-if="!isLoading" icon="mdi-calendar-blank-outline" title="Aucune période" description="Créez une période pour valider puis clôturer les pointages de l’entreprise.">
-        <v-btn color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
+      <AppEmptyState v-else-if="!isLoading" icon="mdi-calendar-blank-outline" title="Aucune période" :description="readonly ? 'Aucune période n’a encore été créée.' : 'Créez une période pour valider puis clôturer les pointages de l’entreprise.'">
+        <v-btn v-if="!readonly" color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
       </AppEmptyState>
     </v-card>
-    <PeriodCreateDialog v-model="createOpen" :teams="knownTeams" :loading="isSaving" :error-message="createError" @submit="create" />
+    <PeriodCreateDialog v-if="!readonly" v-model="createOpen" :teams="knownTeams" :loading="isSaving" :error-message="createError" @submit="create" />
   </div>
 </template>
