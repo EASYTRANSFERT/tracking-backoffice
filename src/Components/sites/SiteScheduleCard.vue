@@ -141,6 +141,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
       </div>
       <div v-if="site.teamId" class="flex flex-wrap items-center gap-3">
         <WeekNavigator :week-start="weekStart" @change="goToWeek" />
+        <v-btn variant="outlined" color="secondary" prepend-icon="mdi-calendar-import-outline" :to="{ name: 'admin-assignment-import' }">Importer</v-btn>
         <v-btn color="primary" prepend-icon="mdi-calendar-plus" :disabled="!canPlan" @click="openPlan()">Planifier</v-btn>
       </div>
     </div>

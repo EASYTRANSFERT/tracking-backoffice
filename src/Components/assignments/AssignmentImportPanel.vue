@@ -13,8 +13,6 @@ const fileModel = computed({
   // Selon la version de Vuetify, le champ renvoie un fichier ou une liste.
   set: (value: File | File[] | null) => emit('update:file', Array.isArray(value) ? value[0] ?? null : value),
 })
-// Les créneaux notifient les agents : on n'applique qu'un fichier vérifié sans refus.
-const canApply = computed(() => Boolean(props.report && !props.report.applied && !props.report.rejected.length && props.report.planned > 0))
 const stats = computed(() => props.report ? [
   { label: 'Lignes lues', value: props.report.read, color: 'text-[#252830]' },
   { label: props.report.applied ? 'Créneaux planifiés' : 'Créneaux à planifier', value: props.report.planned, color: 'text-[#1E7D4F]' },
@@ -52,7 +50,7 @@ function downloadTemplate() {
         <v-divider />
         <v-card-actions class="flex-wrap justify-end gap-2 px-6 py-4">
           <v-btn variant="outlined" color="primary" prepend-icon="mdi-file-search-outline" :disabled="!file || applying" :loading="checking" @click="emit('check')">Vérifier le fichier</v-btn>
-          <v-btn color="primary" variant="flat" prepend-icon="mdi-check-all" :disabled="!canApply || checking" :loading="applying" @click="emit('apply')">Appliquer l’import</v-btn>
+          <v-btn color="primary" variant="flat" prepend-icon="mdi-check-all" :loading="applying" @click="emit('apply')">Appliquer l’import</v-btn>
         </v-card-actions>
       </v-card>
 
@@ -106,7 +104,7 @@ function downloadTemplate() {
         <v-list-item prepend-icon="mdi-download-outline" title="Télécharger le modèle" subtitle="Fichier CSV avec les colonnes matricule, site, date, début, fin." @click="downloadTemplate" />
         <v-list-item prepend-icon="mdi-weather-night" title="Postes de nuit" subtitle="Une fin avant le début passe au lendemain : 22:00 – 06:00 est rattaché au jour de la prise de poste." />
         <v-list-item prepend-icon="mdi-account-check-outline" title="Mêmes règles que le planning" subtitle="L’agent doit être dans l’équipe du site, le site actif avec une mission ouverte, sans chevauchement." />
-        <v-list-item prepend-icon="mdi-bell-ring-outline" title="Notifications" subtitle="Les créneaux d’aujourd’hui et de demain préviennent l’agent et son chef d’équipe. Tout ou rien : vérifiez d’abord le fichier." />
+        <v-list-item prepend-icon="mdi-bell-ring-outline" title="Notifications" subtitle="Les créneaux d’aujourd’hui et de demain préviennent l’agent et son chef d’équipe. Tout ou rien : la vérification est facultative, un fichier refusé ne crée aucun créneau." />
       </v-list>
     </v-card>
   </div>
