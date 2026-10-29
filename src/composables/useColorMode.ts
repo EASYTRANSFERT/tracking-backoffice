@@ -39,5 +39,18 @@ export function useColorMode() {
 
   const toggle = () => setMode(isDark.value ? 'light' : 'dark')
 
-  return { isDark, setMode, toggle }
+  /** Écrans publics (connexion, MFA…) : toujours clairs, sans toucher au choix enregistré. */
+  function showLight() {
+    theme.global.name.value = themeNames.light
+    applyColorMode('light')
+  }
+
+  /** Tableau de bord : on retrouve le mode choisi par l'utilisateur. */
+  function showStored() {
+    const mode = storedColorMode()
+    theme.global.name.value = themeNames[mode]
+    applyColorMode(mode)
+  }
+
+  return { isDark, setMode, toggle, showLight, showStored }
 }

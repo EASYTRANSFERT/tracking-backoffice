@@ -4,12 +4,15 @@ import { onMounted, ref, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { useDisplay } from 'vuetify'
 
+import { useColorMode } from '@/composables/useColorMode'
 import AppSidebar from '@/Components/layout/AppSidebar.vue'
 import AppTopbar from '@/Components/layout/AppTopbar.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useOperatorStore } from '@/stores/operator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
+
+useColorMode().showStored()
 
 const { lgAndUp } = useDisplay()
 const drawer = ref(lgAndUp.value)

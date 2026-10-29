@@ -65,7 +65,7 @@ function handleSubmit() {
 
       <div
         v-if="qrCode"
-        class="mx-auto flex w-fit items-center justify-center rounded-lg border border-gray-200 bg-white! p-4"
+        class="mx-auto flex w-fit items-center justify-center rounded-lg border border-gray-200 bg-white p-4"
       >
         <img
           :src="qrCode"
