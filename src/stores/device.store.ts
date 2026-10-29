@@ -5,7 +5,7 @@ import { defineStore } from 'pinia'
 import { deviceService } from '@/Services/device.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAdministratorStore } from '@/stores/administrator.store'
-import type { ApiDeviceStatus, DeviceResponse } from '@/types/device'
+import type { ApiDeviceStatus, DeviceReplacementResponse, DeviceResponse } from '@/types/device'
 
 const PAGE_SIZE = 50
 
@@ -27,6 +27,7 @@ export const useDeviceStore = defineStore('device', () => {
   const isLoadingMore = ref(false)
   const isDeviceLoading = ref(false)
   const isRevoking = ref(false)
+  const isReplacing = ref(false)
 
   const hasMore = computed(() => nextCursor.value !== null)
 
@@ -96,6 +97,23 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
+  /**
+   * Changement de téléphone : step-up TOTP, puis l'API révoque l'appareil actif et remet le compte
+   * en attente d'activation. On recharge ses appareils et le compte, dont le statut a changé.
+   */
+  async function replaceUserDevice(userId: string, reason: string | undefined, totpCode: string): Promise<DeviceReplacementResponse> {
+    const authStore = useAuthStore()
+    isReplacing.value = true
+    try {
+      await authStore.stepUp(totpCode)
+      const result = await deviceService.replaceForUser(userId, { reason })
+      await Promise.all([loadUserDevices(userId), useAdministratorStore().refreshUser(userId)])
+      return result
+    } finally {
+      isReplacing.value = false
+    }
+  }
+
   function activeFilters() {
     return Object.fromEntries(Object.entries(filters.value).filter(([, value]) => Boolean(value))) as DeviceFilters
   }
@@ -114,7 +132,7 @@ export const useDeviceStore = defineStore('device', () => {
 
   return {
     devices, nextCursor, filters, currentDevice, devicesByUser, pendingEnrollmentCount, hasMorePendingEnrollments,
-    isLoading, isLoadingMore, isDeviceLoading, isRevoking, hasMore,
-    agentName, loadDevices, loadMore, loadDevice, loadUserDevices, loadPendingEnrollmentCount, revokeDevice,
+    isLoading, isLoadingMore, isDeviceLoading, isRevoking, isReplacing, hasMore,
+    agentName, loadDevices, loadMore, loadDevice, loadUserDevices, loadPendingEnrollmentCount, revokeDevice, replaceUserDevice,
   }
 })

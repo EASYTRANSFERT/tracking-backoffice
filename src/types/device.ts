@@ -39,3 +39,17 @@ export interface DevicePageResponse {
 export interface RevokeDeviceRequest {
   reason: string
 }
+
+export interface DeviceReplacementRequest {
+  /** Repris dans le journal d'audit ; « Remplacement de téléphone » par défaut. */
+  reason?: string
+}
+
+/** Réponse de POST /users/{id}/device-replacement. */
+export interface DeviceReplacementResponse {
+  userId: string
+  /** PENDING_ACTIVATION : le porteur peut activer son nouveau téléphone. */
+  status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'DISABLED' | (string & {})
+  /** Vide si le compte n'avait plus d'appareil actif (téléphone perdu déjà révoqué, par exemple). */
+  revokedDeviceIds: string[]
+}
