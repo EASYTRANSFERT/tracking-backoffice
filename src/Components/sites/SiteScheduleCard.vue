@@ -179,10 +179,10 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
               <span class="absolute bottom-2 left-4 text-[11px] font-semibold uppercase tracking-wide text-[#9a9ea8]">Agents</span>
             </th>
             <th
-              v-for="(day, index) in days"
+              v-for="day in days"
               :key="day.key"
               class="border-b border-r border-[#eceef2] px-2 py-2 text-center font-normal last:border-r-0"
-              :class="[!isDayAllowed(day.key) ? 'bg-gray-100 opacity-50' : day.isToday ? 'bg-[#FDE9EA]' : index > 4 ? 'bg-[#F6F6F7]' : 'bg-[#FAFAFB]']"
+              :class="[!isDayAllowed(day.key) ? 'bg-gray-100 opacity-50' : day.isToday ? 'bg-[#FDE9EA]' : 'bg-[#FAFAFB]']"
             >
               <span class="block text-[11px] font-semibold uppercase tracking-wide" :class="day.isToday ? 'text-[#D80F16]' : 'text-[#9a9ea8]'">{{ day.weekday }}</span>
               <span class="mt-0.5 block font-semibold" :class="day.isToday ? 'text-[#D80F16]' : 'text-[#252830]'">{{ day.date }}</span>
@@ -196,10 +196,10 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
               <p class="mt-0.5 truncate text-xs text-[#848484]">{{ member.role === 'teamLeader' ? 'Chef d’équipe' : member.employeeNumber }} · {{ totalHours(member.id) }}</p>
             </td>
             <td
-              v-for="(day, index) in days"
+              v-for="day in days"
               :key="day.key"
               class="group h-[68px] border-b border-r border-[#eceef2] p-1.5 align-top last:border-r-0"
-              :class="!isDayAllowed(day.key) ? 'cursor-not-allowed bg-gray-100' : day.isToday ? 'bg-[#FFF7F7]' : index > 4 ? 'bg-[#FAFAFB]' : ''"
+              :class="!isDayAllowed(day.key) ? 'cursor-not-allowed bg-gray-100' : day.isToday ? 'bg-[#FFF7F7]' : ''"
             >
               <div class="flex h-full flex-col gap-1">
                 <button
