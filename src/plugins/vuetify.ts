@@ -1,6 +1,11 @@
 import { createVuetify } from 'vuetify'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
+import { applyColorMode, storedColorMode, themeNames } from '@/composables/useColorMode'
+
+const initialMode = storedColorMode()
+applyColorMode(initialMode)
+
 export default createVuetify({
   icons: {
     defaultSet: 'mdi',
@@ -11,7 +16,7 @@ export default createVuetify({
   },
 
   theme: {
-    defaultTheme: 'kaybicLight',
+    defaultTheme: themeNames[initialMode],
 
     themes: {
       kaybicLight: {
@@ -28,6 +33,24 @@ export default createVuetify({
           error: '#B3261E',
           success: '#2E7D4F',
           warning: '#A76000',
+        },
+      },
+
+      // Noir pur (#000000) en fond ; les cartes sont à peine plus claires pour rester lisibles. Le rouge reste la couleur principale.
+      kaybicDark: {
+        dark: true,
+
+        colors: {
+          primary: '#E5252B',
+          secondary: '#9A9EA8',
+          background: '#000000',
+          surface: '#0B0B0B',
+          'surface-variant': '#1A1A1A',
+          'on-background': '#F2F2F2',
+          'on-surface': '#F2F2F2',
+          error: '#FF5A52',
+          success: '#4CAF7A',
+          warning: '#E0A040',
         },
       },
     },
