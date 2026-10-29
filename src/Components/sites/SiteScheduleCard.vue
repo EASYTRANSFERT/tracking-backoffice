@@ -6,17 +6,20 @@ import { isAxiosError } from 'axios'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import WeekNavigator from '@/Components/sites/WeekNavigator.vue'
 import SiteShiftDialog from '@/Components/sites/SiteShiftDialog.vue'
-import { formatTime, toDayKey, weekDays } from '@/Components/sites/site-schedule'
+import { formatTime, toDayKey, weekDays, weekRange } from '@/Components/sites/site-schedule'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useAssignmentStore } from '@/stores/assignment.store'
+import { useExportStore } from '@/stores/export.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { Site, Team } from '@/types/administrator'
 import type { AssignmentResponse, AssignmentSlot } from '@/types/assignment'
+import type { ExportFormat } from '@/types/export'
 
 const props = defineProps<{ site: Site; team?: Team }>()
 
 const store = useAssignmentStore()
 const feedback = useUiFeedbackStore()
+const exportStore = useExportStore()
 const { members, weekStart, byMemberAndDay, isLoading, isSaving } = storeToRefs(store)
 const days = computed(() => weekDays(weekStart.value))
 const canPlan = computed(() => Boolean(props.site.teamId) && props.site.status !== 'inactive' && members.value.length > 0)
@@ -113,6 +116,16 @@ async function cancelShift() {
   }
 }
 
+// Exporte le planning du site pour la semaine affichée (mêmes filtres que la grille).
+async function exportWeek(format: ExportFormat) {
+  try {
+    await exportStore.exportAssignments({ format, siteId: props.site.id, status: 'PLANNED', ...weekRange(weekStart.value) })
+    feedback.success('Export prêt : le téléchargement démarre.')
+  } catch (error) {
+    feedback.error(getApiErrorMessage(error, 'Impossible d’exporter le planning.'))
+  }
+}
+
 watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
 </script>
 
@@ -140,7 +153,8 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
     <v-alert v-else-if="loadError" type="error" variant="tonal" class="ma-6" :text="loadError" />
     <AppEmptyState v-else-if="!members.length && !isLoading" icon="mdi-account-off-outline" title="L’équipe n’a pas encore d’agent" description="Ajoutez des agents à l’équipe depuis la page Équipes." />
 
-    <div v-else class="overflow-x-auto">
+    <template v-else>
+    <div class="overflow-x-auto">
       <table class="w-full min-w-[880px] table-fixed border-collapse text-sm">
         <colgroup>
           <col class="w-[200px]">
@@ -204,6 +218,19 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
         </tbody>
       </table>
     </div>
+    <v-divider />
+    <div class="flex justify-end px-6 py-4">
+      <v-menu location="top end">
+        <template #activator="{ props: menuProps }">
+          <v-btn v-bind="menuProps" color="primary" prepend-icon="mdi-download-outline" :loading="exportStore.isExporting">Exporter</v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item prepend-icon="mdi-file-excel-outline" title="Excel (.xlsx)" subtitle="Valeurs triables et additionnables" @click="exportWeek('XLSX')" />
+          <v-list-item prepend-icon="mdi-file-pdf-box" title="PDF" subtitle="Document à imprimer (5 000 lignes max.)" @click="exportWeek('PDF')" />
+        </v-list>
+      </v-menu>
+    </div>
+    </template>
 
     <SiteShiftDialog
       v-model="dialogOpen"
