@@ -18,6 +18,7 @@ export interface PeriodClosureFailure extends PeriodBlockers {
 
 export interface PeriodResponse {
   id: string
+  teamId?: string
   /** Première journée, AAAA-MM-JJ dans le fuseau de l'entreprise, incluse. */
   from: string
   /** Dernière journée, incluse. */
@@ -44,6 +45,8 @@ export interface PeriodResponse {
 }
 
 export interface CreatePeriodRequest {
+  /** Équipe concernée par la période. */
+  teamId: string
   from: string
   to: string
 }

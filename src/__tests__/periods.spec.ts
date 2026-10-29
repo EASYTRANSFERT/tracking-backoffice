@@ -63,4 +63,14 @@ describe('period store', () => {
 
     expect(stepUp).not.toHaveBeenCalled()
   })
+
+  it('creates a period for the chosen team', async () => {
+    const create = vi.spyOn(periodService, 'create').mockResolvedValue(period('OPEN', { teamId: 'tea_1' }))
+
+    const store = usePeriodStore()
+    await store.createPeriod('tea_1', '2026-10-01', '2026-10-31')
+
+    expect(create).toHaveBeenCalledWith({ teamId: 'tea_1', from: '2026-10-01', to: '2026-10-31' })
+    expect(store.findPeriod('per_1')?.teamId).toBe('tea_1')
+  })
 })

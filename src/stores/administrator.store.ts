@@ -317,7 +317,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   /** Toutes les équipes (200 au plus), pour les listes de choix. */
   async function loadTeamOptions() {
-    teamOptions.value = (await teamService.list({ limit: 200 })).items.map(mapTeam)
+    teamOptions.value = (await listAllPages((page) => teamService.list(page))).map(mapTeam)
     return teamOptions.value
   }
 

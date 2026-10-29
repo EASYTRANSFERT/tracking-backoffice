@@ -39,10 +39,11 @@ export function periodHandlers(api: (path: string) => string, problem: Problem) 
       return HttpResponse.json(view(period))
     }),
     http.post(api('/periods'), async ({ request }) => {
-      const { from, to } = (await request.json()) as CreatePeriodRequest
+      const { teamId, from, to } = (await request.json()) as CreatePeriodRequest
+      if (!teamId) return problem(400, 'VALIDATION_ERROR', 'L’équipe est obligatoire.')
       if (!/^\d{4}-\d{2}-\d{2}$/.test(from ?? '') || !/^\d{4}-\d{2}-\d{2}$/.test(to ?? '') || to < from) return problem(400, 'PERIOD_RANGE_INVALID', 'Journée illisible, ou fin avant début.')
-      if (periods.some((period) => from <= period.to && period.from <= to)) return problem(409, 'PERIOD_OVERLAP', 'Cette période chevauche une période existante.')
-      const period: PeriodResponse = { id: `per_mock_${Date.now()}`, from, to, state: to < today() ? 'IN_VALIDATION' : 'OPEN', createdBy: 'user-1' }
+      if (periods.some((period) => period.teamId === teamId && from <= period.to && period.from <= to)) return problem(409, 'PERIOD_OVERLAP', 'Cette période chevauche une période existante.')
+      const period: PeriodResponse = { id: `per_mock_${Date.now()}`, teamId, from, to, state: to < today() ? 'IN_VALIDATION' : 'OPEN', createdBy: 'user-1' }
       periods.push(period)
       return HttpResponse.json(period, { status: 201 })
     }),

@@ -39,10 +39,10 @@ export const usePeriodStore = defineStore('period', () => {
     return period
   }
 
-  async function createPeriod(from: string, to: string) {
+  async function createPeriod(teamId: string, from: string, to: string) {
     isSaving.value = true
     try {
-      const created = await periodService.create({ from, to })
+      const created = await periodService.create({ teamId, from, to })
       periods.value = [created, ...periods.value].sort((a, b) => b.from.localeCompare(a.from))
       return created
     } finally {
