@@ -8,8 +8,10 @@ import WeekNavigator from '@/Components/sites/WeekNavigator.vue'
 import SiteShiftDialog from '@/Components/sites/SiteShiftDialog.vue'
 import { formatTime, toDayKey, weekDays, weekRange } from '@/Components/sites/site-schedule'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { dayInPeriods } from '@/utils/period-format'
 import { useAssignmentStore } from '@/stores/assignment.store'
 import { useExportStore } from '@/stores/export.store'
+import { usePeriodStore } from '@/stores/period.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import type { Site, Team } from '@/types/administrator'
 import type { AssignmentResponse, AssignmentSlot } from '@/types/assignment'
@@ -20,10 +22,16 @@ const props = defineProps<{ site: Site; team?: Team }>()
 const store = useAssignmentStore()
 const feedback = useUiFeedbackStore()
 const exportStore = useExportStore()
+const periodStore = usePeriodStore()
 const { members, weekStart, byMemberAndDay, isLoading, isSaving } = storeToRefs(store)
 const days = computed(() => weekDays(weekStart.value))
 const canPlan = computed(() => Boolean(props.site.teamId) && props.site.status !== 'inactive' && members.value.length > 0)
 const loadError = ref<string | null>(null)
+
+// Un jour hors des périodes de l'équipe n'est pas planifiable (l'API le refuse). Tant que les périodes
+// ne sont pas connues (ou si leur chargement échoue), on ne bloque rien : l'API reste juge.
+const teamPeriods = computed(() => props.site.teamId ? periodStore.teamPeriods[props.site.teamId] : undefined)
+const isDayAllowed = (dayKey: string) => !teamPeriods.value || dayInPeriods(dayKey, teamPeriods.value)
 
 const dialogOpen = ref(false)
 const editing = ref<AssignmentResponse | null>(null)
@@ -42,6 +50,7 @@ async function load() {
   loadError.value = null
   if (!props.site.teamId) { members.value = []; return }
   try {
+    periodStore.loadTeamPeriods(props.site.teamId).catch(() => undefined)
     await Promise.all([store.loadTeamMembers(props.site.teamId), store.loadWeek(props.site.id, weekStart.value)])
   } catch (error) {
     loadError.value = getApiErrorMessage(error, 'Impossible de charger le planning du site.')
@@ -155,6 +164,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
     <AppEmptyState v-else-if="!members.length && !isLoading" icon="mdi-account-off-outline" title="L’équipe n’a pas encore d’agent" description="Ajoutez des agents à l’équipe depuis la page Équipes." />
 
     <template v-else>
+    <v-alert v-if="teamPeriods && !teamPeriods.length" type="warning" variant="tonal" density="compact" class="mx-6 mt-4" text="Aucune période n’est définie pour cette équipe : aucun jour ne peut être planifié. Créez-en une depuis la page Périodes." />
     <div class="overflow-x-auto">
       <table class="w-full min-w-[880px] table-fixed border-collapse text-sm">
         <colgroup>
@@ -172,7 +182,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
               v-for="(day, index) in days"
               :key="day.key"
               class="border-b border-r border-[#eceef2] px-2 py-2 text-center font-normal last:border-r-0"
-              :class="day.isToday ? 'bg-[#FDE9EA]' : index > 4 ? 'bg-[#F6F6F7]' : 'bg-[#FAFAFB]'"
+              :class="[!isDayAllowed(day.key) ? 'bg-gray-100 opacity-50' : day.isToday ? 'bg-[#FDE9EA]' : index > 4 ? 'bg-[#F6F6F7]' : 'bg-[#FAFAFB]']"
             >
               <span class="block text-[11px] font-semibold uppercase tracking-wide" :class="day.isToday ? 'text-[#D80F16]' : 'text-[#9a9ea8]'">{{ day.weekday }}</span>
               <span class="mt-0.5 block font-semibold" :class="day.isToday ? 'text-[#D80F16]' : 'text-[#252830]'">{{ day.date }}</span>
@@ -189,7 +199,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
               v-for="(day, index) in days"
               :key="day.key"
               class="group h-[68px] border-b border-r border-[#eceef2] p-1.5 align-top last:border-r-0"
-              :class="day.isToday ? 'bg-[#FFF7F7]' : index > 4 ? 'bg-[#FAFAFB]' : ''"
+              :class="!isDayAllowed(day.key) ? 'cursor-not-allowed bg-gray-100' : day.isToday ? 'bg-[#FFF7F7]' : index > 4 ? 'bg-[#FAFAFB]' : ''"
             >
               <div class="flex h-full flex-col gap-1">
                 <button
@@ -205,7 +215,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
                   {{ formatTime(shift.startAt) }} – {{ formatTime(shift.endAt) }}
                 </button>
                 <button
-                  v-if="canPlan"
+                  v-if="canPlan && isDayAllowed(day.key)"
                   type="button"
                   class="flex min-h-7 w-full flex-1 items-center justify-center rounded-md border border-dashed border-transparent text-[#b8bcc6] opacity-0 transition hover:border-[#e3a7aa] hover:text-[#D80F16] focus:opacity-100 group-hover:opacity-100"
                   :aria-label="`Planifier ${fullName(member)} le ${day.weekday} ${day.date}`"
@@ -237,6 +247,7 @@ watch(() => [props.site.id, props.site.teamId], load, { immediate: true })
       v-model="dialogOpen"
       :members="members"
       :days="days"
+      :is-day-allowed="isDayAllowed"
       :assignment="editing"
       :preset-user-ids="presetUserIds"
       :preset-days="presetDays"
