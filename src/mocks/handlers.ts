@@ -8,11 +8,14 @@ import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
 import type { ApiMissionStatus, AssignMissionSupervisorRequest, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
-import type { AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
+import type { AssignmentImportRejection, AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
 import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
-import type { DeviceResponse, RevokeDeviceRequest } from '@/types/device'
+import type { AuditLogResponse } from '@/types/audit'
+import type { AssignmentExportRequest, ExportDownloadResponse, ExportResponse } from '@/types/export'
+import type { DeviceReplacementRequest, DeviceResponse, RevokeDeviceRequest } from '@/types/device'
 import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
 import type { CheckResponse, TriggerCheckRequest } from '@/types/check'
+import { periodHandlers } from '@/mocks/period-handlers'
 import type { AssignTeamLeadRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -108,6 +111,27 @@ const devices: DeviceResponse[] = [
   { id: 'dev_mock_006', userId: 'user-8', publicKeyHash: '9f3c1e58', platform: 'android', model: 'Tecno Camon 20', osVersion: '13', appVersion: '1.0.0', status: 'PENDING_ENROLLMENT', lastIntegrityVerdict: null, lastIntegrityAt: null, hasKeyAttestation: false, enrolledAt: null, lastSeenAt: null, revokedAt: null, revokedReason: null },
 ]
 
+// Journal d'audit fictif : une action toutes les 5 h environ sur le dernier mois, les plus récentes d'abord.
+const auditLogs: AuditLogResponse[] = Array.from({ length: 140 }, (_, index) => {
+  const kinds = [
+    { action: 'SELFIE_VIEWED', target: `session:ses_mock_${(index % 6) + 1}`, metadata: { kind: 'SESSION_IN' } },
+    { action: 'DEVICE_REVOKED', target: `device:${devices[index % devices.length]!.id}`, before: { status: 'ACTIVE' }, after: { status: 'REVOKED' }, reason: 'Téléphone déclaré perdu par l’agent.' },
+    { action: 'SESSION_DECIDED', target: `session:ses_mock_${(index % 6) + 1}`, before: { status: 'PENDING_REVIEW' }, after: { status: 'VALIDATED' } },
+    { action: 'CHECK_TRIGGERED', target: `team:${mockTeams[index % mockTeams.length]!.id}`, metadata: { agents: 4 } },
+  ]
+  const kind = kinds[index % kinds.length]!
+  return {
+    id: `aud_mock_${String(index + 1).padStart(3, '0')}`,
+    tenantId: tenants[index % 3 === 0 ? 1 % tenants.length : 0]!.id,
+    actorId: index % 9 === 8 ? null : ['user-1', 'user-2'][index % 2],
+    deviceId: index % 7 === 3 ? devices[0]!.id : null,
+    outcome: index % 11 === 5 ? 'FAILURE' : 'SUCCESS',
+    requestId: `req_mock_${index + 1}`,
+    at: new Date(Date.now() - index * 5 * 3600_000 - 7 * 60_000).toISOString(),
+    ...kind,
+  }
+})
+
 // Créneaux fictifs sur la semaine en cours, dont un poste de nuit.
 const mockWeek = startOfWeek()
 function mockAssignment(index: number, userId: string, siteId: string, dayOffset: number, start: string, end: string): AssignmentResponse {
@@ -169,6 +193,8 @@ function checkSiteForPlanning(siteId: string) {
   return site
 }
 
+const mockExports = new Map<string, { item: ExportResponse; rows: AssignmentResponse[]; tooMany: boolean }>()
+
 // L'API engendre le matricule ; l'entreprise le remplace ensuite par import.
 const generatedMatricule = () => `GEN-${String(Date.now()).slice(-6)}`
 
@@ -189,6 +215,7 @@ function page<T>(request: Request, items: T[]) {
 }
 
 export const handlers = [
+  ...periodHandlers(api, problem),
   http.get(api('/sites'), ({ request }) => {
     const params = new URL(request.url).searchParams
     const filtered = sites.filter((site) => (['status', 'missionId', 'teamId', 'managerId'] as const)
@@ -236,6 +263,22 @@ export const handlers = [
     site.qrRotatedAt = now()
     return HttpResponse.json({ siteId: site.id, qrCode: mockQrImage, rotatedAt: site.qrRotatedAt })
   }),
+  http.get(api('/audit-logs'), ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const callerId = request.headers.get('Authorization')?.replace('Bearer mock-access-token-', '')
+    if (params.get('tenantId') && !users.some((user) => user.id === callerId && user.roles.includes('OPERATOR'))) {
+      return problem(403, 'FORBIDDEN', 'Le filtre tenantId est réservé à l’opérateur.')
+    }
+    const from = params.get('from')
+    const to = params.get('to')
+    if ((from && Number.isNaN(Date.parse(from))) || (to && Number.isNaN(Date.parse(to))) || (from && to && from > to)) {
+      return problem(400, 'VALIDATION_FAILED', 'Dates invalides ou début après fin.')
+    }
+    const filtered = auditLogs.filter((log) => (['tenantId', 'action', 'target', 'actorId', 'outcome'] as const)
+      .every((key) => !params.get(key) || log[key] === params.get(key))
+      && (!from || log.at >= from) && (!to || log.at <= to))
+    return HttpResponse.json(page(request, filtered))
+  }),
   http.get(api('/devices'), ({ request }) => {
     const params = new URL(request.url).searchParams
     const filtered = devices.filter((device) => (['userId', 'status'] as const)
@@ -258,6 +301,21 @@ export const handlers = [
     // Idempotent : une seconde révocation ne déplace pas l'horodatage.
     if (device.status !== 'REVOKED') Object.assign(device, { status: 'REVOKED', revokedAt: now(), revokedReason: reason.trim() })
     return HttpResponse.json(device)
+  }),
+  http.post(api('/users/:id/device-replacement'), async ({ params, request }) => {
+    if (!request.headers.get('Authorization')?.startsWith('Bearer mock-elevated-token')) {
+      return problem(403, 'STEP_UP_REQUIRED', 'Une ré-authentification TOTP récente est requise.')
+    }
+    const user = users.find((item) => item.id === String(params.id))
+    if (!user) return problem(404, 'NOT_FOUND', 'Utilisateur introuvable.')
+    if (user.status === 'DISABLED' || !user.roles.some((role) => ['AGENT', 'TEAM_LEAD'].includes(role))) {
+      return problem(409, 'DEVICE_REPLACEMENT_NOT_ALLOWED', 'Ce compte n’a pas de téléphone, ou il est désactivé.')
+    }
+    const { reason } = ((await request.json().catch(() => ({}))) ?? {}) as DeviceReplacementRequest
+    const revoked = devices.filter((item) => item.userId === user.id && item.status === 'ACTIVE')
+    revoked.forEach((device) => Object.assign(device, { status: 'REVOKED', revokedAt: now(), revokedReason: reason?.trim() || 'Remplacement de téléphone' }))
+    Object.assign(user, { status: 'PENDING_ACTIVATION', updatedAt: now() })
+    return HttpResponse.json({ userId: user.id, status: user.status, revokedDeviceIds: revoked.map((device) => device.id) })
   }),
 
   http.get(api('/assignments'), ({ request }) => {
@@ -306,6 +364,79 @@ export const handlers = [
     assignments.push(...created)
     return HttpResponse.json({ count: created.length, items: created }, { status: 201 })
   }),
+  // Import des affectations : en mode démo, seul le CSV est lu (matricule ; site ; date ; début ; fin), fuseau UTC.
+  http.post(api('/assignments/import'), async ({ request }) => {
+    const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true'
+    const file = (await request.formData()).get('file')
+    if (!(file instanceof File) || !file.name.toLowerCase().endsWith('.csv')) return problem(400, 'ASSIGNMENT_IMPORT_FILE_INVALID', 'En mode démonstration, seul un fichier CSV peut être lu.')
+    const lines = (await file.text()).replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim())
+    if (lines.length < 2) return problem(400, 'ASSIGNMENT_IMPORT_FILE_INVALID', 'Le fichier ne contient aucune ligne de données.')
+    if (lines.length > 2001) return problem(413, 'ASSIGNMENT_IMPORT_FILE_INVALID', 'Le fichier dépasse 2 000 lignes.')
+    const separator = lines[0]!.includes(';') ? ';' : ','
+    const header = lines[0]!.split(separator).map((cell) => cell.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim())
+    const column = (...names: string[]) => header.findIndex((cell) => names.some((name) => cell.startsWith(name)))
+    const [matriculeCol, siteCol, dateCol, startCol, endCol] = [column('matricule'), column('site'), column('date', 'jour'), column('debut', 'heure de debut'), column('fin', 'heure de fin')]
+    if ([matriculeCol, siteCol, dateCol, startCol, endCol].includes(-1)) return problem(400, 'ASSIGNMENT_IMPORT_FILE_INVALID', 'En-tête attendu : matricule, site, date, début, fin.')
+    const readDate = (value: string) => {
+      const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value) ?? /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value)
+      if (!match) return null
+      const [day, month, year] = value.includes('/') ? [match[1], match[2], match[3]] : [match[3], match[2], match[1]]
+      return `${year}-${month!.padStart(2, '0')}-${day!.padStart(2, '0')}`
+    }
+    const readTime = (value: string) => {
+      const match = /^(\d{1,2})\s*[:hH]\s*(\d{2})?$/.exec(value)
+      return match && Number(match[1]) < 24 ? `${match[1]!.padStart(2, '0')}:${match[2] ?? '00'}` : null
+    }
+    const rejected: AssignmentImportRejection[] = []
+    const accepted: { rowNumber: number; userId: string; siteId: string; startAt: string; endAt: string }[] = []
+    lines.slice(1).forEach((line, index) => {
+      const cells = line.split(separator).map((cell) => cell.trim())
+      const row = { rowNumber: index + 2, matricule: cells[matriculeCol] ?? '', site: cells[siteCol] ?? '', date: cells[dateCol] ?? '', start: cells[startCol] ?? '', end: cells[endCol] ?? '' }
+      const reject = (reason: string, extra: Partial<AssignmentImportRejection> = {}) => { rejected.push({ ...row, reason, ...extra }) }
+      if (!row.matricule) return reject('MATRICULE_EMPTY')
+      if (!row.site) return reject('SITE_EMPTY')
+      const user = users.find((item) => item.matricule === row.matricule)
+      if (!user) return reject('MATRICULE_UNKNOWN')
+      const site = sites.find((item) => item.id === row.site || item.name.toLowerCase() === row.site.toLowerCase())
+      if (!site) return reject('SITE_UNKNOWN')
+      if (site.status === 'ARCHIVED') return reject('SITE_ARCHIVED')
+      if (!site.teamId) return reject('SITE_WITHOUT_TEAM')
+      const day = readDate(row.date); const start = readTime(row.start); const end = readTime(row.end)
+      if (!day) return reject('DATE_UNREADABLE')
+      if (!start) return reject('START_UNREADABLE')
+      if (!end) return reject('END_UNREADABLE')
+      if (user.status !== 'ACTIVE' || !user.roles.some((role) => ['AGENT', 'TEAM_LEAD'].includes(role))) return reject('AGENT_INVALID')
+      if (user.teamId !== site.teamId) return reject('AGENT_NOT_IN_SITE_TEAM')
+      const startAt = new Date(`${day}T${start}:00.000Z`)
+      let endAt = new Date(`${day}T${end}:00.000Z`)
+      // Une fin avant le début passe au lendemain (poste de nuit).
+      if (endAt <= startAt) endAt = new Date(endAt.getTime() + 24 * 3_600_000)
+      const minutes = (endAt.getTime() - startAt.getTime()) / 60_000
+      if (minutes < 15) return reject('SLOT_TOO_SHORT')
+      if (minutes > 24 * 60) return reject('SLOT_TOO_LONG')
+      const slot = { startAt: startAt.toISOString(), endAt: endAt.toISOString() }
+      const sameFile = accepted.find((item) => item.userId === user.id && overlaps(item, slot))
+      if (sameFile) return reject('OVERLAP_IN_FILE', { conflictingRowNumber: sameFile.rowNumber })
+      const existing = assignments.find((item) => item.userId === user.id && item.status === 'PLANNED' && overlaps(item, slot))
+      if (existing) return reject('OVERLAP_EXISTING', { conflictingAssignmentId: existing.id })
+      accepted.push({ rowNumber: row.rowNumber, userId: user.id, siteId: site.id, ...slot })
+    })
+    const report = {
+      read: lines.length - 1, planned: accepted.length, rejected, applied: false,
+      ...(accepted.length ? { from: accepted.map((item) => item.startAt).sort()[0], to: accepted.map((item) => item.endAt).sort().at(-1) } : {}),
+    }
+    if (rejected.length && !dryRun) return HttpResponse.json({ title: 'ASSIGNMENT_IMPORT_REJECTED', status: 422, code: 'ASSIGNMENT_IMPORT_REJECTED', detail: 'Le fichier comporte des lignes refusées : aucun créneau n’a été créé.', ...report }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })
+    if (!dryRun) {
+      const timestamp = now()
+      accepted.forEach((item, index) => assignments.push({
+        id: `asg_${Date.now()}_${index}`, userId: item.userId, siteId: item.siteId, startAt: item.startAt, endAt: item.endAt,
+        day: toDayKey(new Date(item.startAt)), durationMin: (new Date(item.endAt).getTime() - new Date(item.startAt).getTime()) / 60_000,
+        status: 'PLANNED', createdAt: timestamp, updatedAt: timestamp,
+      }))
+      report.applied = true
+    }
+    return HttpResponse.json(report)
+  }),
   http.patch(api('/assignments/:id'), async ({ params, request }) => {
     const assignment = assignments.find((item) => item.id === String(params.id))
     if (!assignment) return problem(404, 'NOT_FOUND', 'Créneau introuvable.')
@@ -333,6 +464,42 @@ export const handlers = [
     // Idempotent : le créneau reste, il ne réserve simplement plus l'agent.
     if (assignment.status !== 'CANCELLED') Object.assign(assignment, { status: 'CANCELLED', updatedAt: now() })
     return HttpResponse.json(assignment)
+  }),
+
+  // Exports : l'état avance à chaque consultation (PENDING, RUNNING, READY). Le fichier de démonstration est un CSV.
+  http.post(api('/exports/assignments'), async ({ request }) => {
+    const payload = (await request.json()) as AssignmentExportRequest
+    if (!['XLSX', 'PDF'].includes(payload.format)) return problem(400, 'VALIDATION_FAILED', 'Format invalide : XLSX ou PDF.')
+    const filtered = assignments.filter((item) =>
+      (['userId', 'siteId', 'status', 'day'] as const).every((key) => !payload[key] || item[key] === payload[key])
+      && (!payload.from || item.startAt >= payload.from) && (!payload.to || item.startAt < payload.to))
+    const timestamp = now()
+    const extension = payload.format.toLowerCase()
+    const item: ExportResponse = {
+      id: `exp_mock_${Date.now()}`, type: 'ASSIGNMENTS', format: payload.format, status: 'PENDING', params: { ...payload },
+      rowCount: filtered.length, filename: `affectations-des-agents-${timestamp.slice(0, 10)}.${extension}`,
+      createdAt: timestamp, availableUntil: new Date(Date.now() + 7 * 24 * 3_600_000).toISOString(),
+    }
+    const limit = payload.format === 'PDF' ? 5000 : 200_000
+    mockExports.set(item.id, { item, rows: filtered, tooMany: filtered.length > limit })
+    return HttpResponse.json(item, { status: 202 })
+  }),
+  http.get(api('/exports/:id'), ({ params }) => {
+    const entry = mockExports.get(String(params.id))
+    if (!entry) return problem(404, 'NOT_FOUND', 'Export introuvable.')
+    if (entry.item.status === 'PENDING') entry.item.status = 'RUNNING'
+    else if (entry.item.status === 'RUNNING') {
+      Object.assign(entry.item, entry.tooMany ? { status: 'FAILED', errorCode: 'EXPORT_ROW_LIMIT_EXCEEDED' } : { status: 'READY', completedAt: now() })
+    }
+    return HttpResponse.json(entry.item)
+  }),
+  http.get(api('/exports/:id/download'), ({ params }) => {
+    const entry = mockExports.get(String(params.id))
+    if (!entry) return problem(404, 'NOT_FOUND', 'Export introuvable.')
+    if (entry.item.status !== 'READY') return problem(409, 'EXPORT_NOT_READY', 'Le fichier est encore en production, ou a échoué.')
+    const csv = ['agent;site;debut;fin', ...entry.rows.map((row) => [row.userId, row.siteId, row.startAt, row.endAt].join(';'))].join('\n')
+    const body: ExportDownloadResponse = { url: `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`, expiresIn: 300, filename: entry.item.filename ?? 'export.csv' }
+    return HttpResponse.json(body)
   }),
 
   http.post(api('/auth/login'), async ({ request }) => {
@@ -671,7 +838,7 @@ export const handlers = [
     const check = checks.find((item) => item.id === String(params.id))
     if (!check) return problem(404, 'NOT_FOUND', 'Contrôle introuvable ou hors périmètre.')
     if (check.result !== 'ANSWERED') return problem(404, 'CHECK_SELFIE_UNAVAILABLE', 'Aucun selfie rattaché à ce contrôle.')
-    return HttpResponse.json({ url: '/kaybiclogo.png', expiresIn: 300 })
+    return HttpResponse.json({ url: '/icon.svg', expiresIn: 300 })
   }),
   http.post(api('/checks/trigger'), async ({ request }) => {
     const { teamId } = (await request.json()) as TriggerCheckRequest
@@ -708,7 +875,7 @@ export const handlers = [
   http.get(api('/sessions/:id/selfie'), ({ params }) => {
     const session = sessions.find((item) => item.id === String(params.id))
     if (!session || session.id === 'ses_mock_3') return problem(404, 'NOT_FOUND', 'Session introuvable, ou aucun selfie rattaché.')
-    return HttpResponse.json({ url: '/kaybiclogo.png', expiresIn: 300 })
+    return HttpResponse.json({ url: '/icon.svg', expiresIn: 300 })
   }),
   http.post(api('/sessions/:id/decision'), async ({ params, request }) => {
     const session = sessions.find((item) => item.id === String(params.id))
