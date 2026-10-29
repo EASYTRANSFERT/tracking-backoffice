@@ -83,6 +83,7 @@ const routeGroups: Record<string, string[]> = {
   'admin-periods': ['admin-periods', 'admin-period-details'],
   'admin-devices': ['admin-devices', 'admin-device-details'],
   'supervisor-missions': ['supervisor-missions', 'supervisor-mission-details'],
+  'supervisor-periods': ['supervisor-periods', 'supervisor-period-details'],
 }
 
 function isItemActive(routeName: string) {

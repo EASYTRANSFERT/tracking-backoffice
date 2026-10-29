@@ -101,5 +101,11 @@ export const dashboardNavigation: NavigationItem[] = [
     icon: 'mdi-clipboard-text-clock-outline',
     allowedRoles: ['supervisor'],
   },
+  {
+    title: 'Périodes',
+    routeName: 'supervisor-periods',
+    icon: 'mdi-calendar-range',
+    allowedRoles: ['supervisor'],
+  },
 
 ]

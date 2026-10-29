@@ -318,6 +318,18 @@ const router = createRouter({
           meta: { title: 'Détail mission', allowedRoles: ['supervisor'] },
         },
         {
+          path: 'periods',
+          name: 'supervisor-periods',
+          component: () => import('@/pages/administrator/PeriodsPage.vue'),
+          meta: { title: 'Périodes', allowedRoles: ['supervisor'] },
+        },
+        {
+          path: 'periods/:periodId',
+          name: 'supervisor-period-details',
+          component: () => import('@/pages/administrator/PeriodDetailsPage.vue'),
+          meta: { title: 'Détail de la période', allowedRoles: ['supervisor'] },
+        },
+        {
           path: 'settings',
           name: 'supervisor-settings',
           component: () => import('@/pages/SettingsPage.vue'),
