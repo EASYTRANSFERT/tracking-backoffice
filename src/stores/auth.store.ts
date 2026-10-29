@@ -11,6 +11,8 @@ import { tenantService } from '@/Services/tenant.service'
 import { userService } from '@/Services/user.service'
 import { getDashboardRoles } from '@/types/roles'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { useAuditStore } from '@/stores/audit.store'
+import { usePeriodStore } from '@/stores/period.store'
 import { useOperatorStore } from '@/stores/operator.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
@@ -310,8 +312,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       tenant.value = await tenantService.findForProfile(tenantId)
-    } catch {
+    } catch (error) {
       // Le nom de l'entreprise est un complément d'affichage : son absence ne bloque pas la session.
+      // La console garde la cause (ex. 403 : rôle sans accès à GET /platform/tenants/{id}).
+      console.warn('Nom de l’entreprise indisponible :', isAxiosError(error) ? `${error.response?.status ?? 'réseau'} ${error.config?.url}` : error)
       tenant.value = null
     }
   }
@@ -370,6 +374,8 @@ export const useAuthStore = defineStore('auth', () => {
     useOperatorStore().resetData()
     useAdministratorStore().resetData()
     useSupervisorStore().reset()
+    useAuditStore().resetData()
+    usePeriodStore().resetData()
   }
 
   function resetAuthentication() {
