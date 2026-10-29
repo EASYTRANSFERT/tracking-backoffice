@@ -111,6 +111,7 @@ async function removeMember(userId: string) {
       :teams="teams"
       :users="teamDirectoryUsers"
       :member-counts="teamMemberCounts"
+      @open="router.push({ name: 'admin-team-details', params: { teamId: $event.id } })"
       @edit="router.push({ name: 'admin-team-edit', params: { teamId: $event.id } })"
       @manage-members="manageMembers"
       @remove="remove"

@@ -179,6 +179,12 @@ const router = createRouter({
           meta: { title: 'Nouvelle équipe', allowedRoles: ['administrator'] },
         },
         {
+          path: 'teams/:teamId',
+          name: 'admin-team-details',
+          component: () => import('@/pages/administrator/TeamDetailsPage.vue'),
+          meta: { title: 'Détail équipe', allowedRoles: ['administrator'] },
+        },
+        {
           path: 'teams/:teamId/edit',
           name: 'admin-team-edit',
           component: () => import('@/pages/administrator/TeamFormPage.vue'),

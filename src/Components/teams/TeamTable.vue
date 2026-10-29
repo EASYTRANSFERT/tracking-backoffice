@@ -24,6 +24,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
+  open: [team: Team]
   edit: [team: Team]
   manageMembers: [team: Team]
   remove: [team: Team]
@@ -57,17 +58,17 @@ const members = (id: string) => props.memberCounts?.[id]
       <v-table hover>
         <thead><tr><th>Équipe</th><th>Chef d’équipe</th><th>Membres</th><th>Dernière mise à jour</th><th class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>
-          <tr v-for="team in displayed" :key="team.id">
+          <tr v-for="team in displayed" :key="team.id" class="cursor-pointer" @click="emit('open', team)">
             <td class="font-semibold">{{ team.name }}</td>
             <td>{{ userName(team.leadUserId) }}</td>
             <td>
-              <v-btn v-if="!readonly" variant="tonal" color="primary" size="small" prepend-icon="mdi-account-group-outline" @click="emit('manageMembers', team)">
+              <v-btn v-if="!readonly" variant="tonal" color="primary" size="small" prepend-icon="mdi-account-group-outline" @click.stop="emit('manageMembers', team)">
                 {{ members(team.id) ?? '…' }} membre{{ (members(team.id) ?? 0) > 1 ? 's' : '' }}
               </v-btn>
               <span v-else>{{ members(team.id) ?? '…' }}</span>
             </td>
             <td>{{ new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(team.updatedAt)) }}</td>
-            <td>
+            <td @click.stop>
               <v-menu v-if="!readonly" location="bottom end">
                 <template #activator="{ props: menuProps }"><v-btn v-bind="menuProps" icon="mdi-dots-horizontal" variant="text" size="small" /></template>
                 <v-list density="compact">
