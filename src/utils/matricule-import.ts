@@ -1,24 +1,15 @@
-import { isAxiosError } from 'axios'
-
+import { readRejectedPayload } from '@/utils/import-rejection'
 import type { MatriculeImportReport } from '@/types/user'
 
-const isReport = (value: unknown): value is MatriculeImportReport =>
-  Boolean(value && typeof value === 'object' && Array.isArray((value as MatriculeImportReport).rejected))
-
-/**
- * Un fichier refusé en bloc (422 MATRICULE_IMPORT_REJECTED) porte son rapport ligne par ligne
- * dans les extensions du problème (RFC 9457) : à la racine, ou sous `extensions`.
- */
+/** Rapport d'un fichier refusé en bloc (422 MATRICULE_IMPORT_REJECTED). */
 export function readRejectedImportReport(error: unknown): MatriculeImportReport | null {
-  if (!isAxiosError(error) || error.response?.status !== 422) return null
-  const body = error.response.data as Record<string, unknown> | undefined
-  const candidate = isReport(body) ? body : isReport(body?.extensions) ? body.extensions : null
+  const candidate = readRejectedPayload<MatriculeImportReport>(error)
   if (!candidate) return null
   return {
     read: candidate.read ?? 0,
     matched: candidate.matched ?? 0,
     unchanged: candidate.unchanged ?? 0,
-    rejected: candidate.rejected ?? [],
+    rejected: candidate.rejected as MatriculeImportReport['rejected'],
     warnings: candidate.warnings ?? [],
     applied: false,
   }

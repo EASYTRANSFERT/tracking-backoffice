@@ -3,6 +3,7 @@ import { idempotencyHeaders } from './request-headers'
 
 import type {
   AssignmentBatchResponse,
+  AssignmentImportReport,
   AssignmentListQuery,
   AssignmentPageResponse,
   AssignmentResponse,
@@ -24,6 +25,20 @@ export const assignmentService = {
   /** Tout ou rien : au premier conflit, aucun créneau n'est écrit. */
   async create(payload: CreateAssignmentsRequest): Promise<AssignmentBatchResponse> {
     const response = await apiClient.post<AssignmentBatchResponse>('/assignments', payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  /**
+   * Planifie les créneaux d'un classeur (.xlsx ou .csv), une ligne par créneau. Tout ou rien.
+   * dryRun : vérifie le fichier et renvoie le rapport sans rien écrire.
+   */
+  async importFile(file: File, dryRun: boolean): Promise<AssignmentImportReport> {
+    const body = new FormData()
+    body.append('file', file)
+    const response = await apiClient.post<AssignmentImportReport>('/assignments/import', body, {
+      params: dryRun ? { dryRun: true } : undefined,
+      headers: dryRun ? undefined : idempotencyHeaders(),
+    })
     return response.data
   },
 
