@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { formatDateTime } from '@/Components/attendance/attendance-labels'
 import AppErrorState from '@/Components/common/AppErrorState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
+import PeriodBilan from '@/Components/periods/PeriodBilan.vue'
 import PeriodCloseDialog from '@/Components/periods/PeriodCloseDialog.vue'
 import PeriodReopenDialog from '@/Components/periods/PeriodReopenDialog.vue'
 import PeriodStateChip from '@/Components/periods/PeriodStateChip.vue'
@@ -17,11 +18,17 @@ import { apiErrorCode, formatPeriodRange, periodErrorMessage, readClosureBlocker
 import type { PeriodBlockers } from '@/types/period'
 
 const route = useRoute()
+const router = useRouter()
 const store = usePeriodStore()
 const { readonly, listRoute } = usePeriodAccess()
 const administratorStore = useAdministratorStore()
 const feedback = useUiFeedbackStore()
 
+// Onglet choisi dans l'URL (?tab=bilan), pour qu'un lien puisse y mener.
+const tab = computed({
+  get: () => (route.query.tab === 'bilan' ? 'bilan' : 'suivi'),
+  set: (value: string) => { void router.replace({ query: { ...route.query, tab: value } }) },
+})
 const periodId = computed(() => route.params.periodId as string)
 const period = computed(() => store.findPeriod(periodId.value))
 const loadError = ref<string | null>(null)
@@ -121,7 +128,13 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
     <AppErrorState v-if="loadError && !period" title="Période introuvable" :description="loadError" />
     <v-progress-linear v-else-if="!period" indeterminate color="primary" />
 
-    <div v-else class="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <v-tabs v-else v-model="tab" color="primary" class="mb-6">
+      <v-tab value="suivi">Suivi et clôture</v-tab>
+      <v-tab value="bilan">Bilan</v-tab>
+    </v-tabs>
+    <PeriodBilan v-if="period && tab === 'bilan'" :period-id="periodId" @show-sessions="tab = 'suivi'" />
+
+    <div v-else-if="period" class="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div class="space-y-6">
         <v-card v-if="period.state !== 'CLOSED'">
           <v-card-title class="px-6 py-5">Blocages de clôture</v-card-title>
