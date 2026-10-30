@@ -20,6 +20,8 @@ export interface WorkSessionResponse {
   siteId: string
   /** Créneau de rattachement. */
   assignmentId?: string
+  /** Journée de rattachement (AAAA-MM-JJ, fuseau de l'entreprise). */
+  day?: string
   /** Heure de confiance de l'entrée. */
   inAt: string
   outAt?: string
