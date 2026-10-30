@@ -194,7 +194,7 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
             <v-btn block variant="tonal" color="error" prepend-icon="mdi-lock-alert-outline" :disabled="!canClose" @click="openClose(true)">Forcer la clôture</v-btn>
             <v-btn v-if="canReopen" block variant="tonal" color="warning" prepend-icon="mdi-lock-open-variant-outline" @click="openReopen">Rouvrir pour correction</v-btn>
           </div>
-          <p v-if="readonly" class="mt-4 text-xs leading-5 text-[#747985]">Consultation seule : la validation, la clôture et la réouverture sont réservées à l’administrateur.</p>
+          <p v-if="readonly" class="mt-4 text-xs leading-5 text-[#747985]">La clôture et la réouverture d’une période sont réservées à l’administrateur.</p>
           <p v-else class="mt-4 text-xs leading-5 text-[#747985]">
             <template v-if="period.state === 'CLOSED'">Une période clôturée est immuable : elle ne se rouvre jamais.</template>
             <template v-else-if="period.state === 'IN_VALIDATION'">La clôture demande votre code TOTP. Elle est refusée tant que des sessions sont en attente ou ouvertes, sauf clôture forcée avec motif. La réouverture, avec motif, remet la période en « Ouverte ».</template>
