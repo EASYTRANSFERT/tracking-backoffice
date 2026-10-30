@@ -15,6 +15,7 @@ import type { AssignmentExportRequest, ExportDownloadResponse, ExportResponse } 
 import type { DeviceReplacementRequest, DeviceResponse, RevokeDeviceRequest } from '@/types/device'
 import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
 import type { CheckResponse, TriggerCheckRequest } from '@/types/check'
+import { adjustmentHandlers } from '@/mocks/adjustment-handlers'
 import { periodHandlers } from '@/mocks/period-handlers'
 import type { AssignTeamLeadRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
@@ -159,14 +160,14 @@ function mockSession(index: number, userId: string, siteId: string, dayOffset: n
   return {
     id: `ses_mock_${index}`, userId, siteId, assignmentId: `asg_mock_${index}`, inAt, outAt,
     minutes: outAt ? (new Date(outAt).getTime() - new Date(inAt).getTime()) / 60_000 : undefined,
-    lateMin: 0, earlyMin: 0, flags: [], status: outAt ? 'CLOSED' : 'OPEN', validation: 'PENDING', rulesVersion: '2026.10', ...extra,
+    lateMin: 0, earlyMin: 0, day, flags: [], status: outAt ? 'CLOSED' : 'OPEN', validation: 'PENDING', rulesVersion: '2026.10', periodId: 'per_mock_003', ...extra,
   }
 }
 const sessions: WorkSessionResponse[] = [
   mockSession(1, 'user-4', 'site-1', 0, '07:12', '15:04', { lateMin: 12, flags: ['OUT_OF_GEOFENCE', 'LOW_ACCURACY'] }),
   mockSession(2, 'user-3', 'site-1', 0, '15:00', null, { status: 'MISSING_EXIT', flags: ['QR_MISMATCH'] }),
   mockSession(3, 'user-4', 'site-1', 1, '06:58', '15:01', { validation: 'AUTO_VALIDATED' }),
-  mockSession(4, 'user-7', 'site-2', 1, '22:05', '06:00', { lateMin: 5, flags: ['MOCK_POSITION'], validation: 'REJECTED', validatedBy: 'user-2', validatedAt: '2026-10-20T09:00:00.000Z' }),
+  mockSession(4, 'user-7', 'site-2', 1, '22:05', '06:00', { lateMin: 5, flags: ['MOCK_POSITION'], validation: 'REJECTED', validatedBy: 'user-2', validatedAt: '2026-10-20T09:00:00.000Z', periodId: 'per_mock_001' }),
   mockSession(5, 'user-4', 'site-1', 2, '07:01', null, { flags: ['CLOCK_DRIFT'] }),
 ]
 
@@ -216,6 +217,7 @@ function page<T>(request: Request, items: T[]) {
 
 export const handlers = [
   ...periodHandlers(api, problem),
+  ...adjustmentHandlers(api, problem, () => sessions),
   http.get(api('/sites'), ({ request }) => {
     const params = new URL(request.url).searchParams
     const filtered = sites.filter((site) => (['status', 'missionId', 'teamId', 'managerId'] as const)
