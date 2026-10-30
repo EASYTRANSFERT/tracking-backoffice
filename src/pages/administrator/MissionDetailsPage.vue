@@ -196,7 +196,7 @@ async function closeMission() {
       </v-card>
       </div>
     </div>
-    <AttendanceTable v-if="mission && missionSites.length" class="mt-6" :sites="missionSites" :can-check="canTriggerCheck" :team-name="teamName" />
+    <AttendanceTable v-if="mission && missionSites.length" class="mt-6" :sites="missionSites" can-adjust :can-check="canTriggerCheck" :team-name="teamName" />
 
 
     <MissionSupervisorDialog v-model="supervisorDialog" :supervisors="store.supervisors" :current-id="mission?.supervisorUserId" :loading="store.isDirectoryLoading" :saving="isAssigningSupervisor" @confirm="assignSupervisor" />

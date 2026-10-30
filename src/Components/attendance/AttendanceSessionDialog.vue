@@ -25,6 +25,8 @@ const props = defineProps<{
   session?: WorkSessionResponse
   siteName: string
   canDecide?: boolean
+  /** Lien vers la page Régularisations, session déjà choisie (administrateur). */
+  canAdjust?: boolean
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -240,6 +242,7 @@ async function submit() {
         </p>
       </v-card-text>
       <v-card-actions class="px-6 pb-6">
+        <v-btn v-if="canAdjust && current" variant="text" color="primary" prepend-icon="mdi-clipboard-edit-outline" :to="{ name: 'admin-adjustments', query: { sessionId: current.id } }">Régulariser</v-btn>
         <v-spacer />
         <v-btn variant="text" @click="emit('update:modelValue', false)">{{
           showDecision ? 'Annuler' : 'Fermer'

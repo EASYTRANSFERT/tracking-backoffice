@@ -15,9 +15,10 @@ import type { Site } from '@/types/administrator'
 
 /**
  * Pointages des sites d'une mission. canDecide : le superviseur peut valider ou rejeter.
+ * canAdjust : l'administrateur peut régulariser une session (page Régularisations).
  * canCheck : la mission est en cours, un contrôle de présence peut être lancé sur ses équipes.
  */
-const props = defineProps<{ sites: Site[]; canDecide?: boolean; canCheck?: boolean; teamName?: (teamId: string) => string }>()
+const props = defineProps<{ sites: Site[]; canDecide?: boolean; canAdjust?: boolean; canCheck?: boolean; teamName?: (teamId: string) => string }>()
 
 const store = useAttendanceStore()
 const feedback = useUiFeedbackStore()
@@ -149,6 +150,6 @@ function review(session: WorkSessionResponse) {
     <AppEmptyState v-else-if="!store.isLoading" icon="mdi-clock-check-outline" title="Aucun pointage à afficher" :description="flagged ? 'Aucune session avec anomalie sur ces sites.' : 'Aucune session ne correspond aux filtres sélectionnés.'" />
     <AppTableFooter v-if="filtered.length" :page="page" :page-count="pageCount" :start="start + 1" :end="Math.min(start + pageSize, filtered.length)" :total="filtered.length" label="sessions" @update:page="page = $event" />
 
-    <AttendanceSessionDialog v-model="dialog" :session="selected" :site-name="siteName(selected?.siteId)" :can-decide="canDecide" />
+    <AttendanceSessionDialog v-model="dialog" :session="selected" :site-name="siteName(selected?.siteId)" :can-decide="canDecide" :can-adjust="canAdjust" />
   </v-card>
 </template>
