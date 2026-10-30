@@ -165,6 +165,12 @@ export const useAdministratorStore = defineStore('administrator', () => {
     })))
   }
 
+  /** Change le rôle d'un compte : ré-authentification TOTP, puis PUT /users/{id}/roles. */
+  async function changeUserRole(id: string, role: EnterpriseUser['role'], totpCode: string) {
+    await useAuthStore().stepUp(totpCode)
+    replaceUser(mapUser(await userService.updateRoles(id, { roles: [roleToApi[role]] })))
+  }
+
   async function toggleUserStatus(id: string) {
     const user = findUser(id)
     if (!user) return
@@ -396,7 +402,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   async function createMission(input: MissionInput) {
     const payload: CreateMissionRequest = {
-      code: input.code.trim(),
       name: input.title.trim(),
       supervisorUserId: input.supervisorUserId,
       description: input.notes?.trim() || undefined,
@@ -413,12 +418,10 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const current = getMissionById(id)
     if (!current) throw new Error('Mission introuvable.')
     const payload: UpdateMissionRequest = {}
-    const code = input.code.trim()
     const name = input.title.trim()
     const description = input.notes?.trim() || undefined
     const startAt = toIso(input.startAt)
     const endAt = toIso(input.endAt)
-    if (code !== current.code) payload.code = code
     if (name !== current.title) payload.name = name
     if (description !== (current.notes || undefined)) payload.description = description
     if (startAt !== current.startAt) payload.startAt = startAt
@@ -476,7 +479,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportSites,
     activeUsersCount, activeSitesCount, ongoingMissionsCount,
     getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
-    createUser, updateUser, toggleUserStatus, importMatricules,
+    createUser, updateUser, changeUserRole, toggleUserStatus, importMatricules,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, assignMissionSupervisor, openMission, closeMission,

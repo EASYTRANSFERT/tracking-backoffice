@@ -74,4 +74,4 @@ export interface Mission {
   updatedAt?: string
 }
 
-export type MissionInput = Pick<Mission, 'code' | 'title' | 'startAt' | 'endAt' | 'notes'> & { supervisorUserId: string }
+export type MissionInput = Pick<Mission, 'title' | 'startAt' | 'endAt' | 'notes'> & { supervisorUserId: string }

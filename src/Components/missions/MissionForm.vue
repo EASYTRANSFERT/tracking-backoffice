@@ -14,7 +14,6 @@ const emit = defineEmits<{
 
 const form = ref()
 const data = reactive<MissionInput>({
-  code: props.mission?.code ?? '',
   title: props.mission?.title ?? '',
   startAt: props.mission?.startAt?.slice(0, 16) ?? '',
   endAt: props.mission?.endAt?.slice(0, 16) ?? '',
@@ -45,13 +44,12 @@ async function submit() {
         </v-avatar>
         <div>
           <h2 class="text-base font-bold">Informations de la mission</h2>
-          <p class="mt-1 text-xs font-normal text-[#747985]">Référence, objet et période d’intervention</p>
+          <p class="mt-1 text-xs font-normal text-[#747985]">Objet et période d’intervention</p>
         </div>
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-        <v-text-field v-model="data.code" label="Référence" placeholder="MIS-2026-001" :rules="[required]" />
-        <v-text-field v-model="data.title" label="Intitulé de la mission" :rules="[required]" />
+        <v-text-field v-model="data.title" label="Intitulé de la mission" class="md:col-span-2" :rules="[required]" />
         <v-select
           v-model="data.supervisorUserId"
           label="Superviseur"

@@ -16,7 +16,9 @@ import type { DeviceReplacementRequest, DeviceResponse, RevokeDeviceRequest } fr
 import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
 import type { CheckResponse, TriggerCheckRequest } from '@/types/check'
 import { adjustmentHandlers } from '@/mocks/adjustment-handlers'
+import { missionOverviewHandlers } from '@/mocks/mission-overview-handlers'
 import { periodHandlers } from '@/mocks/period-handlers'
+import { periodTotalsHandlers } from '@/mocks/period-totals-handlers'
 import type { AssignTeamLeadRequest, CreateTeamRequest, TeamMembersRequest, TeamResponse, UpdateTeamRequest } from '@/types/team'
 import type { CreateTenantUserRequest, CreateUserRequest, UpdatePasswordRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
@@ -217,6 +219,8 @@ function page<T>(request: Request, items: T[]) {
 
 export const handlers = [
   ...periodHandlers(api, problem),
+  ...periodTotalsHandlers(api, problem),
+  ...missionOverviewHandlers(api, problem, () => sites),
   ...adjustmentHandlers(api, problem, () => sessions),
   http.get(api('/sites'), ({ request }) => {
     const params = new URL(request.url).searchParams
@@ -303,6 +307,18 @@ export const handlers = [
     // Idempotent : une seconde révocation ne déplace pas l'horodatage.
     if (device.status !== 'REVOKED') Object.assign(device, { status: 'REVOKED', revokedAt: now(), revokedReason: reason.trim() })
     return HttpResponse.json(device)
+  }),
+  http.put(api('/users/:id/roles'), async ({ params, request }) => {
+    if (!request.headers.get('Authorization')?.startsWith('Bearer mock-elevated-token')) {
+      return problem(403, 'STEP_UP_REQUIRED', 'Une ré-authentification TOTP récente est requise.')
+    }
+    const user = users.find((item) => item.id === String(params.id))
+    if (!user) return problem(404, 'NOT_FOUND', 'Utilisateur introuvable.')
+    const { roles } = (await request.json()) as { roles?: UserResponse['roles'] }
+    if (!roles?.length || roles.some((role) => !['SUPERVISOR', 'TEAM_LEAD', 'AGENT'].includes(role))) return problem(403, 'ROLE_NOT_ASSIGNABLE', 'Ce rôle n’est pas attribuable.')
+    if (user.roles.includes('ADMIN')) return problem(409, 'LAST_ADMIN_REQUIRED', 'L’entreprise doit garder un administrateur.')
+    Object.assign(user, { roles, updatedAt: now() })
+    return HttpResponse.json(user)
   }),
   http.post(api('/users/:id/device-replacement'), async ({ params, request }) => {
     if (!request.headers.get('Authorization')?.startsWith('Bearer mock-elevated-token')) {
@@ -709,7 +725,8 @@ export const handlers = [
     const timestamp = now()
     const mission: MissionResponse = {
       id: `mission-${Date.now()}`,
-      code: payload.code,
+      // Référence attribuée par le serveur.
+      code: `MIS-${new Date().getFullYear()}-${String(missions.length + 1).padStart(3, '0')}`,
       name: payload.name,
       supervisorUserId: payload.supervisorUserId,
       description: payload.description,

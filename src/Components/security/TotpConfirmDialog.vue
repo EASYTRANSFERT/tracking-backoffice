@@ -31,7 +31,7 @@ function submit() {
         <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-shield-key-outline" color="primary" /></v-avatar>
         <h2 class="text-lg font-bold">{{ title }}</h2>
       </v-card-title>
-      <v-card-text class="space-y-4 px-6 py-5">
+      <v-card-text class="space-y-4 px-6 py-2">
         <p class="text-sm text-[#535865]">{{ message }}</p>
         <v-text-field
           :model-value="code"
