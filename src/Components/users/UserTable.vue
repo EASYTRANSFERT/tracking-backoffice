@@ -29,10 +29,10 @@ const teamName = (teamId?: string) => props.teams.find((team) => team.id === tea
 
 <template>
   <v-card class="overflow-hidden">
-    <div class="flex flex-col gap-4 px-5 py-5 xl:flex-row xl:items-center">
+    <div class="flex flex-col gap-4 px-5 py-5 2xl:flex-row 2xl:items-center">
       <div><h2 class="text-lg font-bold text-[#252830]">Personnel de l’entreprise</h2><p class="mt-1 text-xs text-[#747985]">Gérez les accès, rôles et équipes de vos collaborateurs.</p></div>
       <v-spacer />
-      <div class="grid w-full gap-3 sm:grid-cols-3 xl:max-w-[760px]">
+      <div class="grid w-full gap-3 sm:grid-cols-3 2xl:max-w-[760px]">
         <v-text-field v-model="search" prepend-inner-icon="mdi-magnify" placeholder="Nom, e-mail ou matricule" density="compact" hide-details clearable />
         <v-select v-model="role" :items="[{title:'Tous les rôles',value:'all'},{title:'Administrateur',value:'administrator'},{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" density="compact" hide-details />
         <v-select v-model="status" :items="[{title:'Tous les statuts',value:'all'},{title:'Actifs',value:'active'},{title:'Invités',value:'invited'},{title:'Désactivés',value:'disabled'}]" density="compact" hide-details />

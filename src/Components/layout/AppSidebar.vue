@@ -106,12 +106,13 @@ async function handleLogout() {
     class="!fixed !h-dvh !max-h-dvh border-e-sm font-sans [&_.v-navigation-drawer__content]:!h-full [&_.v-navigation-drawer__content]:!overflow-hidden"
   >
     <div class="flex h-full min-h-0 flex-col overflow-hidden">
-      <div class="flex h-[108px] items-center px-7">
+      <div class="flex h-[108px] shrink-0 items-center px-7 [@media(max-height:820px)]:h-[76px]">
         <AppLogo class="h-auto w-full max-w-52 object-contain" />
       </div>
       <v-divider />
 
-      <div class="shrink-0 px-4 pt-7">
+      <!-- Seul le menu défile : sur un écran peu haut (projecteur, zoom du navigateur), le logo et le compte restent visibles. -->
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-7 [@media(max-height:820px)]:pt-4">
         <p class="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#848484]">
           Menu principal
         </p>
@@ -120,7 +121,7 @@ async function handleLogout() {
             v-for="item in navigationItems"
             :key="item.routeName"
             :to="{ name: item.routeName }"
-            class="relative flex min-h-[52px] items-center rounded-2xl px-3 text-[15px] font-medium text-[#3f434d] no-underline transition-colors hover:bg-[#f7f7f8]"
+            class="relative flex min-h-[52px] items-center rounded-2xl [@media(max-height:820px)]:min-h-11 px-3 text-[15px] font-medium text-[#3f434d] no-underline transition-colors hover:bg-[#f7f7f8]"
             :class="
               isItemActive(item.routeName) ? 'bg-[#FDE9EA] font-semibold !text-[#D80F16]' : ''
             "
@@ -156,16 +157,14 @@ async function handleLogout() {
         </nav>
       </div>
 
-      <v-spacer />
-
-      <div class="shrink-0 px-4 pb-4">
+      <div class="shrink-0 border-t border-[#eceef2] px-4 pb-4 pt-3">
         <p class="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#848484]">
           Mon compte
         </p>
         <v-list
           nav
           density="default"
-          class="space-y-1 bg-transparent pa-0 [&_.v-icon]:text-[25px] [&_.v-icon]:[-webkit-text-stroke:0.35px_currentColor] [&_.v-list-item]:min-h-[52px] [&_.v-list-item]:text-[15px] [&_.v-list-item]:font-medium [&_.v-list-item]:text-[#3f434d]"
+          class="space-y-1 bg-transparent pa-0 [&_.v-icon]:text-[25px] [&_.v-icon]:[-webkit-text-stroke:0.35px_currentColor] [&_.v-list-item]:min-h-[52px] [@media(max-height:820px)]:[&_.v-list-item]:min-h-11 [&_.v-list-item]:text-[15px] [&_.v-list-item]:font-medium [&_.v-list-item]:text-[#3f434d]"
         >
           <v-list-item
             prepend-icon="mdi-cog-outline"
@@ -183,8 +182,9 @@ async function handleLogout() {
             @click="handleLogout"
           />
         </v-list>
-        <v-divider class="my-4" />
-        <div class="flex items-center gap-3 px-3 py-2">
+        <!-- Le nom figure déjà dans la barre du haut : sur un écran très peu haut, on rend la place au menu. -->
+        <v-divider class="my-4 [@media(max-height:640px)]:hidden" />
+        <div class="flex items-center gap-3 px-3 py-2 [@media(max-height:640px)]:hidden">
           <v-avatar color="primary" size="38"
             ><span class="text-xs font-bold text-white">{{ profile.initials }}</span></v-avatar
           >

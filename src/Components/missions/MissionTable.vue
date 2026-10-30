@@ -55,13 +55,13 @@ const formatDate = (value?: string) => value
 
 <template>
   <v-card class="overflow-hidden">
-    <div class="flex flex-col gap-4 px-5 py-5 xl:flex-row xl:items-start">
+    <div class="flex flex-col gap-4 px-5 py-5 2xl:flex-row 2xl:items-start">
       <div>
         <div class="flex items-center gap-3"><h2 class="text-lg font-bold text-[#252830]">{{ title }}</h2><v-chip color="primary" variant="tonal">{{ filtered.length }}</v-chip></div>
         <p class="mt-1 text-xs text-[#747985]">{{ description }}</p>
       </div>
       <v-spacer />
-      <div class="grid w-full gap-3 sm:grid-cols-2 xl:max-w-[760px] xl:grid-cols-4">
+      <div class="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:max-w-[760px]">
         <v-text-field v-model="search" prepend-inner-icon="mdi-magnify" placeholder="Rechercher" density="compact" hide-details clearable />
         <v-select v-model="status" :items="[{title:'Tous les statuts',value:'all'},{title:'Planifiées',value:'scheduled'},{title:'En cours',value:'ongoing'},{title:'Terminées',value:'completed'}]" density="compact" hide-details />
         <v-text-field v-model="dateFrom" type="date" label="Du" density="compact" hide-details />

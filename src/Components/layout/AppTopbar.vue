@@ -52,7 +52,8 @@ function goBack() {
       @click="goBack"
     />
 
-    <v-toolbar-title class="ml-1 text-[22px] font-bold text-[#252830] md:ml-4">
+    <!-- Sur téléphone, le titre de la page est déjà dans son en-tête : la barre garde la place pour le menu et le compte. -->
+    <v-toolbar-title class="ml-1 hidden text-[22px] font-bold text-[#252830] sm:block md:ml-4">
       {{ pageTitle }}
     </v-toolbar-title>
 
