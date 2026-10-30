@@ -78,7 +78,7 @@ function reset() {
       </div>
     </v-form>
     <v-divider />
-    <v-list v-if="sessions.length" class="py-0" lines="two">
+    <v-list v-if="sessions.length" class="max-h-[480px] overflow-y-auto py-0" lines="two">
       <template v-for="(session, index) in sessions" :key="session.id">
         <v-list-item
           :active="session.id === selectedId"
