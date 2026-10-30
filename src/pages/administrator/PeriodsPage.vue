@@ -13,6 +13,7 @@ import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { periodErrorMessage, periodsOfTeams, periodStateOptions } from '@/utils/period-format'
+import type { Team } from '@/types/administrator'
 import type { ApiPeriodState, PeriodResponse } from '@/types/period'
 
 const router = useRouter()
@@ -27,6 +28,8 @@ const { periods, isLoading, isSaving } = storeToRefs(store)
 const state = ref<ApiPeriodState | null>(null)
 // L'administrateur voit toutes les périodes ; le superviseur, celles des équipes de ses sites.
 const visiblePeriods = computed(() => readonly.value ? periodsOfTeams(periods.value, supervisorStore.scopeTeamIds) : periods.value)
+// Équipes proposées à la création : celles du périmètre pour le superviseur.
+const creatableTeams = computed(() => readonly.value ? [...supervisorStore.scopeTeamIds].map((id) => supervisorStore.teamsById[id]).filter((team): team is Team => Boolean(team)) : knownTeams.value)
 const teamName = (teamId?: string) => (readonly.value ? supervisorStore.teamsById[teamId ?? '']?.name : administratorStore.findTeam(teamId)?.name) ?? '—'
 const filtered = computed(() => visiblePeriods.value.filter((period) => !state.value || period.state === state.value))
 const createOpen = ref(false)
@@ -63,8 +66,8 @@ async function create(teamId: string, from: string, to: string) {
   <div class="mx-auto w-full max-w-[1440px]">
     <PageHeader>
       <template #title>Périodes</template>
-      <template #description>{{ readonly ? 'Consultez les périodes de validation des pointages.' : 'Validez les pointages d’une période, puis clôturez-la pour figer les totaux.' }}</template>
-      <template v-if="!readonly" #actions><v-btn color="primary" prepend-icon="mdi-calendar-plus" size="large" @click="openCreate">Nouvelle période</v-btn></template>
+      <template #description>{{ readonly ? 'Créez et consultez les périodes de validation des équipes de vos sites.' : 'Validez les pointages d’une période, puis clôturez-la pour figer les totaux.' }}</template>
+      <template #actions><v-btn color="primary" prepend-icon="mdi-calendar-plus" size="large" @click="openCreate">Nouvelle période</v-btn></template>
     </PageHeader>
     <v-progress-linear v-if="isLoading" indeterminate color="primary" class="mb-4" />
     <v-card class="overflow-hidden">
@@ -78,10 +81,10 @@ async function create(teamId: string, from: string, to: string) {
       </div>
       <v-divider />
       <PeriodTable v-if="filtered.length" :periods="filtered" :team-name="teamName" @view="view" />
-      <AppEmptyState v-else-if="!isLoading" icon="mdi-calendar-blank-outline" title="Aucune période" :description="readonly ? 'Aucune période n’a encore été créée.' : 'Créez une période pour valider puis clôturer les pointages de l’entreprise.'">
-        <v-btn v-if="!readonly" color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
+      <AppEmptyState v-else-if="!isLoading" icon="mdi-calendar-blank-outline" title="Aucune période" :description="readonly ? 'Créez une période pour encadrer la validation des pointages de vos équipes.' : 'Créez une période pour valider puis clôturer les pointages de l’entreprise.'">
+        <v-btn color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
       </AppEmptyState>
     </v-card>
-    <PeriodCreateDialog v-if="!readonly" v-model="createOpen" :teams="knownTeams" :loading="isSaving" :error-message="createError" @submit="create" />
+    <PeriodCreateDialog v-model="createOpen" :teams="creatableTeams" :loading="isSaving" :error-message="createError" @submit="create" />
   </div>
 </template>
