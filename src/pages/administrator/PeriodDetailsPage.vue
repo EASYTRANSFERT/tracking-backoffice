@@ -28,8 +28,8 @@ const periodId = computed(() => route.params.periodId as string)
 const period = computed(() => store.findPeriod(periodId.value))
 const loadError = ref<string | null>(null)
 
-// Rouvrir reste proposé quel que soit l'état ; seule une période clôturée (immuable) ou en cours de clôture ne peut plus l'être.
-const canReopen = computed(() => Boolean(period.value) && period.value?.state !== 'CLOSED' && period.value?.state !== 'CLOSING')
+// L'API n'accepte la réouverture que d'une période en validation (IN_VALIDATION → OPEN).
+const canReopen = computed(() => period.value?.state === 'IN_VALIDATION')
 const canClose = computed(() => period.value?.state === 'IN_VALIDATION')
 const blockers = computed<PeriodBlockers | null>(() => closeBlockers.value ?? period.value?.blockers ?? null)
 const blockedCount = computed(() => (blockers.value?.pending ?? 0) + (blockers.value?.open ?? 0))
@@ -63,10 +63,11 @@ async function load() {
 }
 
 // Clôture en cours : on suit la période jusqu'à ce qu'elle soit close (ou revenue en validation).
+// Pendant une clôture lancée depuis cette page, c'est le store qui interroge : on ne double pas les appels.
 let timer: ReturnType<typeof setInterval> | undefined
 watch(() => period.value?.state, (state) => {
   clearInterval(timer)
-  if (state === 'CLOSING') timer = setInterval(() => { store.loadPeriod(periodId.value).catch(() => undefined) }, CLOSURE_POLL_INTERVAL_MS)
+  if (state === 'CLOSING') timer = setInterval(() => { if (!store.isSaving) store.loadPeriod(periodId.value).catch(() => undefined) }, CLOSURE_POLL_INTERVAL_MS)
 }, { immediate: true })
 onBeforeUnmount(() => clearInterval(timer))
 onMounted(load)
@@ -97,6 +98,7 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
   try {
     const result = await store.closePeriod(periodId.value, { force: payload.force || undefined, reason: payload.reason }, payload.code)
     closeOpen.value = false
+    closeBlockers.value = null
     if (result.state === 'CLOSED') feedback.success('Période clôturée.')
     else if (result.state === 'IN_VALIDATION') feedback.warning('La clôture a été interrompue : des sessions sont à valider.')
     else feedback.success('Clôture en cours : les totaux sont en cours de calcul.')
@@ -108,7 +110,10 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
       stepUpDone.value = true
       closeError.value = null
     } else {
-      if (apiErrorCode(error) === 'STEP_UP_REQUIRED') stepUpDone.value = false
+      const code = apiErrorCode(error)
+      if (code === 'STEP_UP_REQUIRED') stepUpDone.value = false
+      // L'état affiché n'était plus à jour : on recharge la période pour refléter son état réel.
+      if (code === 'PERIOD_INVALID_TRANSITION' || code === 'PERIOD_ALREADY_CLOSED') load()
       closeError.value = periodErrorMessage(error) ?? getApiErrorMessage(error, 'Impossible de clôturer la période.')
     }
   }
@@ -187,13 +192,14 @@ async function close(payload: { code?: string; force: boolean; reason?: string }
           <div v-if="!readonly" class="space-y-3">
             <v-btn block color="primary" variant="flat" prepend-icon="mdi-lock-check-outline" :disabled="!canClose" @click="openClose(false)">Clôturer la période</v-btn>
             <v-btn block variant="tonal" color="error" prepend-icon="mdi-lock-alert-outline" :disabled="!canClose" @click="openClose(true)">Forcer la clôture</v-btn>
-            <v-btn block variant="tonal" color="warning" prepend-icon="mdi-lock-open-variant-outline" :disabled="!canReopen" @click="openReopen">Rouvrir pour correction</v-btn>
+            <v-btn v-if="canReopen" block variant="tonal" color="warning" prepend-icon="mdi-lock-open-variant-outline" @click="openReopen">Rouvrir pour correction</v-btn>
           </div>
           <p v-if="readonly" class="mt-4 text-xs leading-5 text-[#747985]">Consultation seule : la validation, la clôture et la réouverture sont réservées à l’administrateur.</p>
           <p v-else class="mt-4 text-xs leading-5 text-[#747985]">
             <template v-if="period.state === 'CLOSED'">Une période clôturée est immuable : elle ne se rouvre jamais.</template>
-            <template v-else-if="period.state === 'IN_VALIDATION'">La clôture demande votre code TOTP. Elle est refusée tant que des sessions sont en attente ou ouvertes, sauf clôture forcée avec motif.</template>
-            <template v-else>La clôture (simple ou forcée) est disponible une fois la période en validation ; la réouverture n’est acceptée par l’API que pour une période en validation.</template>
+            <template v-else-if="period.state === 'IN_VALIDATION'">La clôture demande votre code TOTP. Elle est refusée tant que des sessions sont en attente ou ouvertes, sauf clôture forcée avec motif. La réouverture, avec motif, remet la période en « Ouverte ».</template>
+            <template v-else-if="period.state === 'CLOSING'">Clôture en cours : la page se met à jour jusqu’à la fin du calcul des totaux.</template>
+            <template v-else>La clôture (simple ou forcée) et la réouverture sont disponibles une fois la période terminée et passée en validation.</template>
           </p>
         </v-card-text>
       </v-card>

@@ -69,7 +69,7 @@ export function periodHandlers(api: (path: string) => string, problem: Problem) 
       const blockers = blockersOf(period)
       const blocked = blockers.pending + blockers.open > 0
       if (blocked && !force) {
-        return HttpResponse.json({ title: 'PERIOD_NOT_CLOSABLE', status: 422, code: 'PERIOD_NOT_CLOSABLE', detail: 'Des sessions sont en attente de décision ou encore ouvertes.', ...blockers }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })
+        return HttpResponse.json({ title: 'PERIOD_NOT_CLOSABLE', status: 422, code: 'PERIOD_NOT_CLOSABLE', detail: 'Des sessions sont en attente de décision ou encore ouvertes.', extensions: { blockers } }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })
       }
       if (force && !reason?.trim()) return problem(400, 'PERIOD_FORCE_REASON_REQUIRED', 'Le motif de la clôture forcée est obligatoire.')
       Object.assign(period, {
