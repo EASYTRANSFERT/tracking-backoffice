@@ -10,14 +10,17 @@ import { flagLabels, formatDateTime, formatMinutes, statusLabels, validationConf
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import PeriodStateChip from '@/Components/periods/PeriodStateChip.vue'
+import { useAdjustmentAccess } from '@/composables/useAdjustmentAccess'
 import { useAdjustmentStore } from '@/stores/adjustment.store'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { adjustmentErrorMessage } from '@/utils/adjustment-format'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { isTeamMember } from '@/utils/people'
 import { formatPeriodRange } from '@/utils/period-format'
 import type { CreateAdjustmentRequest } from '@/types/adjustment'
+import type { EnterpriseUser } from '@/types/administrator'
 import type { SessionListQuery, WorkSessionResponse } from '@/types/attendance'
 
 const route = useRoute()
@@ -27,16 +30,24 @@ const feedback = useUiFeedbackStore()
 const { results, nextCursor, isSearching, selected, selectedPeriod, history, isHistoryLoading, isSaving } = storeToRefs(store)
 const { users, sites } = storeToRefs(administratorStore)
 
-const agents = computed(() => users.value.filter(isTeamMember))
+// Le superviseur ne voit que son périmètre : les sites de ses missions et les membres des équipes qui y travaillent.
+const { isSupervisor } = useAdjustmentAccess()
+const supervisorStore = useSupervisorStore()
+const scopeAgents = ref<EnterpriseUser[]>([])
+const agents = computed(() => isSupervisor.value ? scopeAgents.value : users.value.filter(isTeamMember))
+const finderSites = computed(() => isSupervisor.value ? supervisorStore.sites : sites.value)
 const agentName = (id?: string) => store.personName(id, 'Agent')
-const siteName = (id?: string) => (id ? administratorStore.getSiteById(id)?.name : undefined) ?? '—'
+const siteName = (id?: string) => (id ? finderSites.value.find((site) => site.id === id)?.name : undefined) ?? '—'
 const formError = ref<string | null>(null)
 // Une période en clôture ou clôturée refuse toute régularisation : on ne propose alors pas le formulaire.
 const locked = computed(() => store.isLocked())
 
 onMounted(async () => {
-  administratorStore.loadDirectory().catch(() => undefined)
-  administratorStore.loadSites().catch(() => undefined)
+  if (isSupervisor.value) loadSupervisorScope()
+  else {
+    administratorStore.loadDirectory().catch(() => undefined)
+    administratorStore.loadSites().catch(() => undefined)
+  }
   const sessionId = route.query.sessionId
   if (typeof sessionId === 'string' && sessionId) {
     try { await store.selectById(sessionId) } catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger cette session.')) }
@@ -44,6 +55,16 @@ onMounted(async () => {
   await search({})
 })
 onBeforeUnmount(() => store.reset())
+
+async function loadSupervisorScope() {
+  try {
+    await supervisorStore.loadScope()
+    const lists = await Promise.all([...supervisorStore.scopeTeamIds].map((teamId) => administratorStore.listTeamMembers(teamId)))
+    scopeAgents.value = [...new Map(lists.flat().map((agent) => [agent.id, agent])).values()]
+  } catch {
+    // Le filtre par agent reste vide ; la recherche par site, date et statut fonctionne toujours.
+  }
+}
 
 async function search(filters: SessionListQuery) {
   try { await store.search(filters) } catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger les sessions.')) }
@@ -76,10 +97,10 @@ async function submit(request: CreateAdjustmentRequest) {
       <template #description>Corrigez l’entrée, la sortie ou le retard d’une session, avec un motif, et consultez l’historique de ses corrections.</template>
     </PageHeader>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <SessionFinder
         :agents="agents"
-        :sites="sites"
+        :sites="finderSites"
         :sessions="results"
         :loading="isSearching"
         :has-next="Boolean(nextCursor)"
@@ -98,7 +119,7 @@ async function submit(request: CreateAdjustmentRequest) {
       <div v-else class="space-y-6">
         <v-card>
           <v-card-title class="flex flex-wrap items-center justify-between gap-2 px-6 py-5">
-            <span>{{ agentName(selected.userId) }}</span>
+            <span class="p-3">{{ agentName(selected.userId) }}</span>
             <v-chip :color="validationConfig[selected.validation].color" variant="tonal">{{ validationConfig[selected.validation].label }}</v-chip>
           </v-card-title>
           <v-divider />

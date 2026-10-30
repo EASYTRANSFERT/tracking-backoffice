@@ -11,6 +11,7 @@ import {
   statusLabels,
   validationConfig,
 } from '@/Components/attendance/attendance-labels'
+import { useAdjustmentAccess } from '@/composables/useAdjustmentAccess'
 import { useAttendanceStore } from '@/stores/attendance.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -25,13 +26,14 @@ const props = defineProps<{
   session?: WorkSessionResponse
   siteName: string
   canDecide?: boolean
-  /** Lien vers la page Régularisations, session déjà choisie (administrateur). */
+  /** Lien vers la page Régularisations, session déjà choisie (administrateur ou superviseur). */
   canAdjust?: boolean
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const store = useAttendanceStore()
+const { adjustmentsRoute } = useAdjustmentAccess()
 const feedback = useUiFeedbackStore()
 const decision = ref<'VALIDATE' | 'REJECT'>('VALIDATE')
 const reason = ref('')
@@ -242,7 +244,7 @@ async function submit() {
         </p>
       </v-card-text>
       <v-card-actions class="px-6 pb-6">
-        <v-btn v-if="canAdjust && current" variant="text" color="primary" prepend-icon="mdi-clipboard-edit-outline" :to="{ name: 'admin-adjustments', query: { sessionId: current.id } }">Régulariser</v-btn>
+        <v-btn v-if="canAdjust && current" variant="text" color="primary" prepend-icon="mdi-clipboard-edit-outline" :to="{ name: adjustmentsRoute, query: { sessionId: current.id } }">Régulariser</v-btn>
         <v-spacer />
         <v-btn variant="text" @click="emit('update:modelValue', false)">{{
           showDecision ? 'Annuler' : 'Fermer'

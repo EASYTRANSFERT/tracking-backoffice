@@ -117,7 +117,7 @@ watch(() => site.value?.teamId, (teamId) => {
           </v-card>
         </div>
       </template>
-      <AttendanceTable v-if="sites.length" :sites="sites" can-decide :can-check="canTriggerCheck" :team-name="teamName" />
+      <AttendanceTable v-if="sites.length" :sites="sites" can-decide can-adjust :can-check="canTriggerCheck" :team-name="teamName" />
     </div>
   </div>
 </template>
