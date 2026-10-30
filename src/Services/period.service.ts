@@ -1,12 +1,18 @@
+import { isAxiosError } from 'axios'
+
 import { apiClient } from './api-client'
 import { idempotencyHeaders } from './request-headers'
 
 import type {
   ClosePeriodRequest,
   CreatePeriodRequest,
+  PeriodDailyPageResponse,
+  PeriodDailyQuery,
   PeriodListQuery,
   PeriodPageResponse,
+  PeriodReportFormat,
   PeriodResponse,
+  PeriodTotalsResponse,
   ReopenPeriodRequest,
 } from '@/types/period'
 
@@ -43,5 +49,33 @@ export const periodService = {
       skipAuthRefresh: true,
     })
     return response.data
+  },
+
+  /** Bilan : agents, équipe et sites. Provisoire (`period.final` false) tant que la période n'est pas clôturée. */
+  async totals(id: string): Promise<PeriodTotalsResponse> {
+    const response = await apiClient.get<PeriodTotalsResponse>(`/periods/${id}/totals`)
+    return response.data
+  },
+
+  /** Détail jour par jour, d'un agent ou de toute l'équipe. */
+  async dailyTotals(id: string, query: PeriodDailyQuery = {}): Promise<PeriodDailyPageResponse> {
+    const response = await apiClient.get<PeriodDailyPageResponse>(`/periods/${id}/totals/daily`, { params: query })
+    return response.data
+  },
+
+  /**
+   * Fichier du bilan : la route exige le jeton, donc pas de simple lien. En cas d'échec, le corps d'erreur
+   * (problem details) arrive lui aussi en blob : on le relit pour que `code` reste exploitable.
+   */
+  async report(id: string, format: PeriodReportFormat): Promise<Blob> {
+    try {
+      const response = await apiClient.get<Blob>(`/periods/${id}/report`, { params: { format }, responseType: 'blob' })
+      return response.data
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.data instanceof Blob) {
+        error.response.data = await error.response.data.text().then((text) => JSON.parse(text) as unknown).catch(() => undefined)
+      }
+      throw error
+    }
   },
 }
