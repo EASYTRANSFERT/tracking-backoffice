@@ -1,4 +1,4 @@
-import type { EnterpriseUser } from '@/types/administrator'
+import type { EnterpriseUser, EnterpriseUserRole } from '@/types/administrator'
 
 type Named = Pick<EnterpriseUser, 'firstName' | 'lastName'>
 
@@ -17,3 +17,6 @@ export const byName = (a: Named, b: Named) =>
 
 /** Membre d'une équipe : un agent ou son chef d'équipe. */
 export const isTeamMember = (user: Pick<EnterpriseUser, 'role'>) => user.role === 'agent' || user.role === 'teamLeader'
+
+/** Rôle d'un compte de l'entreprise, tel qu'affiché à côté de son nom. */
+export const enterpriseRoleLabels: Record<EnterpriseUserRole, string> = { administrator: 'Administrateur', supervisor: 'Superviseur', teamLeader: 'Chef d’équipe', agent: 'Agent' }

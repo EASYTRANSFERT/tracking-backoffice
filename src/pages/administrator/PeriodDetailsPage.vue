@@ -8,12 +8,11 @@ import PeriodCloseDialog from '@/Components/periods/PeriodCloseDialog.vue'
 import PeriodReopenDialog from '@/Components/periods/PeriodReopenDialog.vue'
 import PeriodStateChip from '@/Components/periods/PeriodStateChip.vue'
 import { usePeriodAccess } from '@/composables/usePeriodAccess'
+import { useUserDisplay } from '@/composables/useUserDisplay'
 import { useAdministratorStore } from '@/stores/administrator.store'
-import { useAuthStore } from '@/stores/auth.store'
 import { CLOSURE_POLL_INTERVAL_MS, usePeriodStore } from '@/stores/period.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
-import { nameOr } from '@/utils/people'
 import { apiErrorCode, formatPeriodRange, periodErrorMessage, readClosureBlockers } from '@/utils/period-format'
 import type { PeriodBlockers } from '@/types/period'
 
@@ -22,7 +21,6 @@ const store = usePeriodStore()
 const { readonly, listRoute } = usePeriodAccess()
 const administratorStore = useAdministratorStore()
 const feedback = useUiFeedbackStore()
-const authStore = useAuthStore()
 
 const periodId = computed(() => route.params.periodId as string)
 const period = computed(() => store.findPeriod(periodId.value))
@@ -33,15 +31,7 @@ const canReopen = computed(() => period.value?.state === 'IN_VALIDATION')
 const canClose = computed(() => period.value?.state === 'IN_VALIDATION')
 const blockers = computed<PeriodBlockers | null>(() => closeBlockers.value ?? period.value?.blockers ?? null)
 const blockedCount = computed(() => (blockers.value?.pending ?? 0) + (blockers.value?.open ?? 0))
-// L'API ne renvoie que des identifiants. Un superviseur ne peut lire que les comptes de son périmètre :
-// pour un autre compte (ex. l'administrateur qui a créé la période), on n'affiche jamais l'identifiant brut.
-function userName(id?: string) {
-  if (!id) return '—'
-  const known = administratorStore.findUser(id)
-  if (known) return nameOr(known)
-  if (id === authStore.currentUser?.id) return authStore.currentUser.names
-  return 'un autre utilisateur'
-}
+const { userName } = useUserDisplay()
 
 const reopenOpen = ref(false)
 const reopenError = ref<string | null>(null)

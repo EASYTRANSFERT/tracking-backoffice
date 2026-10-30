@@ -11,6 +11,7 @@ import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import PeriodStateChip from '@/Components/periods/PeriodStateChip.vue'
 import { useAdjustmentAccess } from '@/composables/useAdjustmentAccess'
+import { useUserDisplay } from '@/composables/useUserDisplay'
 import { useAdjustmentStore } from '@/stores/adjustment.store'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
@@ -37,6 +38,9 @@ const scopeAgents = ref<EnterpriseUser[]>([])
 const agents = computed(() => isSupervisor.value ? scopeAgents.value : users.value.filter(isTeamMember))
 const finderSites = computed(() => isSupervisor.value ? supervisorStore.sites : sites.value)
 const agentName = (id?: string) => store.personName(id, 'Agent')
+const { userName } = useUserDisplay()
+// L'auteur d'une régularisation n'est pas forcément un agent : on affiche son vrai rôle, ou rien de supposé.
+const authorName = (id?: string) => userName(id, true)
 const siteName = (id?: string) => (id ? finderSites.value.find((site) => site.id === id)?.name : undefined) ?? '—'
 const formError = ref<string | null>(null)
 // Une période en clôture ou clôturée refuse toute régularisation : on ne propose alors pas le formulaire.
@@ -155,7 +159,7 @@ async function submit(request: CreateAdjustmentRequest) {
           <v-card-title class="px-6 py-5">Historique des régularisations</v-card-title>
           <v-divider />
           <v-progress-linear v-if="isHistoryLoading" indeterminate color="primary" height="2" />
-          <AdjustmentTimeline v-if="history.length" :adjustments="history" :author-name="agentName" />
+          <AdjustmentTimeline v-if="history.length" :adjustments="history" :author-name="authorName" />
           <p v-else-if="!isHistoryLoading" class="px-6 py-8 text-center text-sm text-[#747985]">Cette session n’a jamais été régularisée.</p>
         </v-card>
       </div>
