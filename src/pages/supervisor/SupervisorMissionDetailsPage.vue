@@ -8,6 +8,7 @@ import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
+import MissionOverviewDialog from '@/Components/missions/MissionOverviewDialog.vue'
 import SitePicker from '@/Components/sites/SitePicker.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useSupervisorStore } from '@/stores/supervisor.store'
@@ -22,6 +23,7 @@ const missionId = computed(() => String(route.params.missionId))
 const mission = computed(() => store.getMissionById(missionId.value))
 // Seuls les sites du périmètre du superviseur : une mission peut en avoir d'autres.
 const sites = computed(() => store.getMissionSites(missionId.value))
+const overviewDialog = ref(false)
 const selectedSiteId = ref<string>()
 const site = computed(() => sites.value.find((item) => item.id === selectedSiteId.value) ?? sites.value[0])
 const team = computed(() => site.value?.teamId ? teamsById.value[site.value.teamId] : undefined)
@@ -54,7 +56,7 @@ watch(() => site.value?.teamId, (teamId) => {
     <PageHeader>
       <template #title>{{ mission?.title ?? 'Détail de la mission' }}</template>
       <template #description>Sites de votre périmètre, leurs équipes, leurs agents et leurs pointages.</template>
-      <template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'supervisor-missions' }">Retour aux missions</v-btn></template>
+      <template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'supervisor-missions' }">Retour aux missions</v-btn><v-btn v-if="mission" variant="tonal" color="primary" prepend-icon="mdi-chart-box-outline" @click="overviewDialog = true">Vue d’ensemble</v-btn></template>
     </PageHeader>
 
     <v-progress-linear v-if="isLoading && !hasLoaded" indeterminate color="primary" />
@@ -118,6 +120,7 @@ watch(() => site.value?.teamId, (teamId) => {
         </div>
         </div>
       </template>
+      <MissionOverviewDialog v-model="overviewDialog" :mission-id="mission.id" :mission-title="mission.title" />
       <AttendanceTable v-if="sites.length" :sites="sites" can-decide can-adjust :can-check="canTriggerCheck" :team-name="teamName" />
     </div>
   </div>

@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
+import MissionOverviewDialog from '@/Components/missions/MissionOverviewDialog.vue'
 import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
 import MissionSupervisorDialog from '@/Components/missions/MissionSupervisorDialog.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -23,6 +24,7 @@ const missionSites = computed(() => mission.value ? store.getMissionSites(missio
 
 const missionSupervisor = computed(() => store.findUser(mission.value?.supervisorUserId))
 watch(() => mission.value?.supervisorUserId, (id) => { store.ensureUsers([id]).catch(() => undefined) }, { immediate: true })
+const overviewDialog = ref(false)
 const supervisorDialog = ref(false)
 const isAssigningSupervisor = ref(false)
 
@@ -120,7 +122,7 @@ async function closeMission() {
 
 <template>
   <div class="mx-auto w-full max-w-[1100px]">
-    <PageHeader><template #title>{{ mission?.title ?? 'Mission introuvable' }}</template><template #description>Informations et état d’exécution de la mission.</template><template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-missions' }">Retour</v-btn><v-btn v-if="mission?.status === 'scheduled'" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-mission-edit', params: { missionId: mission.id } }">Modifier</v-btn></template></PageHeader>
+    <PageHeader><template #title>{{ mission?.title ?? 'Mission introuvable' }}</template><template #description>Informations et état d’exécution de la mission.</template><template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-missions' }">Retour</v-btn><v-btn v-if="mission" variant="tonal" color="primary" prepend-icon="mdi-chart-box-outline" @click="overviewDialog = true">Vue d’ensemble</v-btn><v-btn v-if="mission?.status === 'scheduled'" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-mission-edit', params: { missionId: mission.id } }">Modifier</v-btn></template></PageHeader>
     <v-alert v-if="!mission && !store.isMissionsLoading" type="error" variant="tonal" title="Mission introuvable" />
     <div v-else-if="mission" class="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
       <div class="space-y-6">
@@ -199,6 +201,7 @@ async function closeMission() {
     <AttendanceTable v-if="mission && missionSites.length" class="mt-6" :sites="missionSites" can-adjust :can-check="canTriggerCheck" :team-name="teamName" />
 
 
+    <MissionOverviewDialog v-if="mission" v-model="overviewDialog" :mission-id="mission.id" :mission-title="mission.title" />
     <MissionSupervisorDialog v-model="supervisorDialog" :supervisors="store.supervisors" :current-id="mission?.supervisorUserId" :loading="store.isDirectoryLoading" :saving="isAssigningSupervisor" @confirm="assignSupervisor" />
     <MissionSiteAttachDialog v-model="attachDialog" :sites="store.sitesWithoutMission" :loading="isAttachLoading" :saving="isAttaching" @confirm="attachSites" />
   </div>
