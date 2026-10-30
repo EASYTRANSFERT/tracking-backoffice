@@ -8,6 +8,7 @@ import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AttendanceTable from '@/Components/attendance/AttendanceTable.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
+import SitePicker from '@/Components/sites/SitePicker.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
@@ -75,11 +76,10 @@ watch(() => site.value?.teamId, (teamId) => {
       <v-card v-if="!sites.length"><AppEmptyState icon="mdi-map-marker-off-outline" title="Aucun site" description="Aucun site de cette mission ne vous est encore visible." /></v-card>
 
       <template v-else-if="site">
-        <v-tabs v-if="sites.length > 1" :model-value="site.id" color="primary" show-arrows @update:model-value="selectedSiteId = String($event)">
-          <v-tab v-for="item in sites" :key="item.id" :value="item.id" prepend-icon="mdi-map-marker-outline" class="normal-case">{{ item.name }}</v-tab>
-        </v-tabs>
-
-        <div class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <!-- Plusieurs sites : liste à gauche (recherche, défilement) ; un seul : le détail occupe toute la largeur. -->
+        <div :class="sites.length > 1 ? 'grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]' : ''">
+          <SitePicker v-if="sites.length > 1" :sites="sites" :selected-id="site.id" :team-name="teamName" @select="selectedSiteId = $event" />
+        <div class="min-w-0" :class="sites.length > 1 ? 'space-y-6' : 'grid gap-6 lg:grid-cols-[0.9fr_1.1fr]'">
           <v-card>
             <v-card-title class="flex items-center gap-3 px-6 py-5">
               <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-map-marker-radius-outline" color="primary" /></v-avatar>
@@ -115,6 +115,7 @@ watch(() => site.value?.teamId, (teamId) => {
             </div>
             <v-card-text v-else-if="!isMembersLoading" class="px-6 py-8 text-center text-sm text-[#747985]">{{ site.teamId ? 'L’équipe n’a pas encore d’agent.' : 'L’administrateur doit affecter une équipe à ce site.' }}</v-card-text>
           </v-card>
+        </div>
         </div>
       </template>
       <AttendanceTable v-if="sites.length" :sites="sites" can-decide can-adjust :can-check="canTriggerCheck" :team-name="teamName" />
