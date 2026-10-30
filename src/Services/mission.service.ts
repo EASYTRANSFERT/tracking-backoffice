@@ -5,6 +5,8 @@ import type {
   AssignMissionSupervisorRequest,
   CreateMissionRequest,
   MissionListQuery,
+  MissionOverviewQuery,
+  MissionOverviewResponse,
   MissionPageResponse,
   MissionResponse,
   UpdateMissionRequest,
@@ -44,6 +46,12 @@ export const missionService = {
 
   async close(id: string): Promise<MissionResponse> {
     const response = await apiClient.post<MissionResponse>(`/missions/${id}/close`, undefined, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  /** Vue d'ensemble : sites aujourd'hui, et périodes des équipes de la mission. Aucun total de mission, volontairement. */
+  async overview(id: string, query: MissionOverviewQuery = {}): Promise<MissionOverviewResponse> {
+    const response = await apiClient.get<MissionOverviewResponse>(`/missions/${id}/overview`, { params: query })
     return response.data
   },
 }
