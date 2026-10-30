@@ -133,7 +133,7 @@ onMounted(() => {
     <PageHeader>
       <template #title>Journal d’audit</template>
       <template #description>
-        {{ isOperator ? 'Toutes les actions sensibles réalisées sur la plateforme, toutes entreprises confondues.' : 'Toutes les actions sensibles réalisées dans votre entreprise.' }}
+        {{ isOperator ? 'Toutes les actions sensibles réalisées sur la plateforme, toutes entreprises.' : 'Toutes les actions sensibles réalisées dans votre entreprise.' }}
         Les plus récentes d’abord.
       </template>
       <template #actions>

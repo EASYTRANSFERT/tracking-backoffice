@@ -24,7 +24,7 @@ const {
 } = storeToRefs(authStore)
 
 const cardTitle = computed(() => {
-  return step.value === 'credentials' ? 'Login' : 'MFA'
+  return step.value === 'credentials' ? 'Login' : ''
 })
 
 const cardDescription = computed(() => {

@@ -31,9 +31,9 @@ export function getErrorReason(error: unknown): string | null {
  */
 function describeNonApiResponse(status: number, headers: unknown): string {
   const ngrokError = (headers as Record<string, string | undefined> | undefined)?.['ngrok-error-code']
-  if (ngrokError) return `le tunnel ngrok de l’API est hors ligne ou injoignable (${ngrokError}).`
-  if (status >= 500) return `le serveur de l’API ne répond pas correctement (erreur ${status}).`
-  return `le serveur a renvoyé une réponse inattendue (erreur ${status}).`
+  if (ngrokError) return `(${ngrokError}).`
+  if (status >= 500) return `(erreur ${status}).`
+  return `(erreur ${status}).`
 }
 
 /**

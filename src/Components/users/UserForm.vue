@@ -84,9 +84,9 @@ async function submit() {
           :hint="data.role === 'teamLeader' ? 'Facultatif — le chef sera rattaché à l’équipe dont il prendra la tête.' : 'Facultatif — l’agent pourra être ajouté à une équipe plus tard.'"
           persistent-hint
         />
-        <v-alert v-else type="info" variant="tonal" class="md:col-span-2">
+        <!--<v-alert v-else type="info" variant="tonal" class="md:col-span-2">
           {{ data.role === 'administrator' ? 'Un administrateur' : 'Un superviseur' }} n’est pas rattaché à une équipe.
-        </v-alert>
+        </v-alert>-->
       </v-card-text>
     </v-card>
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

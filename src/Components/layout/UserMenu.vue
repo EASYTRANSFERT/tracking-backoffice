@@ -86,11 +86,6 @@ async function handleLogout() {
     <v-card min-width="230">
       <v-list density="comfortable">
         <v-list-item
-          prepend-icon="mdi-account-outline"
-          title="Mon profil"
-        />
-
-        <v-list-item
           prepend-icon="mdi-cog-outline"
           title="Paramètres"
           :to="{ name: profile.settingsRoute }"
