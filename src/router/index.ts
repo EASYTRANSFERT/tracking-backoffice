@@ -324,6 +324,12 @@ const router = createRouter({
           meta: { title: 'Détail mission', allowedRoles: ['supervisor'] },
         },
         {
+          path: 'adjustments',
+          name: 'supervisor-adjustments',
+          component: () => import('@/pages/administrator/AdjustmentsPage.vue'),
+          meta: { title: 'Régularisations', allowedRoles: ['supervisor'] },
+        },
+        {
           path: 'periods',
           name: 'supervisor-periods',
           component: () => import('@/pages/administrator/PeriodsPage.vue'),

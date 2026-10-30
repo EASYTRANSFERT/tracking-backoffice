@@ -113,5 +113,11 @@ export const dashboardNavigation: NavigationItem[] = [
     icon: 'mdi-calendar-range',
     allowedRoles: ['supervisor'],
   },
+  {
+    title: 'Régularisations',
+    routeName: 'supervisor-adjustments',
+    icon: 'mdi-clipboard-edit-outline',
+    allowedRoles: ['supervisor'],
+  },
 
 ]
