@@ -5,6 +5,7 @@ import type {
   CreateUserRequest,
   MatriculeImportReport,
   UpdatePasswordRequest,
+  UpdateUserRolesRequest,
   UpdateUserRequest,
   UserListQuery,
   UserPageResponse,
@@ -56,5 +57,11 @@ export const userService = {
 
   async updatePassword(userId: string, payload: UpdatePasswordRequest): Promise<void> {
     await apiClient.patch(`/users/${userId}/password`, payload, { headers: idempotencyHeaders() })
+  },
+
+  /** Change les rôles seulement (opération sensible : step-up TOTP récent exigé). */
+  async updateRoles(userId: string, payload: UpdateUserRolesRequest): Promise<UserResponse> {
+    const response = await apiClient.put<UserResponse>(`/users/${userId}/roles`, payload, { headers: idempotencyHeaders() })
+    return response.data
   },
 }

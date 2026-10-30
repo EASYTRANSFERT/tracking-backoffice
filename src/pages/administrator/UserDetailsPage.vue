@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { fullName, nameOr } from '@/utils/people'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
@@ -8,12 +8,13 @@ import DeviceReplacementDialog from '@/Components/devices/DeviceReplacementDialo
 import DeviceRevokeDialog from '@/Components/devices/DeviceRevokeDialog.vue'
 import DeviceTable from '@/Components/devices/DeviceTable.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
+import TotpConfirmDialog from '@/Components/security/TotpConfirmDialog.vue'
 import { useDeviceRevocation } from '@/composables/useDeviceRevocation'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { assignableRoleOptions, roleLabels, userRoleErrorMessage } from '@/utils/user-role'
 import { useDeviceStore } from '@/stores/device.store'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import type { EnterpriseUserRole } from '@/types/administrator'
 import type { DeviceResponse } from '@/types/device'
 const route = useRoute(); const store = useAdministratorStore(); const feedback = useUiFeedbackStore(); const user = computed(() => store.findUser(route.params.userId as string)); const team = computed(() => store.findTeam(user.value?.teamId)); const canReactivate = computed(() => store.canReactivateUsers)
 const router = useRouter(); const deviceStore = useDeviceStore(); const revocation = useDeviceRevocation(); const userId = computed(() => route.params.userId as string); const devices = computed(() => deviceStore.devicesByUser[userId.value] ?? [])
@@ -31,7 +32,32 @@ async function replaceDevice(reason: string | undefined, code: string) {
     replacementTarget.value = false
   } catch (error) { replacementError.value = getApiErrorMessage(error, 'Impossible d’autoriser le changement de téléphone.') }
 }
-const roleLabels: Record<EnterpriseUserRole, string> = { administrator: 'Administrateur', supervisor: 'Superviseur', teamLeader: 'Chef d’équipe', agent: 'Agent' }
+// Le rôle se change seul (PUT /users/{id}/roles), avec un code TOTP ; l'administrateur n'est ni attribuable ni modifiable ici.
+const canChangeRole = computed(() => Boolean(user.value) && user.value!.role !== 'administrator' && user.value!.status !== 'disabled')
+const selectedRole = ref<'supervisor' | 'teamLeader' | 'agent'>()
+const roleChanged = computed(() => Boolean(selectedRole.value) && selectedRole.value !== user.value?.role)
+watch(() => user.value?.role, (role) => { selectedRole.value = role === 'administrator' ? undefined : role }, { immediate: true })
+const roleDialog = ref(false); const roleSaving = ref(false); const roleError = ref<string | null>(null)
+const openRoleDialog = () => { roleError.value = null; roleDialog.value = true }
+async function saveRole(code: string) {
+  if (!user.value || !selectedRole.value) return
+  roleSaving.value = true; roleError.value = null
+  try {
+    await store.changeUserRole(user.value.id, selectedRole.value, code)
+    roleDialog.value = false
+    feedback.success('Rôle modifié.')
+  } catch (error) { roleError.value = userRoleErrorMessage(error) ?? getApiErrorMessage(error, 'Impossible de modifier le rôle.') }
+  finally { roleSaving.value = false }
+}
 async function changeStatus() { if (!user.value) return; const wasDisabled = user.value.status === 'disabled'; if (wasDisabled && !canReactivate.value) { feedback.error("L’API ne fournit pas encore de réactivation utilisateur."); return } const action = wasDisabled ? 'Réactiver' : 'Désactiver'; const confirmed = await feedback.askConfirmation({ title: `${action} ce compte ?`, message: `Cette action concerne ${fullName(user.value)}.`, confirmText: action, color: wasDisabled ? 'success' : 'error' }); if (!confirmed) return; try { await store.toggleUserStatus(user.value.id); feedback.success(wasDisabled ? 'Compte réactivé.' : 'Compte désactivé.') } catch (error) { feedback.error(getApiErrorMessage(error, 'Action impossible.')) } }
 </script>
-<template><div class="mx-auto w-full max-w-[1050px]"><PageHeader><template #title>{{ nameOr(user, 'Utilisateur introuvable') }}</template><template #description>Profil, accès et affectation de l’utilisateur.</template><template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-users' }">Retour</v-btn><v-btn v-if="user" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-user-edit', params: { userId: user.id } }">Modifier</v-btn></template></PageHeader><v-alert v-if="!user" type="error" variant="tonal" title="Utilisateur introuvable" /><div v-else class="grid gap-6 lg:grid-cols-[1fr_320px]"><v-card><v-card-title class="px-6 py-5">Informations professionnelles</v-card-title><v-divider /><v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2"><div><p class="text-xs text-[#848484]">E-mail</p><p class="mt-1 font-medium">{{ user.email }}</p></div><div><p class="text-xs text-[#848484]">Téléphone</p><p class="mt-1 font-medium">{{ user.phone }}</p></div><div><p class="text-xs text-[#848484]">Matricule</p><p class="mt-1 font-medium">{{ user.employeeNumber }}</p></div><div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-medium">{{ team?.name ?? 'Aucune — ce rôle n’exige pas d’équipe' }}</p></div><div><p class="text-xs text-[#848484]">Rôle</p><p class="mt-1 font-medium">{{ roleLabels[user.role] }}</p></div></v-card-text></v-card><v-card><v-card-text class="pa-6"><div class="flex items-center justify-between"><span class="font-bold">État du compte</span><AppStatusChip :status="user.status" /></div><v-divider class="my-5" /><v-btn block variant="tonal" :color="user.status === 'disabled' ? 'success' : 'error'" :prepend-icon="user.status === 'disabled' ? 'mdi-account-check-outline' : 'mdi-account-off-outline'" @click="changeStatus">{{ user.status === 'disabled' ? 'Réactiver le compte' : 'Désactiver le compte' }}</v-btn></v-card-text></v-card></div><v-card v-if="user" class="mt-6 overflow-hidden"><v-card-title class="d-flex align-center px-6 py-5">Appareils<v-spacer /><v-btn v-if="canReplaceDevice" :disabled="!devices.length" :class="{ '!bg-[#ececec] !text-kaybic-grey !opacity-100': !devices.length }" variant="tonal" color="warning" size="small" prepend-icon="mdi-cellphone-sync" @click="openReplacement">Changer de téléphone</v-btn></v-card-title><v-divider /><DeviceTable v-if="devices.length" :devices="devices" :agent-name="deviceStore.agentName" :show-agent="false" @view="viewDevice" @revoke="revocation.open" /><AppEmptyState v-else icon="mdi-cellphone-off" title="Aucun appareil" description="L’appareil apparaîtra ici quand l’utilisateur activera l’application mobile." /></v-card><DeviceReplacementDialog :user="replacementTarget ? user ?? null : null" :loading="deviceStore.isReplacing" :error-message="replacementError" @submit="replaceDevice" @cancel="replacementTarget = false" /><DeviceRevokeDialog :device="revocation.target.value" :agent-name="revocation.targetAgentName.value" :loading="revocation.isRevoking.value" :error-message="revocation.errorMessage.value" @submit="revocation.submit" @cancel="revocation.close" /></div></template>
+<template>
+  <div class="mx-auto w-full max-w-[1050px]">
+    <PageHeader>
+      <template #title>{{ nameOr(user, 'Utilisateur introuvable') }}</template>
+      <template #description>Profil, accès et affectation de l’utilisateur.</template>
+      <template #actions><v-btn variant="outlined" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-users' }">Retour</v-btn>
+      <v-btn v-if="user" color="primary" prepend-icon="mdi-pencil-outline" :to="{ name: 'admin-user-edit', params: { userId: user.id } }">Modifier</v-btn>
+      </template></PageHeader><v-alert v-if="!user" type="error" variant="tonal" title="Utilisateur introuvable" /><div v-else class="grid gap-6 lg:grid-cols-[1fr_320px]"><v-card><v-card-title class="px-6 py-5">Informations professionnelles</v-card-title>
+        <v-divider /><v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2"><div><p class="text-xs text-[#848484]">E-mail</p><p class="mt-1 font-medium">{{ user.email }}</p></div><div><p class="text-xs text-[#848484]">Téléphone</p><p class="mt-1 font-medium">{{ user.phone }}</p></div><div><p class="text-xs text-[#848484]">Matricule</p><p class="mt-1 font-medium">{{ user.employeeNumber }}</p></div><div><p class="text-xs text-[#848484]">Équipe</p><p class="mt-1 font-medium">{{ team?.name ?? 'Aucune — ce rôle n’exige pas d’équipe' }}</p></div><div><p class="text-xs text-[#848484]">Rôle</p><p v-if="!canChangeRole" class="mt-1 font-medium">{{ roleLabels[user.role] }}</p><div v-else class="mt-1 flex items-start gap-2"><v-select v-model="selectedRole" :items="assignableRoleOptions" density="compact" hide-details aria-label="Rôle" class="min-w-0 flex-1" /><v-btn color="primary" variant="flat" :disabled="!roleChanged" @click="openRoleDialog">Enregistrer</v-btn></div></div></v-card-text></v-card><v-card><v-card-text class="pa-6"><div class="flex items-center justify-between"><span class="font-bold">État du compte</span><AppStatusChip :status="user.status" /></div><v-divider class="my-5" /><v-btn block variant="tonal" :color="user.status === 'disabled' ? 'success' : 'error'" :prepend-icon="user.status === 'disabled' ? 'mdi-account-check-outline' : 'mdi-account-off-outline'" @click="changeStatus">{{ user.status === 'disabled' ? 'Réactiver le compte' : 'Désactiver le compte' }}</v-btn></v-card-text></v-card></div><v-card v-if="user" class="mt-6 overflow-hidden"><v-card-title class="d-flex align-center px-6 py-5">Appareils<v-spacer /><v-btn v-if="canReplaceDevice" :disabled="!devices.length" :class="{ '!bg-[#ececec] !text-kaybic-grey !opacity-100': !devices.length }" variant="tonal" color="warning" size="small" prepend-icon="mdi-cellphone-sync" @click="openReplacement">Changer de téléphone</v-btn></v-card-title><v-divider /><DeviceTable v-if="devices.length" :devices="devices" :agent-name="deviceStore.agentName" :show-agent="false" @view="viewDevice" @revoke="revocation.open" /><AppEmptyState v-else icon="mdi-cellphone-off" title="Aucun appareil" description="L’appareil apparaîtra ici quand l’utilisateur activera l’application mobile." /></v-card>
+      <TotpConfirmDialog v-model="roleDialog" title="Changer le rôle" :message="`Le rôle de ${nameOr(user, 'cet utilisateur')} passera à « ${selectedRole ? roleLabels[selectedRole] : ''} ». `" confirm-text="Modifier le rôle" :loading="roleSaving" :error-message="roleError" @confirm="saveRole" /><DeviceReplacementDialog :user="replacementTarget ? user ?? null : null" :loading="deviceStore.isReplacing" :error-message="replacementError" @submit="replaceDevice" @cancel="replacementTarget = false" /><DeviceRevokeDialog :device="revocation.target.value" :agent-name="revocation.targetAgentName.value" :loading="revocation.isRevoking.value" :error-message="revocation.errorMessage.value" @submit="revocation.submit" @cancel="revocation.close" /></div></template>

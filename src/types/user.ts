@@ -85,3 +85,8 @@ export interface MatriculeImportReport {
   /** Faux en simulation, ou si le fichier a été refusé en bloc. */
   applied: boolean
 }
+
+/** Le jeu complet des rôles est transmis, pas un delta ; OPERATOR n'est pas attribuable. */
+export interface UpdateUserRolesRequest {
+  roles: ApiUserRole[]
+}
