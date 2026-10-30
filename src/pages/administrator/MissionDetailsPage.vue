@@ -125,7 +125,9 @@ async function closeMission() {
     <div v-else-if="mission" class="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
       <div class="space-y-6">
         <v-card>
-          <v-card-title class="flex items-center justify-between px-6 py-5"><span>Déroulement</span><AppStatusChip :status="mission.status" /></v-card-title>
+          <v-card-title class="flex items-center justify-between px-6 py-5">
+            <span class="p-3">Déroulement</span><AppStatusChip :status="mission.status" />
+          </v-card-title>
           <v-divider />
           <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2">
             <div><p class="text-xs text-[#848484]">Référence</p><p class="mt-1 font-medium">{{ mission.code }}</p></div>
