@@ -32,7 +32,7 @@ const {
           title="Entreprises actives"
           :value="activeCompaniesCount"
           :icon-src="companyIcon"
-          change="Toutes entreprises confondues"
+          change="Nos entreprises"
         />
       </v-col>
 
@@ -46,11 +46,11 @@ const {
       </v-col>
 
       <v-col cols="12" sm="6" lg="3">
-        <DashboardStatCard title="Demandes en attente" :value="companies.filter((company) => company.status === 'pending').length" icon="mdi-clock-outline" change="Toutes entreprises confondues" change-color="warning" />
+        <DashboardStatCard title="Demandes en attente" :value="companies.filter((company) => company.status === 'pending').length" icon="mdi-clock-outline" change="Toutes les entreprises" change-color="warning" />
       </v-col>
 
       <v-col cols="12" sm="6" lg="3">
-        <DashboardStatCard title="Entreprises suspendues" :value="suspendedCompaniesCount" :icon-src="companyIcon" crossed-out change="Toutes entreprises confondues" change-color="secondary" />
+        <DashboardStatCard title="Entreprises suspendues" :value="suspendedCompaniesCount" :icon-src="companyIcon" crossed-out change="Toutes les entreprises" change-color="secondary" />
       </v-col>
     </v-row>
 
