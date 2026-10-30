@@ -233,6 +233,12 @@ const router = createRouter({
           meta: { title: 'Détail de la période', allowedRoles: ['administrator'] },
         },
         {
+          path: 'adjustments',
+          name: 'admin-adjustments',
+          component: () => import('@/pages/administrator/AdjustmentsPage.vue'),
+          meta: { title: 'Régularisations', allowedRoles: ['administrator'] },
+        },
+        {
           path: 'missions',
           name: 'admin-missions',
           component: () => import('@/pages/administrator/MissionsPage.vue'),

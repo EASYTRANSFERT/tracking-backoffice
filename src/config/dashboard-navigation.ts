@@ -72,6 +72,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['administrator'],
   },
   {
+    title: 'Régularisations',
+    routeName: 'admin-adjustments',
+    icon: 'mdi-clipboard-edit-outline',
+    allowedRoles: ['administrator'],
+  },
+  {
     title: 'Appareils',
     routeName: 'admin-devices',
     icon: 'mdi-cellphone-link',
