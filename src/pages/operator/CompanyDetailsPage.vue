@@ -7,7 +7,6 @@ import AppSectionCard from '@/Components/common/AppSectionCard.vue'
 import AppSnackbar from '@/Components/common/AppSnackbar.vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import CompanyStatusDialog from '@/Components/companies/CompanyStatusDialog.vue'
-import CompanyStatusIcon from '@/Components/companies/CompanyStatusIcon.vue'
 import CompanyAuditTimeline from '@/Components/companies/CompanyAuditTimeline.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useOperatorStore } from '@/stores/operator.store'
@@ -105,7 +104,6 @@ async function updateStatus(reason: string) {
               </div>
             </div>
           </AppSectionCard>
-          <v-card class="mt-6 pa-6 text-center"><CompanyStatusIcon :suspended="company.status === 'suspended'" :size="58" /><p class="mt-3 text-sm font-semibold text-[#252830]">{{ company.status === 'suspended' ? 'Accès limités' : 'Services opérationnels' }}</p><p class="mt-1 text-xs leading-5 text-[#747985]">État actuel des services de cette entreprise.</p></v-card>
         </v-col>
       </v-row>
 
