@@ -7,7 +7,7 @@ import { useAdministratorStore } from '@/stores/administrator.store'
 import { readRejectedAssignmentReport } from '@/utils/assignment-import'
 import { listAllPages } from '@/utils/pagination'
 import type { EnterpriseUser } from '@/types/administrator'
-import type { AssignmentImportReport, AssignmentResponse, AssignmentSlot } from '@/types/assignment'
+import type { AssignmentImportReport, AssignmentResponse, AssignmentSlot, UpdateAssignmentRequest } from '@/types/assignment'
 
 /** Planning d'un site : les membres de son équipe en lignes, les jours de la semaine en colonnes. */
 export const useAssignmentStore = defineStore('assignment', () => {
@@ -67,7 +67,13 @@ export const useAssignmentStore = defineStore('assignment', () => {
   async function reschedule(id: string, slot: AssignmentSlot) {
     isSaving.value = true
     try {
-      const updated = await assignmentService.update(id, slot)
+      const current = assignments.value.find((assignment) => assignment.id === id)
+      const sameInstant = (a: string, b?: string) => b !== undefined && new Date(a).getTime() === new Date(b).getTime()
+      const changes: UpdateAssignmentRequest = {}
+      if (!sameInstant(slot.startAt, current?.startAt)) changes.startAt = slot.startAt
+      if (!sameInstant(slot.endAt, current?.endAt)) changes.endAt = slot.endAt
+      if (current && !Object.keys(changes).length) return current
+      const updated = await assignmentService.update(id, changes)
       await reload()
       return updated
     } finally {
