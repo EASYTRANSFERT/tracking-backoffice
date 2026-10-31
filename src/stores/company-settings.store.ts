@@ -54,7 +54,8 @@ export const useCompanySettingsStore = defineStore('company-settings', () => {
   async function save(next: TenantSettings) {
     isSaving.value = true
     try {
-      company.value = await tenantService.update(currentTenantId(), { settings: next })
+      const saved = await tenantService.updateSettings(currentTenantId(), next)
+      if (company.value) company.value = { ...company.value, settings: saved }
       authStore.tenant = company.value
       return company.value
     } finally {

@@ -8,6 +8,7 @@ import type {
   CursorQuery,
   SuspendTenantRequest,
   TenantResponse,
+  TenantSettings,
   UpdateTenantRequest,
 } from '@/types/platform'
 import type { CreateTenantUserRequest, UserResponse } from '@/types/user'
@@ -36,6 +37,12 @@ export const tenantService = {
 
   async update(id: string, payload: UpdateTenantRequest): Promise<TenantResponse> {
     const response = await apiClient.patch<TenantResponse>(`/platform/tenants/settings/${id}`, payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  /** Enregistre les paramètres : l'API répond avec le seul bloc de paramètres, pas avec l'entreprise. */
+  async updateSettings(id: string, settings: TenantSettings): Promise<TenantSettings> {
+    const response = await apiClient.patch<TenantSettings>(`/platform/tenants/settings/${id}`, { settings }, { headers: idempotencyHeaders() })
     return response.data
   },
 
