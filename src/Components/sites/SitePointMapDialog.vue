@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import * as L from 'leaflet'
+import AppDialogClose from '@/Components/common/AppDialogClose.vue'
 
 import LocationAutocomplete from '@/Components/sites/LocationAutocomplete.vue'
 import { addTileLayer, DEFAULT_CENTER, DEFAULT_ZOOM, formatCoordinates, perimeterLayer, POINT_ZOOM, pointIcon, toLatLng } from '@/Components/sites/site-map'
@@ -166,13 +167,13 @@ onBeforeUnmount(destroyMap)
     @after-leave="onClosed"
   >
     <v-card>
-      <v-card-title class="flex items-center gap-3 px-6 py-4">
+      <v-card-title class="flex items-center gap-3 px-6 py-4 pr-16">
         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#d80f16] text-sm font-bold text-white">{{ pointNumber }}</span>
         <div class="min-w-0 flex-1">
           <h2 class="text-base font-bold">Placer le point {{ pointNumber }}</h2>
           <p class="text-xs font-normal text-[#747985]">Touchez la carte ou recherchez un lieu, puis ajustez en déplaçant le marqueur.</p>
         </div>
-        <v-btn icon="mdi-close" variant="text" size="small" aria-label="Fermer" @click="close" />
+        <AppDialogClose @close="close" />
       </v-card-title>
       <v-divider />
       <v-card-text class="space-y-4 px-6 py-5">

@@ -3,6 +3,7 @@ import { matchesSearch } from '@/utils/search'
 import { fullName } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
 
+import AppDialogClose from '@/Components/common/AppDialogClose.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import type { EnterpriseUser, Team } from '@/types/administrator'
@@ -56,7 +57,7 @@ watch(() => props.modelValue, (open) => {
           <h2 class="text-lg font-bold text-[#252830]">Gérer les agents</h2>
           <p class="mt-1 truncate text-sm font-normal text-[#747985]">{{ team?.name }} · {{ members.length }} agent{{ members.length > 1 ? 's' : '' }} affecté{{ members.length > 1 ? 's' : '' }}</p>
         </div>
-        <v-btn icon="mdi-close" variant="text" size="small" aria-label="Fermer" class="!absolute right-3 top-3" @click="emit('update:modelValue', false)" />
+        <AppDialogClose @close="emit('update:modelValue', false)" />
       </v-card-title>
       <v-divider />
 

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
+import AppDialogClose from '@/Components/common/AppDialogClose.vue'
 import PeriodStateChip from '@/Components/periods/PeriodStateChip.vue'
 import { usePeriodAccess } from '@/composables/usePeriodAccess'
 import { useMissionOverviewStore } from '@/stores/mission-overview.store'
@@ -52,9 +53,9 @@ const siteName = (siteId: string) =>
 <template>
   <v-dialog :model-value="modelValue" max-width="1100" scrollable @update:model-value="emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title class="flex items-center justify-between gap-3 px-6 py-5">
+      <v-card-title class="px-6 py-5 pr-16">
         <div><h2 class="text-base font-bold">Vue d’ensemble</h2><p v-if="missionTitle" class="mt-1 text-xs font-normal text-[#747985]">{{ missionTitle }}</p></div>
-        <v-btn icon="mdi-close" variant="text" class="ml-auto shrink-0" aria-label="Fermer" @click="emit('update:modelValue', false)" />
+        <AppDialogClose @close="emit('update:modelValue', false)" />
       </v-card-title>
       <v-divider />
       <v-card-text class="space-y-6 px-6 py-6">

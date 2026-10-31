@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
+import AppDialogClose from '@/Components/common/AppDialogClose.vue'
 import AppTableFooter from '@/Components/common/AppTableFooter.vue'
 import { usePeriodBilanStore } from '@/stores/period-bilan.store'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -52,9 +53,9 @@ watch(() => props.agent?.userId, (userId) => {
 <template>
   <v-dialog :model-value="Boolean(agent)" max-width="720" scrollable @update:model-value="emit('close')">
     <v-card v-if="agent">
-      <v-card-title class="flex items-center gap-3 px-6 py-5">
+      <v-card-title class="px-6 py-5 pr-16">
         <div class="min-w-0"><h2 class="text-base font-bold text-[#D80F16]">Détail par jour</h2><p class="mt-1 truncate text-xs font-normal text-[#747985]">{{ agent.name }}</p></div>
-        <v-btn icon="mdi-close" variant="text" class="ml-auto shrink-0" aria-label="Fermer" @click="emit('close')" />
+        <AppDialogClose @close="emit('close')" />
       </v-card-title>
       <v-divider />
       <v-progress-linear v-if="isLoading" indeterminate color="primary" height="2" />
