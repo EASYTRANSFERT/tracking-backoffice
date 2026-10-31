@@ -6,7 +6,7 @@ import { teamService } from '@/Services/team.service'
 import { userService } from '@/Services/user.service'
 import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
-import { mapMission, mapSite, mapTeam, mapUser, roleToApi, toArea } from '@/stores/mappers'
+import { mapMission, mapSite, mapTeam, mapUser, roleFieldToApi, rolesToApi, toArea } from '@/stores/mappers'
 import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
 import { useAuthStore } from '@/stores/auth.store'
 import { readRejectedImportReport } from '@/utils/matricule-import'
@@ -85,9 +85,17 @@ export const useAdministratorStore = defineStore('administrator', () => {
     teamMemberCounts.value = { ...teamMemberCounts.value, ...Object.fromEntries(counts) }
   }
 
-  /** Désigne le chef d'équipe : ré-authentification TOTP, puis PUT /teams/{id}/lead. */
+  /**
+   * Désigne le chef d'équipe : ré-authentification TOTP, puis PUT /teams/{id}/lead.
+   * Le chef doit être membre : un chef d'une autre équipe ou sans équipe y est d'abord ajouté.
+   */
   async function assignTeamLead(teamId: string, userId: string, totpCode: string) {
     await useAuthStore().stepUp(totpCode)
+    const lead = findUser(userId)
+    if (lead?.teamId !== teamId) {
+      await teamService.addMembers(teamId, { userIds: [userId] })
+      if (lead) lead.teamId = teamId
+    }
     const updated = mapTeam(await teamService.assignLead(teamId, { userId }))
     replaceTeam(updated)
     return updated
@@ -146,9 +154,9 @@ export const useAdministratorStore = defineStore('administrator', () => {
       names: fullName(input),
       email: input.email || undefined,
       phone: input.phone,
-      role: roleToApi[input.role],
+      role: roleFieldToApi(input.role),
       teamId: input.teamId,
-      password: input.password,
+      password: input.password || undefined,
     })
     users.value.unshift(mapUser(created))
     return created.id
@@ -159,7 +167,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
       names: fullName(input),
       email: input.email || undefined,
       phone: input.phone,
-      role: roleToApi[input.role],
+      role: roleFieldToApi(input.role),
       teamId: input.teamId,
       password: input.password || undefined,
     })))
@@ -168,7 +176,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
   /** Change le rôle d'un compte : ré-authentification TOTP, puis PUT /users/{id}/roles. */
   async function changeUserRole(id: string, role: EnterpriseUser['role'], totpCode: string) {
     await useAuthStore().stepUp(totpCode)
-    replaceUser(mapUser(await userService.updateRoles(id, { roles: [roleToApi[role]] })))
+    replaceUser(mapUser(await userService.updateRoles(id, { roles: rolesToApi(role) })))
   }
 
   async function toggleUserStatus(id: string) {

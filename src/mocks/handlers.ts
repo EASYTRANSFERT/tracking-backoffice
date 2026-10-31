@@ -573,6 +573,13 @@ export const handlers = [
     tenants.unshift(tenant)
     return HttpResponse.json(tenant, { status: 201 })
   }),
+  http.patch(api('/platform/tenants/settings/:id'), async ({ params, request }) => {
+    const index = tenants.findIndex((item) => item.id === String(params.id))
+    if (index < 0) return problem(404, 'NOT_FOUND', "L’entreprise demandée n’existe pas.")
+    const { settings } = (await request.json()) as Required<Pick<UpdateTenantRequest, 'settings'>>
+    tenants[index] = { ...tenants[index]!, settings, updatedAt: now() }
+    return HttpResponse.json(settings)
+  }),
   http.patch(api('/platform/tenants/:id'), async ({ params, request }) => {
     const index = tenants.findIndex((item) => item.id === String(params.id))
     if (index < 0) return problem(404, 'NOT_FOUND', "L’entreprise demandée n’existe pas.")
@@ -684,7 +691,7 @@ export const handlers = [
   http.post(api('/users'), async ({ request }) => {
     const payload = (await request.json()) as CreateUserRequest
     const timestamp = now()
-    const user: UserResponse = { id: `user-${Date.now()}`, matricule: generatedMatricule(), names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, status: 'PENDING_ACTIVATION', createdAt: timestamp, updatedAt: timestamp }
+    const user: UserResponse = { id: `user-${Date.now()}`, matricule: generatedMatricule(), names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role].flat(), teamId: payload.teamId, status: 'PENDING_ACTIVATION', createdAt: timestamp, updatedAt: timestamp }
     users.unshift(user)
     return HttpResponse.json(user, { status: 201 })
   }),
@@ -700,7 +707,7 @@ export const handlers = [
     const index = users.findIndex((item) => item.id === String(params.userId))
     if (index < 0) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
     const payload = (await request.json()) as UpdateUserRequest
-    users[index] = { ...users[index]!, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role], teamId: payload.teamId, updatedAt: now() }
+    users[index] = { ...users[index]!, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role].flat(), teamId: payload.teamId, updatedAt: now() }
     return HttpResponse.json(users[index])
   }),
   http.delete(api('/users/:userId'), ({ params }) => {
@@ -807,7 +814,7 @@ export const handlers = [
     const previous = users.find((user) => user.id === team.leadUserId)
     team.leadUserId = lead.id
     team.updatedAt = now()
-    if (!lead.roles.includes('TEAM_LEAD')) lead.roles = [...lead.roles.filter((role) => role !== 'AGENT'), 'TEAM_LEAD']
+    if (!lead.roles.includes('TEAM_LEAD')) lead.roles = [...new Set<UserResponse['roles'][number]>([...lead.roles, 'AGENT', 'TEAM_LEAD'])]
     if (previous && previous.id !== lead.id && !teams.some((item) => item.leadUserId === previous.id)) {
       previous.roles = [...previous.roles.filter((role) => role !== 'TEAM_LEAD'), 'AGENT']
     }

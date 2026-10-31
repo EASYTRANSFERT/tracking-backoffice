@@ -45,6 +45,10 @@ export function mapSite(site: SiteResponse, previous?: Site): Site {
 export const roleToApi: Record<EnterpriseUser['role'], ApiUserRole> = {
   administrator: 'ADMIN', supervisor: 'SUPERVISOR', teamLeader: 'TEAM_LEAD', agent: 'AGENT',
 }
+/** Rôles API d'un rôle d'interface : un chef d'équipe porte aussi AGENT (il pointe comme un agent). */
+export const rolesToApi = (role: EnterpriseUser['role']): ApiUserRole[] => role === 'teamLeader' ? ['AGENT', 'TEAM_LEAD'] : [roleToApi[role]]
+/** Champ `role` de la création / modification : la liste AGENT + TEAM_LEAD pour un chef d'équipe, un seul rôle sinon. */
+export const roleFieldToApi = (role: EnterpriseUser['role']): ApiUserRole | ApiUserRole[] => role === 'teamLeader' ? rolesToApi(role) : roleToApi[role]
 // Du plus élevé au plus bas : un compte peut porter plusieurs rôles (ex. ['AGENT', 'TEAM_LEAD']), on affiche le plus élevé.
 const roleFromApi: [ApiUserRole, EnterpriseUser['role']][] = [
   ['ADMIN', 'administrator'], ['SUPERVISOR', 'supervisor'], ['TEAM_LEAD', 'teamLeader'], ['AGENT', 'agent'],

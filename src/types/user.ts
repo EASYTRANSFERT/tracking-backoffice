@@ -29,7 +29,8 @@ export interface CreateUserRequest {
   names: string
   email?: string
   phone: string
-  role: ApiUserRole
+  /** Un chef d'équipe se crée avec ['AGENT', 'TEAM_LEAD'] : le champ accepte une liste. */
+  role: ApiUserRole | ApiUserRole[]
   teamId?: string
   password?: string
 }
