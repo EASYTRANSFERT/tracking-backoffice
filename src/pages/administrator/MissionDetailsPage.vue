@@ -10,6 +10,7 @@ import MissionOverviewDialog from '@/Components/missions/MissionOverviewDialog.v
 import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
 import MissionSupervisorDialog from '@/Components/missions/MissionSupervisorDialog.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { attachSitesErrorMessage } from '@/utils/mission-sites'
 import { useBusy } from '@/composables/useBusy'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
@@ -74,13 +75,13 @@ async function attachSites(siteIds: string[]) {
   if (!mission.value) return
   isAttaching.value = true
   try {
-    await store.attachSitesToMission(mission.value.id, siteIds)
+    const { assigned } = await store.attachSitesToMission(mission.value.id, siteIds)
     attachDialog.value = false
-    feedback.success(siteIds.length > 1 ? `${siteIds.length} sites attribués à la mission.` : 'Site attribué à la mission.')
+    feedback.success(!assigned.length ? 'Ces sites étaient déjà attribués à la mission.' : assigned.length > 1 ? `${assigned.length} sites attribués à la mission.` : 'Site attribué à la mission.')
     void loadSites(mission.value.id)
   } catch (error) {
-    feedback.error(getApiErrorMessage(error, 'Impossible d’attribuer ce site à la mission.'))
-    void loadSites(mission.value.id)
+    // Tout ou rien : rien n'a changé, pas de rechargement.
+    feedback.error(attachSitesErrorMessage(error, (siteId) => store.getSiteById(siteId)?.name ?? 'Site inconnu'))
   } finally { isAttaching.value = false }
 }
 

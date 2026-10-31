@@ -31,6 +31,19 @@ export interface AssignMissionSupervisorRequest {
   userId: string
 }
 
+/** Sites à rattacher : tout ou rien, les doublons sont ignorés. */
+export interface AssignMissionSitesRequest {
+  siteIds: string[]
+}
+
+export interface MissionSitesAssignedResponse {
+  missionId: string
+  /** Sites rattachés par cet appel. */
+  assigned: string[]
+  /** Sites déjà rattachés à cette mission : ignorés, sans erreur. */
+  alreadyAssigned: string[]
+}
+
 export interface MissionListQuery {
   cursor?: string
   limit?: number

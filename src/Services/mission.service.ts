@@ -2,6 +2,7 @@ import { apiClient } from './api-client'
 import { idempotencyHeaders } from './request-headers'
 
 import type {
+  AssignMissionSitesRequest,
   AssignMissionSupervisorRequest,
   CreateMissionRequest,
   MissionListQuery,
@@ -9,6 +10,7 @@ import type {
   MissionOverviewResponse,
   MissionPageResponse,
   MissionResponse,
+  MissionSitesAssignedResponse,
   UpdateMissionRequest,
 } from '@/types/mission'
 
@@ -36,6 +38,12 @@ export const missionService = {
   /** Change le superviseur de la mission (compte SUPERVISOR actif). */
   async assignSupervisor(id: string, payload: AssignMissionSupervisorRequest): Promise<MissionResponse> {
     const response = await apiClient.put<MissionResponse>(`/missions/${id}/supervisor`, payload, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  /** Rattache des sites à la mission en un appel, tout ou rien (409 SITES_NOT_ASSIGNABLE avec le détail par site). */
+  async assignSites(id: string, payload: AssignMissionSitesRequest): Promise<MissionSitesAssignedResponse> {
+    const response = await apiClient.post<MissionSitesAssignedResponse>(`/missions/${id}/sites`, payload, { headers: idempotencyHeaders() })
     return response.data
   },
 
