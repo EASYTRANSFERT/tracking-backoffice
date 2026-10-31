@@ -9,7 +9,7 @@ import TotpConfirmDialog from '@/Components/security/TotpConfirmDialog.vue'
 import { nameOr } from '@/utils/people'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import type { EnterpriseUser, TeamInput } from '@/types/administrator'
+import type { TeamInput } from '@/types/administrator'
 
 const route = useRoute();
 const router = useRouter();
@@ -22,14 +22,9 @@ const dirty = ref(false)
 const saving = ref(false)
 const leadersLoading = ref(true)
 
-// À la création : les chefs d'équipe actifs. En modification : les membres de l'équipe.
-const members = ref<EnterpriseUser[]>([])
-const leaderChoices = computed(() => id.value ? members.value : teamLeadOptions.value)
-
 onMounted(async () => {
   try {
     await Promise.all([store.loadTeamLeadOptions(), store.loadTeamOptions()])
-    if (id.value) members.value = await store.listTeamMembers(id.value)
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible de charger les chefs d’équipe.'))
   } finally {
@@ -44,7 +39,7 @@ const leadDialog = ref(false)
 const pendingLeadId = ref<string>()
 const leadError = ref<string | null>(null)
 const assigningLead = ref(false)
-const pendingLeadName = computed(() => nameOr(members.value.find((member) => member.id === pendingLeadId.value), 'Ce membre'))
+const pendingLeadName = computed(() => nameOr(store.findUser(pendingLeadId.value), 'Ce chef d’équipe'))
 
 async function done(message: string) {
   dirty.value = false
@@ -101,7 +96,7 @@ async function confirmLead(code: string) {
     </PageHeader>
     <v-progress-linear v-if="id && !team && leadersLoading" indeterminate color="primary" />
     <v-alert v-else-if="id && !team" type="error" variant="tonal" title="Équipe introuvable" />
-    <TeamForm v-else :team="team" :leaders="leaderChoices" :leaders-loading="leadersLoading" :loading="saving" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" />
+    <TeamForm v-else :team="team" :leaders="teamLeadOptions" :leaders-loading="leadersLoading" :loading="saving" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" />
     <TotpConfirmDialog
       v-model="leadDialog"
       title="Changer de chef d’équipe"
