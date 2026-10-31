@@ -148,7 +148,7 @@ async function submit() {
         </v-card-text>
       </v-card>
     </div>
-    <SitePointMapDialog v-model="mapDialogOpen" :point-index="mapPointIndex" :points="points" @confirm="setPoint(mapPointIndex, $event)" />
+    <SitePointMapDialog v-model="mapDialogOpen" :point-index="mapPointIndex" :points="points" @confirm="setPoint(mapPointIndex, $event)" @move="setPoint" />
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <v-btn variant="outlined" color="secondary" size="large" @click="emit('dirtyChange', false); emit('cancel')">Annuler</v-btn>
       <v-btn type="submit" color="primary" size="large" :loading="loading" prepend-icon="mdi-content-save-outline">{{ site ? 'Enregistrer les modifications' : 'Créer le site' }}</v-btn>

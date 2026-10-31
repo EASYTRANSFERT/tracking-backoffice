@@ -29,6 +29,11 @@ const data = reactive<EnterpriseUserInput>({
   role: props.fixedRole ?? props.user?.role ?? 'agent', teamId: props.user?.teamId,
   password: '', currentPassword: '',
 })
+// Un administrateur ne crée pas d'autre administrateur : le choix n'existe pas, sauf pour afficher le rôle d'un compte administrateur existant (liste désactivée).
+const roleOptions = computed(() => [
+  ...(props.user?.role === 'administrator' ? [{ title: 'Administrateur', value: 'administrator' }] : []),
+  { title: 'Superviseur', value: 'supervisor' }, { title: 'Chef d’équipe', value: 'teamLeader' }, { title: 'Agent', value: 'agent' },
+])
 const roleCanHaveTeam = computed(() => ['teamLeader', 'agent'].includes(data.role))
 // Seuls les superviseurs et administrateurs se connectent au back-office : e-mail (et mot de passe à la création) suivent le rôle choisi.
 const roleHasCredentials = computed(() => ['supervisor', 'administrator'].includes(data.role))
@@ -71,7 +76,7 @@ async function submit() {
         <v-text-field v-model="data.phone" label="Téléphone" placeholder="+2250700000000" hint="Format international avec indicatif pays" persistent-hint inputmode="tel" autocomplete="tel" :rules="[required,internationalPhone]" maxlength="14"/>
         <v-text-field v-if="user && !invitation && roleHasCredentials" v-model="data.currentPassword" label="Mot de passe actuel" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" hint="Requis pour changer le mot de passe" persistent-hint :rules="[currentPasswordRule]" />
         <v-text-field v-if="!invitation && roleHasCredentials" v-model="data.password" :label="user ? 'Nouveau mot de passe' : 'Mot de passe temporaire'" :type="showPassword ? 'text' : 'password'" :append-inner-icon="showPassword ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" @click:append-inner="showPassword = !showPassword" autocomplete="new-password" hint="12 caractères minimum" persistent-hint counter :rules="passwordRequired ? [required, strongEnoughPassword] : [passwordRule]" />
-        <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :disabled="Boolean(user)" hint="Le rôle d’un compte existant ne se modifie pas" :persistent-hint="Boolean(user)" :items="[{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
+        <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :disabled="Boolean(user)" hint="Le rôle d’un compte existant ne se modifie pas" :persistent-hint="Boolean(user)" :items="roleOptions" :rules="[required]" />
         <v-text-field v-else label="Rôle" model-value="Administrateur" readonly />
         <v-text-field v-if="roleHasCredentials" v-model="data.email" label="E-mail professionnel" type="email" :rules="[required,email]" :hint="invitation ? 'Le lien pour choisir le mot de passe sera envoyé à cette adresse.' : undefined" :persistent-hint="invitation" />
         <v-select

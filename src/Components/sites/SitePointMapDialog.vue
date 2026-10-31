@@ -19,6 +19,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   confirm: [point: SitePoint]
+  /** Un autre point du périmètre, déplacé dans cette boîte : appliqué à la validation. */
+  move: [index: number, point: SitePoint]
 }>()
 
 const { smAndDown } = useDisplay()
@@ -31,6 +33,12 @@ const isLocating = ref(false)
 const locationError = ref<string | null>(null)
 const pointNumber = computed(() => props.pointIndex + 1)
 const searchValue = ref<GeocodingResult | null>(null)
+
+// Autres points déplacés ici : appliqués à la validation, abandonnés à l'annulation.
+const moved = ref<Record<number, SitePoint>>({})
+const movedCount = computed(() => Object.keys(moved.value).length)
+const hasOtherPoints = computed(() => props.points.some((point, index) => index !== props.pointIndex && point))
+const movedAddressRequests = new Map<number, number>()
 
 let map: L.Map | null = null
 let layers: L.LayerGroup | null = null
@@ -47,7 +55,7 @@ function refreshLayers() {
 
   const positions: L.LatLng[] = []
   props.points.forEach((point, index) => {
-    const current = index === props.pointIndex ? draft.value : point
+    const current = index === props.pointIndex ? draft.value : (moved.value[index] ?? point)
     if (!current) return
     const position = toLatLng(current)
     positions.push(position)
@@ -55,11 +63,11 @@ function refreshLayers() {
     const isActive = index === props.pointIndex
     const marker = L.marker(position, {
       icon: pointIcon(index + 1, isActive),
-      draggable: isActive,
+      draggable: true,
       zIndexOffset: isActive ? 1000 : 0,
-      title: `Point ${index + 1}`,
+      title: isActive ? `Point ${index + 1}` : `Point ${index + 1} : glisser pour le déplacer`,
     })
-    if (isActive) marker.on('dragend', () => placePoint(marker.getLatLng()))
+    marker.on('dragend', () => (isActive ? placePoint(marker.getLatLng()) : movePoint(index, marker.getLatLng())))
     layers?.addLayer(marker)
   })
 
@@ -81,6 +89,17 @@ async function placePoint(position: L.LatLng, address?: string) {
   if (request !== addressRequest || !draft.value) return
   draft.value = { ...draft.value, address: foundAddress ?? undefined }
   isFindingAddress.value = false
+}
+
+async function movePoint(index: number, position: L.LatLng) {
+  const request = (movedAddressRequests.get(index) ?? 0) + 1
+  movedAddressRequests.set(index, request)
+  const point: SitePoint = { latitude: Number(position.lat.toFixed(6)), longitude: Number(position.lng.toFixed(6)) }
+  moved.value = { ...moved.value, [index]: point }
+  refreshLayers()
+  const address = await geocodingStore.findAddress(point)
+  if (movedAddressRequests.get(index) !== request) return
+  moved.value = { ...moved.value, [index]: { ...point, address: address ?? undefined } }
 }
 
 function selectResult(result: GeocodingResult | null) {
@@ -125,6 +144,7 @@ function onOpened() {
   draft.value = current ? { ...current } : null
   searchValue.value = null
   locationError.value = null
+  moved.value = {}
 
   map = L.map(mapElement.value, { zoomControl: true, keyboard: true, tapHold: false })
   addTileLayer(map)
@@ -144,12 +164,15 @@ function onClosed() {
   addressRequest += 1
   isFindingAddress.value = false
   draft.value = null
+  moved.value = {}
+  movedAddressRequests.clear()
   destroyMap()
 }
 
 function confirm() {
-  if (!draft.value) return
-  emit('confirm', { ...draft.value })
+  if (!draft.value && !movedCount.value) return
+  Object.entries(moved.value).forEach(([index, point]) => emit('move', Number(index), point))
+  if (draft.value) emit('confirm', { ...draft.value })
   close()
 }
 
@@ -208,6 +231,11 @@ onBeforeUnmount(destroyMap)
           />
         </div>
 
+        <p v-if="hasOtherPoints" class="text-xs text-[#747985]">
+          Vous pouvez aussi faire glisser les autres points pour les ajuster.
+          <strong v-if="movedCount" class="text-[#292d38]">{{ movedCount }} autre{{ movedCount > 1 ? 's' : '' }} point{{ movedCount > 1 ? 's' : '' }} déplacé{{ movedCount > 1 ? 's' : '' }}, appliqué{{ movedCount > 1 ? 's' : '' }} à la validation.</strong>
+        </p>
+
         <div class="flex min-h-12 items-start gap-2 text-sm">
           <v-icon :icon="draft ? 'mdi-map-marker-check-outline' : 'mdi-gesture-tap'" :color="draft ? 'primary' : undefined" size="20" class="mt-0.5" />
           <div v-if="draft" class="min-w-0">
@@ -223,8 +251,8 @@ onBeforeUnmount(destroyMap)
       <v-divider />
       <v-card-actions class="flex-col-reverse gap-3 px-6 py-4 sm:flex-row sm:justify-end">
         <v-btn variant="outlined" color="secondary" @click="close">Annuler</v-btn>
-        <v-btn color="primary" variant="flat" prepend-icon="mdi-check" :disabled="!draft" @click="confirm">
-          Valider le point
+        <v-btn color="primary" variant="flat" prepend-icon="mdi-check" :disabled="!draft && !movedCount" @click="confirm">
+          {{ movedCount ? 'Valider les modifications' : 'Valider le point' }}
         </v-btn>
       </v-card-actions>
     </v-card>
