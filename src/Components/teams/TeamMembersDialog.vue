@@ -52,11 +52,11 @@ watch(() => props.modelValue, (open) => {
     <v-card class="overflow-hidden">
       <v-card-title class="flex items-start gap-3 px-6 py-5">
         <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-account-multiple-plus-outline" color="primary" /></v-avatar>
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 pr-10">
           <h2 class="text-lg font-bold text-[#252830]">Gérer les agents</h2>
           <p class="mt-1 truncate text-sm font-normal text-[#747985]">{{ team?.name }} · {{ members.length }} agent{{ members.length > 1 ? 's' : '' }} affecté{{ members.length > 1 ? 's' : '' }}</p>
         </div>
-        <v-btn icon="mdi-close" variant="text" size="small" aria-label="Fermer" @click="emit('update:modelValue', false)" />
+        <v-btn icon="mdi-close" variant="text" size="small" aria-label="Fermer" class="!absolute right-3 top-3" @click="emit('update:modelValue', false)" />
       </v-card-title>
       <v-divider />
 

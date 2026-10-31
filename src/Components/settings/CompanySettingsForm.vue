@@ -62,16 +62,6 @@ function reset() {
       </v-card-text>
     </v-card>
 
-    <v-card>
-      <v-card-title class="flex items-center gap-3 px-6 py-5">
-        <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-bell-ring-outline" color="primary" /></v-avatar>
-        <div><h2 class="text-base font-bold">Contrôles de présence</h2><p class="mt-1 text-xs font-normal text-[#747985]">Vérifications aléatoires pendant le créneau (lot 2)</p></div>
-      </v-card-title>
-      <v-divider />
-      <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2">
-        <v-text-field v-model.number="data.checksPerSession" type="number" label="Contrôles par créneau" :rules="[zeroOrMore]" hint="0 désactive les contrôles de présence." persistent-hint />
-      </v-card-text>
-    </v-card>
 
     <v-card>
       <v-card-title class="flex items-center gap-3 px-6 py-5">
@@ -80,10 +70,10 @@ function reset() {
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2">
-        <v-text-field v-model.number="data.retention.selfieDays" type="number" label="Selfies" suffix="jours" :rules="[positive]" hint="Durée de conservation des photos de pointage." persistent-hint />
-        <v-text-field v-model.number="data.retention.dataYears" type="number" label="Données de pointage" suffix="ans" :rules="[positive]" hint="Durée de conservation des pointages et des créneaux." persistent-hint />
-        <v-text-field v-model.number="data.retention.anonymizeAfterYears" type="number" label="Anonymisation" suffix="ans" :rules="[positive]" hint="Délai après lequel les données personnelles sont anonymisées." persistent-hint />
-        <v-text-field v-model.number="data.retention.exportDays" type="number" label="Fichiers d’export" suffix="jours" :rules="[positive]" hint="Durée de disponibilité des exports générés." persistent-hint />
+        <v-text-field disabled v-model.number="data.retention.selfieDays" type="number" label="Selfies" suffix="jours" :rules="[positive]" hint="Durée de conservation des photos de pointage." persistent-hint />
+        <v-text-field disabled v-model.number="data.retention.dataYears" type="number" label="Données de pointage" suffix="ans" :rules="[positive]" hint="Durée de conservation des pointages et des créneaux." persistent-hint />
+        <v-text-field disabled v-model.number="data.retention.anonymizeAfterYears" type="number" label="Anonymisation" suffix="ans" :rules="[positive]" hint="Délai après lequel les données personnelles sont anonymisées." persistent-hint />
+        <v-text-field disabled v-model.number="data.retention.exportDays" type="number" label="Fichiers d’export" suffix="jours" :rules="[positive]" hint="Durée de disponibilité des exports générés." persistent-hint />
       </v-card-text>
     </v-card>
 

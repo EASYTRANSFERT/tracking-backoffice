@@ -56,7 +56,6 @@ function handleCancel() {
         <v-divider />
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
           <v-select v-model="formData.offerId" label="Offre attribuée" :items="offers.filter((offer) => offer.status === 'active')" item-title="name" item-value="id" />
-          <v-alert type="info" variant="tonal">Le compte administrateur est créé ensuite via l’endpoint utilisateurs.</v-alert>
         </v-card-text>
       </v-card>
 

@@ -42,7 +42,7 @@ const internationalPhone = (value: string) =>
 const passwordRequired = computed(() => !props.user || !['supervisor', 'administrator'].includes(props.user.role))
 const passwordRule = (value: string) => (!value && !passwordRequired.value) || strongEnoughPassword(value)
 const strongEnoughPassword = (value: string) =>
-  value.length >= 13 || 'Le mot de passe doit contenir au moins 13 caractères'
+  value.length >= 12 || 'Le mot de passe doit contenir au moins 12 caractères'
 watch(data, () => emit('dirtyChange', true), { deep: true })
 watch(() => data.role, () => { if (!roleCanHaveTeam.value) data.teamId = undefined })
 async function submit() {
@@ -67,10 +67,9 @@ async function submit() {
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
         <v-text-field v-model="data.firstName" label="Prénom" :rules="[required]" />
         <v-text-field v-model="data.lastName" label="Nom" :rules="[required]" />
-        <!--<v-text-field v-show="props.user?.role ?? 'agent'" v-model="data.employeeNumber" label="Matricule" :rules="[required]" />-->
         <v-text-field v-model="data.phone" label="Téléphone" placeholder="+2250700000000" hint="Format international avec indicatif pays" persistent-hint inputmode="tel" autocomplete="tel" :rules="[required,internationalPhone]" maxlength="14"/>
-        <v-text-field v-if="!invitation && roleHasCredentials" v-model="data.password" :label="user ? 'Nouveau mot de passe' : 'Mot de passe temporaire'" :type="showPassword ? 'text' : 'password'" :append-inner-icon="showPassword ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" @click:append-inner="showPassword = !showPassword" autocomplete="new-password" hint="13 caractères minimum" persistent-hint counter :rules="passwordRequired ? [required, strongEnoughPassword] : [passwordRule]" />
-        <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :disabled="Boolean(user)" hint="Le rôle d’un compte existant ne se modifie pas" :persistent-hint="Boolean(user)" :items="[{title:'Administrateur',value:'administrator'},{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
+        <v-text-field v-if="!invitation && roleHasCredentials" v-model="data.password" :label="user ? 'Nouveau mot de passe' : 'Mot de passe temporaire'" :type="showPassword ? 'text' : 'password'" :append-inner-icon="showPassword ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" @click:append-inner="showPassword = !showPassword" autocomplete="new-password" hint="12 caractères minimum" persistent-hint counter :rules="passwordRequired ? [required, strongEnoughPassword] : [passwordRule]" />
+        <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :disabled="Boolean(user)" hint="Le rôle d’un compte existant ne se modifie pas" :persistent-hint="Boolean(user)" :items="[{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
         <v-text-field v-else label="Rôle" model-value="Administrateur" readonly />
         <v-text-field v-if="roleHasCredentials" v-model="data.email" label="E-mail professionnel" type="email" :rules="[required,email]" :hint="invitation ? 'Le lien pour choisir le mot de passe sera envoyé à cette adresse.' : undefined" :persistent-hint="invitation" />
         <v-select
@@ -84,9 +83,6 @@ async function submit() {
           :hint="data.role === 'teamLeader' ? 'Facultatif — le chef sera rattaché à l’équipe dont il prendra la tête.' : 'Facultatif — l’agent pourra être ajouté à une équipe plus tard.'"
           persistent-hint
         />
-        <!--<v-alert v-else type="info" variant="tonal" class="md:col-span-2">
-          {{ data.role === 'administrator' ? 'Un administrateur' : 'Un superviseur' }} n’est pas rattaché à une équipe.
-        </v-alert>-->
       </v-card-text>
     </v-card>
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
