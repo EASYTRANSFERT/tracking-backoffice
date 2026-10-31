@@ -64,14 +64,31 @@ describe('period store', () => {
     expect(stepUp).not.toHaveBeenCalled()
   })
 
-  it('creates a period for the chosen team', async () => {
+  it('creates one period per chosen team', async () => {
     const create = vi.spyOn(periodService, 'create').mockResolvedValue(period('OPEN', { teamId: 'tea_1' }))
 
     const store = usePeriodStore()
-    await store.createPeriod('tea_1', '2026-10-01', '2026-10-31')
+    const { created, failed } = await store.createPeriods(['tea_1'], '2026-10-01', '2026-10-31')
 
     expect(create).toHaveBeenCalledWith({ teamId: 'tea_1', from: '2026-10-01', to: '2026-10-31' })
     expect(store.findPeriod('per_1')?.teamId).toBe('tea_1')
+    expect(created).toHaveLength(1)
+    expect(failed).toEqual([])
+  })
+
+  it('creates the accepted teams and reports the refused ones', async () => {
+    const refusal = new Error('PERIOD_OVERLAP')
+    vi.spyOn(periodService, 'create').mockImplementation(async ({ teamId }) => {
+      if (teamId === 'tea_2') throw refusal
+      return period('OPEN', { id: `per_${teamId}`, teamId })
+    })
+
+    const store = usePeriodStore()
+    const { created, failed } = await store.createPeriods(['tea_1', 'tea_2', 'tea_3'], '2026-10-01', '2026-10-31')
+
+    expect(created.map((item) => item.teamId)).toEqual(['tea_1', 'tea_3'])
+    expect(failed).toEqual([{ teamId: 'tea_2', error: refusal }])
+    expect(store.findPeriod('per_tea_1')).toBeDefined()
   })
 })
 

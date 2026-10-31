@@ -48,12 +48,15 @@ export const usePeriodStore = defineStore('period', () => {
     return period
   }
 
-  async function createPeriod(teamId: string, from: string, to: string) {
+  /** Une période par équipe (l'API n'en accepte qu'une par appel) : celles refusées sont rendues avec leur erreur, les autres sont créées. */
+  async function createPeriods(teamIds: string[], from: string, to: string) {
     isSaving.value = true
     try {
-      const created = await periodService.create({ teamId, from, to })
-      periods.value = [created, ...periods.value].sort((a, b) => b.from.localeCompare(a.from))
-      return created
+      const results = await Promise.allSettled(teamIds.map((teamId) => periodService.create({ teamId, from, to })))
+      const created = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : [])
+      const failed = results.flatMap((result, index) => result.status === 'rejected' ? [{ teamId: teamIds[index]!, error: result.reason as unknown }] : [])
+      periods.value = [...created, ...periods.value].sort((a, b) => b.from.localeCompare(a.from))
+      return { created, failed }
     } finally {
       isSaving.value = false
     }
@@ -102,5 +105,5 @@ export const usePeriodStore = defineStore('period', () => {
     hasLoaded.value = false
   }
 
-  return { periods, teamPeriods, loadTeamPeriods, hasLoaded, isLoading, isSaving, findPeriod, loadPeriods, loadPeriod, createPeriod, reopenPeriod, closePeriod, resetData }
+  return { periods, teamPeriods, loadTeamPeriods, hasLoaded, isLoading, isSaving, findPeriod, loadPeriods, loadPeriod, createPeriods, reopenPeriod, closePeriod, resetData }
 })

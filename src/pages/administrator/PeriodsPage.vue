@@ -34,6 +34,7 @@ const teamName = (teamId?: string) => (readonly.value ? supervisorStore.teamsByI
 const filtered = computed(() => visiblePeriods.value.filter((period) => !state.value || period.state === state.value))
 const createOpen = ref(false)
 const createError = ref<string | null>(null)
+const createTeamIds = ref<string[]>([])
 
 onMounted(async () => {
   if (readonly.value) supervisorStore.loadScope().then(() => supervisorStore.loadScopeTeams()).catch(() => undefined)
@@ -46,19 +47,22 @@ const view = (period: PeriodResponse) => router.push({ name: detailsRoute.value,
 
 function openCreate() {
   createError.value = null
+  createTeamIds.value = []
   createOpen.value = true
 }
 
-async function create(teamId: string, from: string, to: string) {
+async function create(teamIds: string[], from: string, to: string) {
   createError.value = null
-  try {
-    const created = await store.createPeriod(teamId, from, to)
-    feedback.success('Période créée.')
+  const { created, failed } = await store.createPeriods(teamIds, from, to)
+  if (created.length) feedback.success(created.length > 1 ? `${created.length} périodes créées.` : 'Période créée.')
+  if (!failed.length) {
     createOpen.value = false
-    void view(created)
-  } catch (error) {
-    createError.value = periodErrorMessage(error) ?? getApiErrorMessage(error, 'Impossible de créer la période.')
+    if (created.length === 1) void view(created[0]!)
+    return
   }
+  // Les équipes refusées restent choisies : on corrige puis on réessaie, sans recréer les autres.
+  createTeamIds.value = failed.map(({ teamId }) => teamId)
+  createError.value = failed.map(({ teamId, error }) => `${teamName(teamId)} : ${periodErrorMessage(error) ?? getApiErrorMessage(error, 'Impossible de créer la période.')}`).join('\n')
 }
 </script>
 
@@ -85,6 +89,6 @@ async function create(teamId: string, from: string, to: string) {
         <v-btn color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
       </AppEmptyState>
     </v-card>
-    <PeriodCreateDialog v-model="createOpen" :teams="creatableTeams" :loading="isSaving" :error-message="createError" @submit="create" />
+    <PeriodCreateDialog v-model="createOpen" v-model:team-ids="createTeamIds" :teams="creatableTeams" :loading="isSaving" :error-message="createError" @submit="create" />
   </div>
 </template>
