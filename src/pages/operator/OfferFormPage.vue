@@ -30,7 +30,6 @@ async function submit(payload: OfferInput) {
       return
     }
     const id = await store.createOffer(payload)
-    feedback.success('Offre créée.')
     await router.push({ name: 'offer-details', params: { offerId: id }, query: { created: '1' } })
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette offre.'))
