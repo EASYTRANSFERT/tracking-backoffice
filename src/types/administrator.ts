@@ -18,6 +18,8 @@ export interface EnterpriseUser {
 
 export type EnterpriseUserInput = Omit<EnterpriseUser, 'id' | 'status' | 'createdAt'> & {
   password?: string
+  /** Mot de passe actuel, exigé par PATCH /users/{id}/password pour en changer. */
+  currentPassword?: string
 }
 
 export interface Team {

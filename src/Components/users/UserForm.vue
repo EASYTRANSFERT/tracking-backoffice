@@ -27,7 +27,7 @@ const data = reactive<EnterpriseUserInput>({
   employeeNumber: props.user?.employeeNumber ?? '', firstName: props.user?.firstName ?? '',
   lastName: props.user?.lastName ?? '', email: props.user?.email ?? '', phone: props.user?.phone ?? '',
   role: props.fixedRole ?? props.user?.role ?? 'agent', teamId: props.user?.teamId,
-  password: '',
+  password: '', currentPassword: '',
 })
 const roleCanHaveTeam = computed(() => ['teamLeader', 'agent'].includes(data.role))
 // Seuls les superviseurs et administrateurs se connectent au back-office : e-mail (et mot de passe à la création) suivent le rôle choisi.
@@ -38,8 +38,9 @@ const normalizePhone = (value: string) => value.replace(/[\s().-]/g, '')
 const internationalPhone = (value: string) =>
   /^\+[1-9]\d{7,14}$/.test(normalizePhone(value)) ||
   'Ajoutez l’indicatif pays, par exemple +2250700000000'
-// À la modification, le mot de passe est facultatif sauf si le compte reçoit un accès (agent ou chef promu superviseur / administrateur).
-const passwordRequired = computed(() => !props.user || !['supervisor', 'administrator'].includes(props.user.role))
+// À la modification, le mot de passe est facultatif : s'il est saisi, il passe par PATCH /users/{id}/password, qui exige l'actuel.
+const passwordRequired = computed(() => !props.user)
+const currentPasswordRule = (value: string) => !data.password || Boolean(value) || 'Saisissez le mot de passe actuel'
 const passwordRule = (value: string) => (!value && !passwordRequired.value) || strongEnoughPassword(value)
 const strongEnoughPassword = (value: string) =>
   value.length >= 12 || 'Le mot de passe doit contenir au moins 12 caractères'
@@ -68,6 +69,7 @@ async function submit() {
         <v-text-field v-model="data.firstName" label="Prénom" :rules="[required]" />
         <v-text-field v-model="data.lastName" label="Nom" :rules="[required]" />
         <v-text-field v-model="data.phone" label="Téléphone" placeholder="+2250700000000" hint="Format international avec indicatif pays" persistent-hint inputmode="tel" autocomplete="tel" :rules="[required,internationalPhone]" maxlength="14"/>
+        <v-text-field v-if="user && !invitation && roleHasCredentials" v-model="data.currentPassword" label="Mot de passe actuel" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" hint="Requis pour changer le mot de passe" persistent-hint :rules="[currentPasswordRule]" />
         <v-text-field v-if="!invitation && roleHasCredentials" v-model="data.password" :label="user ? 'Nouveau mot de passe' : 'Mot de passe temporaire'" :type="showPassword ? 'text' : 'password'" :append-inner-icon="showPassword ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" @click:append-inner="showPassword = !showPassword" autocomplete="new-password" hint="12 caractères minimum" persistent-hint counter :rules="passwordRequired ? [required, strongEnoughPassword] : [passwordRule]" />
         <v-select v-if="!fixedRole" v-model="data.role" label="Rôle" :disabled="Boolean(user)" hint="Le rôle d’un compte existant ne se modifie pas" :persistent-hint="Boolean(user)" :items="[{title:'Superviseur',value:'supervisor'},{title:'Chef d’équipe',value:'teamLeader'},{title:'Agent',value:'agent'}]" :rules="[required]" />
         <v-text-field v-else label="Rôle" model-value="Administrateur" readonly />
