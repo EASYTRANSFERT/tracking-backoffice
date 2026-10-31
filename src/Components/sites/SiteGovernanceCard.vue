@@ -26,7 +26,7 @@ defineProps<{
     </v-card-title>
     <v-divider />
     <v-list lines="two" class="py-2">
-      <v-list-item prepend-icon="mdi-account-tie-outline" title="Superviseur" :subtitle="!hasMission ? 'Aucune mission' : loading && !supervisor ? '…' : nameOr(supervisor, 'Non renseigné')" />
+      <v-list-item prepend-icon="mdi-account-tie-outline" title="Superviseur" :subtitle="loading && !supervisor ? '…' : nameOr(supervisor, hasMission ? 'Non renseigné' : 'Aucune mission')" />
       <v-list-item prepend-icon="mdi-briefcase-account-outline" title="Chef d’équipe" :subtitle="!hasTeam ? 'Aucune équipe affectée' : loading && !teamLead ? '…' : nameOr(teamLead, 'Non désigné')" />
     </v-list>
   </v-card>

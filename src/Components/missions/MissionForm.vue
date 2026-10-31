@@ -49,10 +49,10 @@ async function submit() {
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-        <v-text-field v-model="data.title" label="Intitulé de la mission" class="md:col-span-2" :rules="[required]" />
+        <v-text-field v-model="data.title" label="Intitulé de la mission*" class="md:col-span-2" :rules="[required]" />
         <v-select
           v-model="data.supervisorUserId"
-          label="Superviseur"
+          label="Superviseur*"
           class="md:col-span-2"
           :items="supervisors"
           :item-title="fullName"
