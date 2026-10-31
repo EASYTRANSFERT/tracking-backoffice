@@ -7,7 +7,7 @@ import { teamService } from '@/Services/team.service'
 import { userService } from '@/Services/user.service'
 import { missionService } from '@/Services/mission.service'
 import { siteService } from '@/Services/site.service'
-import { mapMission, mapSite, mapTeam, mapUser, roleFieldToApi, rolesToApi, toArea } from '@/stores/mappers'
+import { mapMission, mapSite, mapTeam, mapUser, roleToApi, rolesToApi, toArea } from '@/stores/mappers'
 import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
 import { useAuthStore } from '@/stores/auth.store'
 import { readRejectedImportReport } from '@/utils/matricule-import'
@@ -168,7 +168,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
       names: fullName(input),
       email: input.email || undefined,
       phone: input.phone,
-      role: roleFieldToApi(input.role),
+      role: roleToApi[input.role],
       teamId: input.teamId,
       password: input.password || undefined,
     })
@@ -245,9 +245,9 @@ export const useAdministratorStore = defineStore('administrator', () => {
     return created.id
   }
 
-  /** Chefs d'équipe proposés à la création d'une équipe : comptes TEAM_LEAD actifs. */
+  /** Chefs d'équipe proposés pour une équipe : comptes TEAM_LEAD, quel que soit leur statut. */
   async function loadTeamLeadOptions() {
-    const page = await userService.list({ role: 'TEAM_LEAD', status: 'ACTIVE', limit: 200 })
+    const page = await userService.list({ role: 'TEAM_LEAD', limit: 200 })
     teamLeadOptions.value = page.items.map(mapUser)
       .sort(byName)
     return teamLeadOptions.value
