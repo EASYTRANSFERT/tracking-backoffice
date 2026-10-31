@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { fullName } from '@/utils/people'
 import { computed, ref, watch } from 'vue'
-import { endsNextDay, timeOf, toDayKey, toSlot, type ScheduleDay } from '@/Components/sites/site-schedule'
+import { endsNextDay, shiftDurationLabel, timeOf, toDayKey, toSlot, type ScheduleDay } from '@/Components/sites/site-schedule'
 import type { EnterpriseUser } from '@/types/administrator'
 import type { AssignmentResponse, AssignmentSlot } from '@/types/assignment'
 
@@ -106,7 +106,9 @@ function submit() {
             <v-text-field v-model="start" type="time" label="Prise de poste" :disabled="loading" hide-details />
             <v-text-field v-model="end" type="time" label="Fin de poste" :disabled="loading" hide-details />
           </div>
-          <p v-if="nightShift" class="flex items-center gap-2 text-xs text-[#747985]"><v-icon icon="mdi-weather-night" size="16" />Poste de nuit : la fin tombe le lendemain.</p>
+          <v-alert v-if="nightShift" type="warning" variant="tonal" icon="mdi-weather-night" density="comfortable" title="Poste de nuit">
+            Ce créneau finit le lendemain à {{ end }} et dure {{ shiftDurationLabel(start, end) }}. Vérifiez l’heure de fin si ce n’est pas voulu.
+          </v-alert>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-btn v-if="isEdit" variant="text" color="error" :disabled="loading" @click="emit('cancelShift')">Annuler le créneau</v-btn>

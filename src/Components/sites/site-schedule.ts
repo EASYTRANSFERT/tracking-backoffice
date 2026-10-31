@@ -75,6 +75,13 @@ export function endsNextDay(start: string, end: string) {
   return Boolean(start && end) && end <= start
 }
 
+/** Durée d'un créneau pour l'affichage (« 23 h », « 8 h 30 »), un poste de nuit comptant jusqu'au lendemain. */
+export function shiftDurationLabel(start: string, end: string) {
+  const minutesOf = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5))
+  const minutes = (minutesOf(end) - minutesOf(start) + 1440) % 1440 || 1440
+  return minutes % 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}` : `${minutes / 60} h`
+}
+
 /** Bornes ISO d'une semaine (lundi inclus, lundi suivant exclu), telles que les attend GET /assignments. */
 export function weekRange(weekStart: string) {
   return { from: fromDayKey(weekStart).toISOString(), to: fromDayKey(addDays(weekStart, 7)).toISOString() }
