@@ -59,7 +59,12 @@ const members = (id: string) => props.memberCounts?.[id]
         <thead><tr><th>Équipe</th><th>Chef d’équipe</th><th>Membres</th><th>Dernière mise à jour</th><th class="w-16"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>
           <tr v-for="team in displayed" :key="team.id" class="cursor-pointer" @click="emit('open', team)">
-            <td class="font-semibold">{{ team.name }}</td>
+            <td>
+              <div class="flex min-h-16 items-center gap-3">
+                <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-account-group-outline" color="primary" /></v-avatar>
+                <p class="font-semibold">{{ team.name }}</p>
+              </div>
+            </td>
             <td>{{ userName(team.leadUserId) }}</td>
             <td>
               <v-btn v-if="!readonly" variant="tonal" color="primary" size="small" prepend-icon="mdi-account-group-outline" @click.stop="emit('manageMembers', team)">

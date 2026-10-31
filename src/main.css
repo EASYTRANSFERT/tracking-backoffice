@@ -57,6 +57,14 @@
   }
 }
 
+/*
+ * Les styles des composants Vuetify ne sont pas dans une couche CSS : ils l'emportent sur les utilitaires Tailwind.
+ * Sans cette règle, `flex` sur un v-card-title (icône + titre côte à côte) est ignoré et l'icône passe au-dessus du titre.
+ */
+.v-card-title.flex {
+  display: flex;
+}
+
 /* Info-bulles lisibles : le fond par défaut de Vuetify (surface-variant) est presque blanc, comme son texte. */
 .v-tooltip > .v-overlay__content {
   background: #252830;
