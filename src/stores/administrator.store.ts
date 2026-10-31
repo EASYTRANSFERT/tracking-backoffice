@@ -71,9 +71,22 @@ export const useAdministratorStore = defineStore('administrator', () => {
     knownUsers.value = [...knownUsers.value, ...list.filter((user) => !known.has(user.id))]
   }
 
+  /**
+   * Le chef d'une équipe en fait partie même si son propre teamId n'est pas renseigné (chef désigné à la création de l'équipe) :
+   * on l'ajoute, pour que listes, compteurs et planning s'accordent.
+   */
+  async function withTeamLead(teamId: string, members: EnterpriseUser[]) {
+    const leadId = findTeam(teamId)?.leadUserId
+    if (!leadId || members.some((member) => member.id === leadId)) return members
+    await ensureUsers([leadId])
+    const lead = findUser(leadId)
+    return lead ? [...members, lead].sort(byName) : members
+  }
+
   /** Membres d'une équipe (agents et chef), triés par nom. Leurs noms servent ensuite partout. */
   async function listTeamMembers(teamId: string) {
-    const members = (await userService.list({ teamId, limit: 200 })).items.map(mapUser).filter((user) => isTeamMember(user)).sort(byName)
+    const listed = (await userService.list({ teamId, limit: 200 })).items.map(mapUser).filter((user) => isTeamMember(user)).sort(byName)
+    const members = await withTeamLead(teamId, listed)
     rememberUsers(members)
     return members
   }
@@ -158,7 +171,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
       teamId: input.teamId,
       password: input.password || undefined,
     })
-    users.value.unshift(mapUser(created))
+    replaceUser(mapUser(created))
     return created.id
   }
 
@@ -197,6 +210,9 @@ export const useAdministratorStore = defineStore('administrator', () => {
     else users.value.unshift(user)
     // Un compte chargé à part (hors de la page affichée) doit aussi refléter la modification.
     knownUsers.value = knownUsers.value.map((item) => item.id === user.id ? user : item)
+    // La liste des superviseurs (choix du responsable d'un site, d'une mission) suit les créations et changements de rôle.
+    supervisors.value = supervisors.value.filter((item) => item.id !== user.id)
+    if (user.role === 'supervisor') supervisors.value.push(user)
   }
 
   /**
@@ -254,7 +270,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     const result = await userService.list({ limit: 200 })
     const directory = result.items.map(mapUser)
     return {
-      members: directory.filter((user) => user.teamId === teamId && isTeamMember(user)),
+      members: await withTeamLead(teamId, directory.filter((user) => user.teamId === teamId && isTeamMember(user))),
       available: directory.filter((user) => user.role === 'agent' && !user.teamId),
     }
   }

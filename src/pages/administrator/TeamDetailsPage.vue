@@ -58,7 +58,7 @@ onMounted(async () => {
         </v-card>
         <v-card class="px-5 py-4">
           <p class="text-xs text-[#747985]">Membres</p>
-          <p class="mt-1 font-semibold">{{ members.length }}</p>
+          <p class="mt-1 font-semibold">{{ orderedMembers.length }}</p>
         </v-card>
         <v-card class="px-5 py-4">
           <p class="text-xs text-[#747985]">Dernière mise à jour</p>
