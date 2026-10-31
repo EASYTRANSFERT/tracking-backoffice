@@ -40,8 +40,8 @@ export interface Offer {
   status: OfferStatus
 }
 
+/** Le code de l'offre est engendré par le serveur : il ne se saisit pas. */
 export interface OfferInput {
-  code: string
   name: string
   description: string
   maxActiveAgents: number

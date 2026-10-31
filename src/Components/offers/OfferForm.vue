@@ -6,7 +6,6 @@ const props = withDefaults(defineProps<{ offer?: Offer; loading?: boolean }>(), 
 const emit = defineEmits<{ submit: [payload: OfferInput]; cancel: []; dirtyChange: [dirty: boolean] }>()
 const form = ref()
 const formData = reactive<OfferInput>({
-  code: props.offer?.code ?? '',
   name: props.offer?.name ?? '',
   description: props.offer?.description ?? '',
   maxActiveAgents: props.offer?.maxActiveAgents ?? 25,
@@ -38,7 +37,6 @@ function handleCancel() {
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-        <v-text-field v-model="formData.code" label="Code" hint="Exemple : STARTER" :rules="[required]" />
         <v-text-field v-model="formData.name" label="Nom de l’offre" :rules="[required]" />
         <v-text-field v-model.number="formData.maxActiveAgents" label="Nombre maximum d’agents actifs" type="number" min="1" :rules="[positive]" />
         <v-textarea v-model="formData.description" label="Description" rows="4" :rules="[required]" class="md:col-span-2" />

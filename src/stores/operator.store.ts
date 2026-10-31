@@ -170,7 +170,7 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   async function createOffer(input: OfferInput) {
-    const offer = await offerService.create({ code: input.code, name: input.name, description: input.description, maxAgents: input.maxActiveAgents })
+    const offer = await offerService.create({ name: input.name, description: input.description, maxAgents: input.maxActiveAgents })
     offers.value.unshift(mapOffer(offer))
     return offer.id
   }

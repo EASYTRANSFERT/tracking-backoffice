@@ -82,7 +82,6 @@ export interface OfferResponse {
 }
 
 export interface CreateOfferRequest {
-  code: string
   name: string
   description: string
   maxAgents: number
