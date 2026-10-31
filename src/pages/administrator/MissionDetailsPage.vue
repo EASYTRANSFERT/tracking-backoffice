@@ -10,6 +10,7 @@ import MissionOverviewDialog from '@/Components/missions/MissionOverviewDialog.v
 import MissionSiteAttachDialog from '@/Components/missions/MissionSiteAttachDialog.vue'
 import MissionSupervisorDialog from '@/Components/missions/MissionSupervisorDialog.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { useBusy } from '@/composables/useBusy'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 
@@ -103,18 +104,19 @@ onMounted(async () => {
   catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de charger cette mission.')) }
 })
 
+const missionAction = useBusy()
 async function openMission() {
   if (!mission.value) return
   const confirmed = await feedback.askConfirmation({ title: 'Ouvrir cette mission ?', message: `La mission « ${mission.value.title} » passera au statut en cours.`, confirmText: 'Ouvrir' })
   if (!confirmed) return
-  try { await store.openMission(mission.value.id); feedback.success('Mission ouverte.') }
+  try { await missionAction.run(() => store.openMission(mission.value!.id)); feedback.success('Mission ouverte.') }
   catch (error) { feedback.error(getApiErrorMessage(error, "Impossible d’ouvrir la mission.")) }
 }
 async function closeMission() {
   if (!mission.value) return
   const confirmed = await feedback.askConfirmation({ title: 'Clôturer cette mission ?', message: `La mission « ${mission.value.title} » sera marquée comme terminée.`, confirmText: 'Clôturer' })
   if (!confirmed) return
-  try { await store.closeMission(mission.value.id); feedback.success('Mission clôturée.') }
+  try { await missionAction.run(() => store.closeMission(mission.value!.id)); feedback.success('Mission clôturée.') }
   catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible de clôturer la mission.')) }
 }
 
@@ -191,8 +193,8 @@ async function closeMission() {
         <v-card-title class="px-5 py-5">Actions</v-card-title><v-divider />
         <v-card-text class="text-sm leading-6 text-[#747985]">Le cycle de vie suit les transitions prévues par l’API : planifiée, en cours, puis terminée.</v-card-text>
         <v-card-actions class="pa-5 pt-0">
-          <v-btn v-if="mission.status === 'scheduled'" block variant="tonal" color="primary" prepend-icon="mdi-play-circle-outline" @click="openMission">Ouvrir la mission</v-btn>
-          <v-btn v-else-if="mission.status === 'ongoing'" block variant="tonal" color="success" prepend-icon="mdi-check-circle-outline" @click="closeMission">Clôturer la mission</v-btn>
+          <v-btn v-if="mission.status === 'scheduled'" block variant="tonal" color="primary" prepend-icon="mdi-play-circle-outline" :loading="missionAction.isBusy.value" @click="openMission">Ouvrir la mission</v-btn>
+          <v-btn v-else-if="mission.status === 'ongoing'" block variant="tonal" color="success" prepend-icon="mdi-check-circle-outline" :loading="missionAction.isBusy.value" @click="closeMission">Clôturer la mission</v-btn>
           <v-chip v-else color="success" variant="tonal" prepend-icon="mdi-check-circle-outline">Mission terminée</v-chip>
         </v-card-actions>
       </v-card>

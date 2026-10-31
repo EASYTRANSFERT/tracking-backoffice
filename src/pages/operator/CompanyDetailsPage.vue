@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useBusy } from '@/composables/useBusy'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -39,12 +40,12 @@ async function resendInvitation(userId: string) {
 }
 const formattedDate = computed(() => company.value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(company.value.createdAt)) : '')
 
+const statusChange = useBusy()
 async function updateStatus(reason: string) {
   if (!company.value) return
   const previousStatus = company.value.status
   try {
-    if (previousStatus === 'active') await store.suspendCompany(company.value.id, reason)
-    else await store.reactivateCompany(company.value.id)
+    await statusChange.run(() => previousStatus === 'active' ? store.suspendCompany(company.value!.id, reason) : store.reactivateCompany(company.value!.id))
     feedback.success(previousStatus === 'active' ? 'Entreprise suspendue.' : 'Entreprise activée.')
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible de modifier le statut de cette entreprise.'))
@@ -61,7 +62,7 @@ async function updateStatus(reason: string) {
         <template #actions>
           <v-btn variant="outlined" color="secondary" prepend-icon="mdi-account-key-outline" :to="{ name: 'company-admin-create', params: { companyId } }">Créer un administrateur</v-btn>
           <v-btn variant="outlined" color="secondary" prepend-icon="mdi-pencil-outline" :to="{ name: 'company-edit', params: { companyId } }">Modifier</v-btn>
-          <v-btn :color="company.status === 'active' ? 'error' : 'success'" variant="flat" :prepend-icon="company.status === 'active' ? 'mdi-pause-circle-outline' : 'mdi-play-circle-outline'" :disabled="company.status === 'pending' && !company.offerId" :title="company.status === 'pending' && !company.offerId ? 'Attribuez une offre avant d’activer cette entreprise.' : undefined" @click="statusDialog = true">
+          <v-btn :color="company.status === 'active' ? 'error' : 'success'" variant="flat" :loading="statusChange.isBusy.value" :prepend-icon="company.status === 'active' ? 'mdi-pause-circle-outline' : 'mdi-play-circle-outline'" :disabled="company.status === 'pending' && !company.offerId" :title="company.status === 'pending' && !company.offerId ? 'Attribuez une offre avant d’activer cette entreprise.' : undefined" @click="statusDialog = true">
             {{ company.status === 'pending' ? 'Activer' : company.status === 'suspended' ? 'Réactiver' : 'Suspendre' }}
           </v-btn>
         </template>
