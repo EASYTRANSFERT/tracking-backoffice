@@ -6,7 +6,7 @@ import { mockCompanies, mockOffers } from '@/mocks/operator-data'
 import type { AccessTokenResponse, ConfirmTotpRequest, LoginChallengeResponse, LoginRequest, RefreshRequest, SessionResponse, SetupPasswordRequest, TotpCodeRequest } from '@/types/auth'
 import type { ApiProblemDetails } from '@/types/api'
 import type { AssignTenantPlanRequest, CreateOfferRequest, CreateTenantRequest, OfferResponse, SuspendTenantRequest, TenantResponse, UpdateTenantRequest } from '@/types/platform'
-import type { ApiMissionStatus, AssignMissionSupervisorRequest, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
+import type { ApiMissionStatus, AssignMissionSitesRequest, AssignMissionSupervisorRequest, CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { AssignmentImportRejection, AssignmentResponse, CreateAssignmentsRequest, UpdateAssignmentRequest } from '@/types/assignment'
 import { addDays, startOfWeek, toDayKey } from '@/Components/sites/site-schedule'
@@ -632,7 +632,7 @@ export const handlers = [
   http.post(api('/platform/offers'), async ({ request }) => {
     const payload = (await request.json()) as CreateOfferRequest
     const timestamp = now()
-    const offer: OfferResponse = { id: `offer-${Date.now()}`, ...payload, status: 'ACTIVE', createdAt: timestamp, updatedAt: timestamp }
+    const offer: OfferResponse = { id: `offer-${Date.now()}`, code: `OFFRE-${offers.length + 1}`, ...payload, status: 'ACTIVE', createdAt: timestamp, updatedAt: timestamp }
     offers.unshift(offer)
     return HttpResponse.json(offer, { status: 201 })
   }),
@@ -761,6 +761,28 @@ export const handlers = [
     if (!isActiveSupervisor(payload.userId)) return problem(409, 'MISSION_SUPERVISOR_INVALID', 'Le superviseur doit être un compte SUPERVISOR actif.')
     Object.assign(mission, { supervisorUserId: payload.userId, updatedAt: now() })
     return HttpResponse.json(mission)
+  }),
+  http.post(api('/missions/:id/sites'), async ({ params, request }) => {
+    const mission = missions.find((item) => item.id === String(params.id))
+    if (!mission) return problem(404, 'NOT_FOUND', "La mission demandée n’existe pas.")
+    if (mission.status === 'CLOSED') return problem(409, 'MISSION_STATUS_CONFLICT', 'Une mission clôturée n’accueille plus de site.')
+    const { siteIds } = (await request.json()) as AssignMissionSitesRequest
+    const ids = [...new Set(siteIds)]
+    const problems = ids.flatMap((siteId) => {
+      const site = sites.find((item) => item.id === siteId)
+      if (!site) return [{ siteId, reason: 'SITE_NOT_FOUND' }]
+      if (site.status === 'ARCHIVED') return [{ siteId, reason: 'SITE_ARCHIVED' }]
+      if (site.missionId && site.missionId !== mission.id) return [{ siteId, reason: 'SITE_IN_OTHER_MISSION', currentMissionId: site.missionId }]
+      if (mission.status === 'OPEN' && !site.teamId) return [{ siteId, reason: 'SITE_WITHOUT_TEAM' }]
+      return []
+    })
+    if (problems.length) {
+      return HttpResponse.json({ title: 'SITES_NOT_ASSIGNABLE', status: 409, detail: 'Certains sites ne peuvent pas être rattachés à cette mission.', code: 'SITES_NOT_ASSIGNABLE', problems }, { status: 409, headers: { 'Content-Type': 'application/problem+json' } })
+    }
+    const alreadyAssigned = ids.filter((siteId) => sites.find((item) => item.id === siteId)?.missionId === mission.id)
+    const assigned = ids.filter((siteId) => !alreadyAssigned.includes(siteId))
+    assigned.forEach((siteId) => { Object.assign(sites.find((item) => item.id === siteId)!, { missionId: mission.id, updatedAt: now() }) })
+    return HttpResponse.json({ missionId: mission.id, assigned, alreadyAssigned })
   }),
   http.post(api('/missions/:id/open'), ({ params }) => {
     const mission = missions.find((item) => item.id === String(params.id))

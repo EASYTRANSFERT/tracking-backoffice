@@ -323,12 +323,14 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const findSiteSupervisor = (site?: Site) => findUser(siteSupervisorId(site))
   const sitesWithoutMission = computed(() => sites.value.filter((site) => !site.missionId && site.status !== 'inactive'))
 
+  /** Un seul appel, tout ou rien : en cas de refus rien n'est rattaché et l'erreur détaille chaque site (voir utils/mission-sites). */
   async function attachSitesToMission(missionId: string, siteIds: string[]) {
-    // Une requête par site ; ceux déjà rattachés restent rattachés si une requête suivante échoue.
-    for (const siteId of siteIds) {
-      const current = getSiteById(siteId)
-      replaceSite(mapSite(await siteService.update(siteId, { missionId }), current))
+    const { assigned, alreadyAssigned } = await missionService.assignSites(missionId, { siteIds })
+    for (const siteId of [...assigned, ...alreadyAssigned]) {
+      const site = getSiteById(siteId)
+      if (site) replaceSite({ ...site, missionId })
     }
+    return { assigned, alreadyAssigned }
   }
 
   // Une mission peut avoir plusieurs sites : c'est le site qui porte sa mission (missionId).
