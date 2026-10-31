@@ -181,9 +181,11 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (!current) throw new Error('Utilisateur introuvable.')
     const changes = changedFields<UpdateUserRequest>(
       { names: fullName(current), email: current.email || undefined, phone: current.phone, teamId: current.teamId },
-      { names: fullName(input), email: input.email || undefined, phone: input.phone, teamId: input.teamId, password: input.password || undefined },
+      { names: fullName(input), email: input.email || undefined, phone: input.phone, teamId: input.teamId },
     )
-    // Rien n'a changé : pas de requête.
+    // Le mot de passe a son propre endpoint (PATCH /users/{id}/password), qui exige l'actuel.
+    if (input.password) await userService.updatePassword(id, { currentPassword: input.currentPassword ?? '', newPassword: input.password })
+    // Rien d'autre n'a changé : pas de requête.
     if (!Object.keys(changes).length) return
     replaceUser(mapUser(await userService.update(id, changes)))
   }
@@ -316,8 +318,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   const getMissionSites = (missionId: string) => sites.value.filter((site) => site.missionId === missionId)
   /** Sites actifs sans mission, qu'on peut rattacher depuis la page d'une mission. */
-  // Le superviseur appartient à la mission : un site affiche celui de sa mission, jamais son responsibleId (managerId).
-  const siteSupervisorId = (site?: Site) => site?.missionId ? getMissionById(site.missionId)?.supervisorUserId : undefined
+  // Le superviseur d'un site est celui de sa mission ; l'API ne renvoyant pas encore celui-ci, on retombe sur le responsable du site (managerId).
+  const siteSupervisorId = (site?: Site) => (site?.missionId ? getMissionById(site.missionId)?.supervisorUserId : undefined) ?? site?.managerId
   const findSiteSupervisor = (site?: Site) => findUser(siteSupervisorId(site))
   const sitesWithoutMission = computed(() => sites.value.filter((site) => !site.missionId && site.status !== 'inactive'))
 
@@ -368,6 +370,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
       address: input.address?.trim() || undefined,
       locationDescription: input.locationDescription?.trim() || undefined,
       area: toArea(input.points),
+      toleranceRadius: input.radiusM || undefined,
       responsibleId: input.managerId,
       missionId: input.missionId || undefined,
       teamId: input.teamId || undefined,
@@ -387,6 +390,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (name !== current.name) payload.name = name
     if (address !== (current.address || undefined)) payload.address = address
     if (locationDescription !== (current.locationDescription || undefined)) payload.locationDescription = locationDescription
+    if (input.radiusM && input.radiusM !== current.radiusM) payload.toleranceRadius = input.radiusM
     if (input.managerId && input.managerId !== current.managerId) payload.responsibleId = input.managerId
     // L'API ne permet pas de retirer l'équipe d'un site, seulement d'en désigner une autre.
     if (input.teamId && input.teamId !== current.teamId) payload.teamId = input.teamId

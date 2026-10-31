@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
 
+import { MIN_TOLERANCE_RADIUS_M, toleranceRadiusRule } from '@/utils/site-radius'
 import type { TenantSettings } from '@/types/platform'
 
 const props = defineProps<{ settings: TenantSettings; loading?: boolean }>()
@@ -55,7 +56,7 @@ function reset() {
       </v-card-title>
       <v-divider />
       <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-2">
-        <v-text-field v-model.number="data.radiusM" type="number" label="Rayon par défaut" suffix="m" :rules="[positive]" hint="Zone de tolérance proposée à la création d’un site." persistent-hint />
+        <v-text-field v-model.number="data.radiusM" type="number" label="Rayon de tolérance" suffix="m" :min="MIN_TOLERANCE_RADIUS_M" :rules="[toleranceRadiusRule]" hint="Zone de tolérance proposée à la création d’un site." persistent-hint />
         <v-text-field v-model.number="data.lateToleranceMin" type="number" label="Tolérance de retard" suffix="min" :rules="[zeroOrMore]" hint="Délai après le début du créneau avant qu’une arrivée soit en retard." persistent-hint />
         <v-text-field v-model.number="data.maxAccuracyM" type="number" label="Précision GPS maximale" suffix="m" :rules="[positive]" hint="Au-delà, la position est jugée imprécise et le pointage est à vérifier." persistent-hint />
         <v-text-field v-model.number="data.missingExitAfterMin" type="number" label="Délai « sortie manquante »" suffix="min" :rules="[positive]" hint="Temps après la fin du créneau avant de signaler un départ non pointé." persistent-hint />

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MIN_TOLERANCE_RADIUS_M, toleranceRadiusRule } from '@/utils/site-radius'
 import { fullName } from '@/utils/people'
 import { computed, reactive, ref, watch } from 'vue'
 import LocationAutocomplete from '@/Components/sites/LocationAutocomplete.vue'
@@ -16,7 +17,7 @@ const data = reactive<SiteInput>({
   locationDescription: props.site?.locationDescription ?? '',
   latitude: props.site?.latitude ?? '', longitude: props.site?.longitude ?? '',
   missionId: props.site?.missionId ?? props.defaultMissionId ?? undefined, managerId: props.site?.managerId ?? undefined,
-  teamId: props.site?.teamId ?? undefined,
+  teamId: props.site?.teamId ?? undefined, radiusM: props.site?.radiusM,
 })
 const points = ref<(SitePoint | null)[]>(Array.from({ length: Math.max(SITE_POINT_COUNT, props.site?.points?.length ?? 0) }, (_, index) => props.site?.points?.[index] ?? null))
 const placedCount = computed(() => points.value.filter(Boolean).length)
@@ -26,7 +27,9 @@ const perimeterError = ref<string | null>(null)
 const required = (value: string) => Boolean(String(value ?? '').trim()) || 'Ce champ est obligatoire'
 const requiredChoice = (value?: string) => Boolean(value) || 'Ce champ est obligatoire'
 // L'API refuse un site sans adresse ni description de l'emplacement.
-const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim()) || 'Renseignez l’adresse ou la description de l’emplacement'
+const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim())
+// Facultatif : vide, l'API reprend le rayon par défaut de l'entreprise ; saisi, il est d'au moins 100 m.
+const radiusRule = (value?: number | string) => value === undefined || value === '' || toleranceRadiusRule(value)
 const missionTitle = (item: Mission) => `${item.code} · ${item.title}`
 const placedPoints = computed(() => points.value.filter((point): point is SitePoint => Boolean(point)))
 const isFlatPerimeter = computed(() => placedCount.value >= SITE_POINT_COUNT && !delimitsSurface(placedPoints.value))
@@ -67,7 +70,7 @@ async function submit() {
   if (isFlatPerimeter.value) return
   if (!result?.valid) return
   emit('dirtyChange', false)
-  emit('submit', { ...data, points: placedPoints.value })
+  emit('submit', { ...data, radiusM: data.radiusM ? Number(data.radiusM) : undefined, points: placedPoints.value })
 }
 </script>
 
@@ -81,13 +84,14 @@ async function submit() {
         </v-card-title>
         <v-divider />
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-          <v-text-field v-model="data.name" label="Nom du site" :rules="[required]" />
-          <v-text-field v-model="data.city" label="Ville (facultatif)" />
+          <v-text-field v-model="data.name" label="Nom du site*" :rules="[required]" />
+          <v-text-field v-model="data.city" label="Ville" />
           <v-text-field v-model="data.address" label="Adresse" class="md:col-span-2" :rules="[addressOrDescription]" />
           <v-textarea v-model="data.locationDescription" label="Description de l’emplacement" placeholder="Ex. : entrée principale, près de la réception" persistent-placeholder rows="2" auto-grow counter="500" maxlength="500" class="md:col-span-2" :rules="[addressOrDescription]" />
-          <v-select v-model="data.missionId" label="Mission (facultatif)" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Aucune mission" persistent-placeholder clearable :disabled="Boolean(site?.missionId)" :hint="site?.missionId ? 'La mission d’un site ne peut pas être modifiée.' : 'Vous pourrez aussi rattacher ce site depuis la page d’une mission.'" persistent-hint />
-          <v-select v-model="data.managerId" label="Superviseur du site" :items="managers" :item-title="fullName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
-          <v-select v-model="data.teamId" label="Équipe (facultatif)" :items="teams" item-title="name" item-value="id" placeholder="Aucune équipe pour l’instant" persistent-placeholder :clearable="!site?.teamId" class="md:col-span-2" :hint="site?.teamId ? 'L’équipe peut être remplacée, pas retirée. Les créneaux déjà planifiés restent à leurs agents.' : 'L’équipe affectée au site est celle dont les agents pourront y être planifiés.'" persistent-hint />
+          <v-select v-model="data.missionId" label="Mission" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Aucune mission" persistent-placeholder clearable :disabled="Boolean(site?.missionId)" :hint="site?.missionId ? 'La mission d’un site ne peut pas être modifiée.' : ''" persistent-hint />
+          <v-select v-model="data.managerId" label="Superviseur du site*" :items="managers" :item-title="fullName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
+          <v-select v-model="data.teamId" label="Équipe" :items="teams" item-title="name" item-value="id" placeholder="Aucune équipe pour l’instant" persistent-placeholder :clearable="!site?.teamId" :hint="site?.teamId ? 'L’équipe peut être remplacée, pas retirée. Les créneaux déjà planifiés restent à leurs agents.' : ''" persistent-hint />
+          <v-text-field v-model.number="data.radiusM" type="number" :min="MIN_TOLERANCE_RADIUS_M" label="Rayon de tolérance" suffix="m" placeholder="100" persistent-placeholder :rules="[radiusRule]" />
         </v-card-text>
       </v-card>
       <v-card>
