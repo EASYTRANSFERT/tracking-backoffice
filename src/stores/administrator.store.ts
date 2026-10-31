@@ -1,4 +1,5 @@
 import { fullName, byName, isTeamMember } from '@/utils/people'
+import { changedFields } from '@/utils/payload'
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
@@ -15,7 +16,7 @@ import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, 
 import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
 import type { CreateSiteRequest, SiteCoordinate, SiteResponse, UpdateSiteRequest } from '@/types/site'
 import type { TeamResponse } from '@/types/team'
-import type { MatriculeImportReport } from '@/types/user'
+import type { MatriculeImportReport, UpdateUserRequest } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
 const sameArea = (a: SiteCoordinate[], b: SiteCoordinate[]) => JSON.stringify(toArea(a)) === JSON.stringify(toArea(b))
@@ -176,14 +177,15 @@ export const useAdministratorStore = defineStore('administrator', () => {
   }
 
   async function updateUser(id: string, input: EnterpriseUserInput) {
-    replaceUser(mapUser(await userService.update(id, {
-      names: fullName(input),
-      email: input.email || undefined,
-      phone: input.phone,
-      role: roleFieldToApi(input.role),
-      teamId: input.teamId,
-      password: input.password || undefined,
-    })))
+    const current = findUser(id)
+    if (!current) throw new Error('Utilisateur introuvable.')
+    const changes = changedFields<UpdateUserRequest>(
+      { names: fullName(current), email: current.email || undefined, phone: current.phone, teamId: current.teamId },
+      { names: fullName(input), email: input.email || undefined, phone: input.phone, teamId: input.teamId, password: input.password || undefined },
+    )
+    // Rien n'a changé : pas de requête.
+    if (!Object.keys(changes).length) return
+    replaceUser(mapUser(await userService.update(id, changes)))
   }
 
   /** Change le rôle d'un compte : ré-authentification TOTP, puis PUT /users/{id}/roles. */

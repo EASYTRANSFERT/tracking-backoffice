@@ -707,7 +707,7 @@ export const handlers = [
     const index = users.findIndex((item) => item.id === String(params.userId))
     if (index < 0) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
     const payload = (await request.json()) as UpdateUserRequest
-    users[index] = { ...users[index]!, names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role].flat(), teamId: payload.teamId, updatedAt: now() }
+    users[index] = { ...users[index]!, ...payload, updatedAt: now() }
     return HttpResponse.json(users[index])
   }),
   http.delete(api('/users/:userId'), ({ params }) => {

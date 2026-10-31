@@ -39,7 +39,8 @@ export interface CreateTenantUserRequest extends CreateUserRequest {
   role: 'ADMIN'
 }
 
-export type UpdateUserRequest = CreateUserRequest
+/** Le rôle ne se change pas ici (PUT /users/{id}/roles) ; seuls les champs modifiés sont envoyés. */
+export type UpdateUserRequest = Partial<Omit<CreateUserRequest, 'role'>>
 
 export interface UpdatePasswordRequest {
   currentPassword: string
