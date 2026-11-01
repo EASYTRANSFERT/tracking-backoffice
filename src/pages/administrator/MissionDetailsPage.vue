@@ -192,7 +192,6 @@ async function closeMission() {
       </v-card>
       <v-card>
         <v-card-title class="px-5 py-5">Actions</v-card-title><v-divider />
-        <v-card-text class="text-sm leading-6 text-[#747985]">Le cycle de vie suit les transitions prévues par l’API : planifiée, en cours, puis terminée.</v-card-text>
         <v-card-actions class="pa-5 pt-0">
           <v-btn v-if="mission.status === 'scheduled'" block variant="tonal" color="primary" prepend-icon="mdi-play-circle-outline" :loading="missionAction.isBusy.value" @click="openMission">Ouvrir la mission</v-btn>
           <v-btn v-else-if="mission.status === 'ongoing'" block variant="tonal" color="success" prepend-icon="mdi-check-circle-outline" :loading="missionAction.isBusy.value" @click="closeMission">Clôturer la mission</v-btn>

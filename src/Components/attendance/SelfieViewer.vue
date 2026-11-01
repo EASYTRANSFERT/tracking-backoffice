@@ -34,7 +34,7 @@ async function show() {
   <div>
     <div class="flex items-center justify-between gap-3">
       <p class="text-xs text-[#848484]">{{ title }}</p>
-      <v-btn v-if="!url" size="small" variant="tonal" color="primary" prepend-icon="mdi-camera-outline" :loading="isLoading" @click="show">Voir le selfie cont</v-btn>
+      <v-btn v-if="!url" size="small" variant="tonal" color="primary" prepend-icon="mdi-camera-outline" :loading="isLoading" @click="show">Voir le selfie</v-btn>
     </div>
     <p v-if="showNotice" class="mt-1 text-xs text-[#747985]">Chaque consultation est enregistrée ; le lien reste valable 5 minutes.</p>
     <v-img v-if="url" :src="url" max-height="320" class="mt-3 rounded-lg bg-[#f4f4f5]" :alt="title" />
