@@ -132,8 +132,10 @@ async function submit() {
                 <v-btn v-if="index >= SITE_POINT_COUNT" icon="mdi-close" color="error" variant="text" :aria-label="`Retirer le point ${index + 1}`" @click="removePoint(index)" />
               </div>
             </div>
-            <v-btn variant="outlined" color="primary" prepend-icon="mdi-plus" :disabled="!canAddPoint" @click="addPoint">Ajouter un point</v-btn>
-            <p v-if="points.length >= SITE_POINT_MAX" class="text-xs text-[#747985]">Maximum de {{ SITE_POINT_MAX }} points atteint.</p>
+            <div class="flex items-center justify-end gap-3">
+              <p v-if="points.length >= SITE_POINT_MAX" class="text-xs text-[#747985]">Maximum de {{ SITE_POINT_MAX }} points atteint.</p>
+              <v-btn variant="outlined" color="primary" prepend-icon="mdi-plus" :disabled="!canAddPoint" @click="addPoint">Ajouter un point</v-btn>
+            </div>
           </div>
           <v-alert v-if="isFlatPerimeter" type="error" variant="tonal" density="compact" text="Les points sont alignés ou confondus : ils doivent délimiter une surface, pas une ligne." />
           <v-alert v-if="perimeterError" type="error" variant="tonal" density="compact" :text="perimeterError" />
