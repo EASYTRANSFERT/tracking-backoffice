@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useBusy } from '@/composables/useBusy'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -19,21 +20,25 @@ const companyId = computed(() => route.params.companyId as string | undefined)
 const company = computed(() => companyId.value ? store.getCompanyById(companyId.value) : undefined)
 const isEditing = computed(() => Boolean(companyId.value))
 const isDirty = ref(false)
+const saving = useBusy()
 
 onBeforeRouteLeave(async () => !isDirty.value || await feedback.askConfirmation({ title: 'Quitter sans enregistrer ?', message: 'Les modifications de cette entreprise seront perdues.', confirmText: 'Quitter' }))
 
 async function submit(payload: CompanyInput) {
   try {
     isDirty.value = false
-    if (companyId.value) {
-      await store.updateCompany(companyId.value, payload)
-      feedback.success('Entreprise mise à jour.')
-      await router.push({ name: 'company-details', params: { companyId: companyId.value }, query: { updated: '1' } })
-      return
-    }
-    const id = await store.createCompany(payload)
-    feedback.success('Entreprise créée.')
-    await router.push({ name: 'company-details', params: { companyId: id }, query: { created: '1' } })
+    // Le chargement couvre l'enregistrement puis la navigation vers la page de l'entreprise.
+    await saving.run(async () => {
+      if (companyId.value) {
+        await store.updateCompany(companyId.value, payload)
+        feedback.success('Entreprise mise à jour.')
+        await router.push({ name: 'company-details', params: { companyId: companyId.value }, query: { updated: '1' } })
+        return
+      }
+      const id = await store.createCompany(payload)
+      feedback.success('Entreprise créée.')
+      await router.push({ name: 'company-details', params: { companyId: id }, query: { created: '1' } })
+    })
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette entreprise.'))
   }
@@ -54,6 +59,6 @@ function cancel() {
     </PageHeader>
 
     <v-alert v-if="isEditing && !company" type="error" variant="tonal" title="Entreprise introuvable" text="Cette entreprise n’existe pas ou n’est plus disponible." />
-    <CompanyForm v-else :company="company" :offers="offers" @submit="submit" @cancel="cancel" @dirty-change="isDirty = $event" />
+    <CompanyForm v-else :company="company" :offers="offers" :loading="saving.isBusy.value" @submit="submit" @cancel="cancel" @dirty-change="isDirty = $event" />
   </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useBusy } from '@/composables/useBusy'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { computed, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -17,20 +18,24 @@ const offer = computed(() => offerId.value ? store.getOfferById(offerId.value) :
 const isEditing = computed(() => Boolean(offerId.value))
 const isUnsupportedEdit = computed(() => isEditing.value && !store.canUpdateOffers)
 const isDirty = ref(false)
+const saving = useBusy()
 
 onBeforeRouteLeave(async () => !isDirty.value || await feedback.askConfirmation({ title: 'Quitter sans enregistrer ?', message: 'Les modifications de cette offre seront perdues.', confirmText: 'Quitter' }))
 
 async function submit(payload: OfferInput) {
   try {
     isDirty.value = false
-    if (offerId.value) {
-      store.updateOffer(offerId.value, payload)
-      feedback.success('Offre mise à jour.')
-      await router.push({ name: 'offer-details', params: { offerId: offerId.value }, query: { updated: '1' } })
-      return
-    }
-    const id = await store.createOffer(payload)
-    await router.push({ name: 'offer-details', params: { offerId: id }, query: { created: '1' } })
+    // Le chargement couvre l'enregistrement puis la navigation vers la page de l'offre.
+    await saving.run(async () => {
+      if (offerId.value) {
+        store.updateOffer(offerId.value, payload)
+        feedback.success('Offre mise à jour.')
+        await router.push({ name: 'offer-details', params: { offerId: offerId.value }, query: { updated: '1' } })
+        return
+      }
+      const id = await store.createOffer(payload)
+      await router.push({ name: 'offer-details', params: { offerId: id }, query: { created: '1' } })
+    })
   } catch (error) {
     feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cette offre.'))
   }
@@ -51,6 +56,6 @@ function cancel() {
     </PageHeader>
     <v-alert v-if="isUnsupportedEdit" type="info" variant="tonal" title="Modification indisponible" text="La version actuelle de l’API ne fournit pas d’endpoint de modification d’offre." />
     <v-alert v-else-if="isEditing && !offer" type="error" variant="tonal" title="Offre introuvable" text="Cette offre n’existe pas ou n’est plus disponible." />
-    <OfferForm v-else :offer="offer" @submit="submit" @cancel="cancel" @dirty-change="isDirty = $event" />
+    <OfferForm v-else :offer="offer" :loading="saving.isBusy.value" @submit="submit" @cancel="cancel" @dirty-change="isDirty = $event" />
   </div>
 </template>
