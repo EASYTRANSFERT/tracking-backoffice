@@ -60,6 +60,15 @@ export const authSessionStorage = {
     localStorage.removeItem(SESSION_STORAGE_KEY)
   },
 
+  /** Appelle `listener` quand un AUTRE onglet écrit, renouvelle ou efface la session. Renvoie la fonction d'arrêt. */
+  subscribe(listener: () => void): () => void {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === SESSION_STORAGE_KEY) listener()
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  },
+
   /**
    * Un seul renouvellement à la fois, tous onglets confondus. Le jeton de
    * renouvellement est à usage unique (rotation + détection de rejeu) :

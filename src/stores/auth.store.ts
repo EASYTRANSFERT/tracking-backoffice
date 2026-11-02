@@ -182,11 +182,30 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  /** Jeton de renouvellement expiré, révoqué ou rejoué (et non une panne réseau). */
+  /**
+   * Jeton de renouvellement expiré, révoqué ou rejoué : 401 (REFRESH_TOKEN_REPLAYED, jeton invalide) ou 403.
+   * Les autres statuts (404/429 d'un tunnel ou d'une passerelle, 408, 5xx, délai dépassé, réseau)
+   * ne prouvent rien sur le jeton : la session est gardée et la requête échoue seule.
+   */
   function isRefreshRejected(error: unknown): boolean {
     if (!isAxiosError(error)) return false
     const status = error.response?.status
-    return status !== undefined && status >= 400 && status < 500
+    return status === 401 || status === 403
+  }
+
+  /**
+   * Un autre onglet a renouvelé, remplacé ou fermé la session : on s'aligne sur lui.
+   * Renvoie false si la session de cet onglet n'existe plus (déconnexion, autre compte).
+   */
+  function syncFromStorage(): boolean {
+    if (step.value !== 'authenticated') return true
+
+    const stored = authSessionStorage.read()
+    if (!stored || stored.userId !== currentUser.value?.id) return false
+
+    session.value = stored.session
+    accessTokenExpiresAt.value = stored.accessTokenExpiresAt
+    return true
   }
 
   /**
@@ -415,6 +434,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     confirmTotp,
     refreshSession,
+    syncFromStorage,
     restoreSession,
     stepUp,
     changePassword,
