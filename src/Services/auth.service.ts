@@ -11,6 +11,9 @@ import type {
   TotpCodeRequest,
 } from '@/types/auth'
 
+/** Le renouvellement tient le verrou inter-onglets : il doit se terminer vite, même si le réseau est mort. */
+const REFRESH_TIMEOUT_MS = 15_000
+
 export const authService = {
   async login(
     payload: LoginRequest,
@@ -43,6 +46,7 @@ export const authService = {
       await publicApiClient.post<SessionResponse>(
         '/auth/refresh',
         payload,
+        { timeout: REFRESH_TIMEOUT_MS },
       )
 
     return response.data

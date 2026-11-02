@@ -43,8 +43,15 @@ declare module 'axios' {
  */
 const EXPIRED_ACCESS_TOKEN_CODE = 'UNAUTHENTICATED'
 
+/*
+ * Délai maximal d'une requête. Sans lui, un renouvellement qui ne répond jamais
+ * garderait le verrou inter-onglets pour toujours et plus aucune session ne se renouvellerait.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000
+
 const baseConfig = {
   baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: REQUEST_TIMEOUT_MS,
   headers: {
     Accept: 'application/json, application/problem+json',
   },
@@ -72,10 +79,25 @@ function bearer(accessToken: string) {
   return `Bearer ${accessToken}`
 }
 
-function isExpiredAccessToken(error: AxiosError<ApiProblemDetails>) {
+/** Code métier de l'erreur ; le corps d'une réponse en blob (téléchargement de fichier) est relu en JSON. */
+async function readProblemCode(error: AxiosError<ApiProblemDetails>): Promise<string | undefined> {
+  const data: unknown = error.response?.data
+
+  if (data instanceof Blob) {
+    try {
+      return (JSON.parse(await data.text()) as ApiProblemDetails).code
+    } catch {
+      return undefined
+    }
+  }
+
+  return (data as ApiProblemDetails | undefined)?.code
+}
+
+async function isExpiredAccessToken(error: AxiosError<ApiProblemDetails>) {
   return (
     error.response?.status === 401 &&
-    error.response.data?.code === EXPIRED_ACCESS_TOKEN_CODE
+    (await readProblemCode(error)) === EXPIRED_ACCESS_TOKEN_CODE
   )
 }
 
@@ -109,7 +131,7 @@ apiClient.interceptors.response.use(
       !originalRequest ||
       originalRequest._retry === true ||
       originalRequest.skipAuthRefresh === true ||
-      !isExpiredAccessToken(error)
+      !(await isExpiredAccessToken(error))
     ) {
       return Promise.reject(error)
     }

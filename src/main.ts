@@ -9,6 +9,7 @@ import App from './App.vue'
 import router from './router'
 
 import { configureApiAuth } from '@/Services/api-client'
+import { authSessionStorage } from '@/Services/auth-session.storage'
 import { useAuthStore } from '@/stores/auth.store'
 import vuetify from '@/plugins/vuetify'
 
@@ -33,6 +34,17 @@ configureApiAuth({
       void router.replace({ name: 'login' })
     }
   },
+})
+
+
+authSessionStorage.subscribe(() => {
+  if (authStore.syncFromStorage()) return
+
+  authStore.resetAuthentication()
+
+  if (router.currentRoute.value.name !== 'login') {
+    void router.replace({ name: 'login' })
+  }
 })
 
 async function enableMocking(){
