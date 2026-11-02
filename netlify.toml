@@ -1,0 +1,27 @@
+# Déploiement Netlify du back-office.
+# Variables à définir dans Netlify (Site configuration > Environment variables) :
+#   VITE_API_BASE_URL=/api/v1
+#   VITE_ENABLE_MOCKS=false
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Proxy vers l'API : le navigateur appelle le domaine Netlify (pas de CORS),
+# et l'en-tête évite la page d'avertissement des tunnels ngrok gratuits.
+# Remplacer l'URL quand le backend sera hébergé ailleurs.
+[[redirects]]
+  from = "/api/*"
+  to = "https://scrunch-tattling-defeat.ngrok-free.dev/api/:splat"
+  status = 200
+  force = true
+  headers = { ngrok-skip-browser-warning = "true" }
+
+# Le routeur utilise l'historique HTML5 : toute URL inconnue renvoie l'application.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
