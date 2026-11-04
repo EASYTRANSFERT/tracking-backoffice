@@ -60,3 +60,47 @@ export interface CheckPageResponse {
   items: CheckResponse[]
   nextCursor?: string | null
 }
+
+export type ApiCheckScheduleMode = 'ONCE' | 'DAILY' | 'INTERVAL'
+
+/**
+ * Programme de contrôles : lance tout seul le même contrôle d'équipe que POST /checks/trigger.
+ * ONCE : `date` à `time` ; DAILY : chaque jour à `time` ; INTERVAL : toutes les `everyMin` minutes
+ * depuis le début du créneau planifié de l'équipe. Heures dans le fuseau de l'entreprise.
+ */
+export interface CheckScheduleResponse {
+  id: string
+  name: string
+  mode: ApiCheckScheduleMode
+  /** AAAA-MM-JJ (ONCE). */
+  date?: string
+  /** HH:mm (ONCE, DAILY). */
+  time?: string
+  /** 15 à 720 (INTERVAL). */
+  everyMin?: number
+  /** Bornes incluses (DAILY, INTERVAL) ; absentes : dès aujourd'hui, sans fin. */
+  startDate?: string
+  endDate?: string
+  /** Vide : toutes les équipes. */
+  teamIds: string[]
+  /** Faux : programme suspendu. */
+  active: boolean
+  createdBy?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateCheckScheduleRequest {
+  name: string
+  mode: ApiCheckScheduleMode
+  date?: string
+  time?: string
+  everyMin?: number
+  startDate?: string
+  endDate?: string
+  teamIds?: string[]
+  active?: boolean
+}
+
+/** Changer de mode efface les champs de l'ancien mode. */
+export type UpdateCheckScheduleRequest = Partial<CreateCheckScheduleRequest>
