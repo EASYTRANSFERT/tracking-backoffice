@@ -65,6 +65,11 @@
   display: flex;
 }
 
+/* Interrupteurs activés dans le rouge de la marque : Vuetify estompe la piste (opacité 0,6), qui vire au rose. */
+.v-switch .v-selection-control--dirty .v-switch__track {
+  opacity: 1;
+}
+
 /* Info-bulles lisibles : le fond par défaut de Vuetify (surface-variant) est presque blanc, comme son texte. */
 .v-tooltip > .v-overlay__content {
   background: #252830;

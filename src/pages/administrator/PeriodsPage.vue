@@ -7,13 +7,13 @@ import PageHeader from '@/Components/layout/PageHeader.vue'
 import PeriodCreateDialog from '@/Components/periods/PeriodCreateDialog.vue'
 import PeriodTable from '@/Components/periods/PeriodTable.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
+import { useCreateQuery } from '@/composables/useCreateQuery'
 import { usePeriodAccess } from '@/composables/usePeriodAccess'
 import { usePeriodStore } from '@/stores/period.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { periodErrorMessage, periodsOfTeams, periodStateOptions } from '@/utils/period-format'
-import type { Team } from '@/types/administrator'
 import type { ApiPeriodState, PeriodResponse } from '@/types/period'
 
 const router = useRouter()
@@ -29,7 +29,7 @@ const state = ref<ApiPeriodState | null>(null)
 // L'administrateur voit toutes les périodes ; le superviseur, celles des équipes de ses sites.
 const visiblePeriods = computed(() => readonly.value ? periodsOfTeams(periods.value, supervisorStore.scopeTeamIds) : periods.value)
 // Équipes proposées à la création : celles du périmètre pour le superviseur.
-const creatableTeams = computed(() => readonly.value ? [...supervisorStore.scopeTeamIds].map((id) => supervisorStore.teamsById[id]).filter((team): team is Team => Boolean(team)) : knownTeams.value)
+const creatableTeams = computed(() => readonly.value ? supervisorStore.scopeTeams : knownTeams.value)
 const teamName = (teamId?: string) => (readonly.value ? supervisorStore.teamsById[teamId ?? '']?.name : administratorStore.findTeam(teamId)?.name) ?? '—'
 const filtered = computed(() => visiblePeriods.value.filter((period) => !state.value || period.state === state.value))
 const createOpen = ref(false)
@@ -64,6 +64,7 @@ async function create(teamIds: string[], from: string, to: string) {
   createTeamIds.value = failed.map(({ teamId }) => teamId)
   createError.value = failed.map(({ teamId, error }) => `${teamName(teamId)} : ${periodErrorMessage(error) ?? getApiErrorMessage(error, 'Impossible de créer la période.')}`).join('\n')
 }
+useCreateQuery(openCreate)
 </script>
 
 <template>
