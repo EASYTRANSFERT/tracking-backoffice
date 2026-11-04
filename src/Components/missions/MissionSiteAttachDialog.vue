@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { matchesSearch } from '@/utils/search'
+import { siteAddress } from '@/utils/site-format'
 import { computed, ref, watch } from 'vue'
 
 import type { Site } from '@/types/administrator'
@@ -31,7 +32,7 @@ function toggle(siteId: string) {
           <v-list-item v-for="site in filtered" :key="site.id" rounded="lg" @click="toggle(site.id)">
             <template #prepend><v-checkbox-btn :model-value="selected.includes(site.id)" color="primary" @click.stop="toggle(site.id)" /></template>
             <v-list-item-title class="font-semibold">{{ site.name }}</v-list-item-title>
-            <v-list-item-subtitle>{{ [site.address, site.city].filter(Boolean).join(', ') || 'Adresse à compléter' }}</v-list-item-subtitle>
+            <v-list-item-subtitle>{{ siteAddress(site) }}</v-list-item-subtitle>
           </v-list-item>
         </v-list>
         <p v-else class="px-3 py-8 text-center text-sm text-[#747985]">{{ search ? `Aucun site sans mission ne correspond à « ${search} ».` : 'Tous les sites sont déjà rattachés à une mission.' }}</p>
