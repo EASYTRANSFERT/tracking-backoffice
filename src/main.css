@@ -70,6 +70,11 @@
   opacity: 1;
 }
 
+/* Aide de champ à ne pas manquer : Vuetify estompe les aides (opacité 0,6), cette classe les affiche pleinement. */
+.v-input.hint-strong .v-messages {
+  opacity: 1;
+}
+
 /* Info-bulles lisibles : le fond par défaut de Vuetify (surface-variant) est presque blanc, comme son texte. */
 .v-tooltip > .v-overlay__content {
   background: #252830;

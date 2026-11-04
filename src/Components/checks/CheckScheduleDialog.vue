@@ -99,9 +99,14 @@ async function submit() {
             multiple
             chips
             closable-chips
-            hide-details
+            :hint="data.teamIds.length ? undefined : 'Sans choix, toutes les équipes sont contrôlées.'"
+            persistent-hint
+            hide-details="auto"
+            class="hint-strong"
             no-data-text="Aucune équipe"
-          />
+          >
+            <template #message="{ message }"><span class="text-primary">{{ message }}</span></template>
+          </v-autocomplete>
           <v-text-field v-model="data.name" label="Nom" :placeholder="suggestedName" persistent-placeholder hide-details />
         </v-card-text>
         <v-card-actions class="px-6 pb-5">
