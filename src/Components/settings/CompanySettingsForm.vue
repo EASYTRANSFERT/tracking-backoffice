@@ -8,14 +8,15 @@ const props = defineProps<{ settings: TenantSettings; loading?: boolean }>()
 const emit = defineEmits<{ submit: [settings: TenantSettings]; cancel: []; dirtyChange: [dirty: boolean] }>()
 
 const form = ref()
-const clone = (value: TenantSettings): TenantSettings => ({ ...value, retention: { ...value.retention } })
+// Absent des entreprises plus anciennes que ce paramètre : l'API l'active par défaut.
+const clone = (value: TenantSettings): TenantSettings => ({ ...value, activationSmsRequired: value.activationSmsRequired ?? true, retention: { ...value.retention } })
 const data = reactive<TenantSettings>(clone(props.settings))
 
 // Le formulaire repart des valeurs enregistrées quand elles changent (chargement, enregistrement).
 watch(() => props.settings, (value) => { Object.assign(data, clone(value)); emit('dirtyChange', false) })
 watch(data, () => emit('dirtyChange', true), { deep: true })
 
-const isInteger = (value: unknown) => Number.isInteger(Number(value)) && String(value).trim() !== ''
+const isInteger =(value: unknown) => Number.isInteger(Number(value)) && String(value).trim() !== ''
 const positive = (value: unknown) => (isInteger(value) && Number(value) > 0) || 'Entrez un nombre entier supérieur à 0'
 const zeroOrMore = (value: unknown) => (isInteger(value) && Number(value) >= 0) || 'Entrez un nombre entier, 0 ou plus'
 
@@ -25,6 +26,7 @@ const toNumbers = (value: TenantSettings): TenantSettings => ({
   maxAccuracyM: Number(value.maxAccuracyM),
   missingExitAfterMin: Number(value.missingExitAfterMin),
   checksPerSession: Number(value.checksPerSession),
+  activationSmsRequired: value.activationSmsRequired,
   retention: {
     selfieDays: Number(value.retention.selfieDays),
     dataYears: Number(value.retention.dataYears),
@@ -60,6 +62,22 @@ function reset() {
         <v-text-field v-model.number="data.lateToleranceMin" type="number" label="Tolérance de retard" suffix="min" :rules="[zeroOrMore]" hint="Délai après le début du créneau avant qu’une arrivée soit en retard." persistent-hint />
         <v-text-field v-model.number="data.maxAccuracyM" type="number" label="Précision GPS maximale" suffix="m" :rules="[positive]" hint="Au-delà, la position est jugée imprécise et le pointage est à vérifier." persistent-hint />
         <v-text-field v-model.number="data.missingExitAfterMin" type="number" label="Délai « sortie manquante »" suffix="min" :rules="[positive]" hint="Temps après la fin du créneau avant de signaler un départ non pointé." persistent-hint />
+        <!-- Interrupteur logé dans un champ en lecture seule : même cadre, même libellé et même aide que les autres réglages. -->
+        <v-text-field
+          :model-value="data.activationSmsRequired ? 'Code SMS exigé' : 'Sans code SMS'"
+          label="Activation d’un téléphone"
+          readonly
+          :hint="data.activationSmsRequired ? 'L’agent saisit son matricule puis le code reçu par SMS.' : 'Le matricule suffit, aucun SMS n’est envoyé.'"
+          persistent-hint
+          class="cursor-pointer"
+          @mousedown.prevent
+          @click="data.activationSmsRequired = !data.activationSmsRequired"
+        >
+          <template #append-inner>
+            <!-- Largeur fixe : sans elle, l'interrupteur est compté nul dans le champ et déborde du cadre. -->
+            <v-switch v-model="data.activationSmsRequired" color="primary" density="compact" hide-details style="flex: none; width: 48px" aria-label="Code SMS à l’activation d’un téléphone" @click.stop />
+          </template>
+        </v-text-field>
       </v-card-text>
     </v-card>
 
