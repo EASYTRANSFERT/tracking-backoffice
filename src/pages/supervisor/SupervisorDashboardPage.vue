@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import DashboardStatCard from '@/Components/DashboardStatCard.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import MissionTable from '@/Components/missions/MissionTable.vue'
+import OnboardingButton from '@/Components/onboarding/OnboardingButton.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
@@ -39,7 +40,7 @@ const viewMission = (mission: Mission) => router.push({ name: 'supervisor-missio
         <span v-if="tenant" class="mr-2 inline-flex items-center gap-1 font-semibold text-[#292d38]"><v-icon icon="mdi-domain" size="16" color="primary" />{{ tenant.name }}</span>
         Suivez vos missions, leurs équipes et leurs agents.
       </template>
-      <template #actions><span /></template>
+      <template #actions><OnboardingButton /></template>
     </PageHeader>
 
     <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
