@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 
-import { checkModeLabels, defaultScheduleName, formatInterval, INTERVAL_MAX, INTERVAL_MIN, scheduleDefaults } from '@/utils/check-schedule'
+import { checkModeLabels, defaultScheduleName, formatInterval, INTERVAL_MAX, INTERVAL_MIN, scheduleDefaults, todayKey } from '@/utils/check-schedule'
 import type { Team } from '@/types/administrator'
 import type { ApiCheckScheduleMode, CheckScheduleResponse, CreateCheckScheduleRequest } from '@/types/check'
 
@@ -39,6 +39,9 @@ const required = (value: string) => Boolean(value) || 'Obligatoire'
 // L'API refuse un contrôle « une fois » à un moment déjà passé (CHECK_SCHEDULE_IN_PAST).
 const upcoming = () => data.mode !== 'ONCE' || !data.date || !data.time || new Date(`${data.date}T${data.time}`) > new Date() || 'Choisissez un moment à venir'
 const validInterval = (value: number | string) => (Number.isInteger(Number(value)) && Number(value) >= INTERVAL_MIN && Number(value) <= INTERVAL_MAX) || `Entre ${INTERVAL_MIN} et ${INTERVAL_MAX} min`
+// Aucune date passée ; en modification, le premier jour d'un programme déjà commencé reste accepté.
+const today = todayKey()
+const notPast = (value?: string) => !value || value >= today || value === props.schedule?.startDate || 'Date déjà passée'
 const endAfterStart = () => !data.startDate || !data.endDate || data.endDate >= data.startDate || 'Avant le début'
 
 // Seuls les champs du mode choisi partent : l'API efface ceux d'un autre mode.
@@ -67,7 +70,7 @@ async function submit() {
           </v-btn-toggle>
 
           <div class="grid gap-x-4 gap-y-4 pt-3 sm:grid-cols-2">
-            <v-text-field v-if="data.mode === 'ONCE'" v-model="data.date" type="date" label="Date" :rules="[required]" />
+            <v-text-field v-if="data.mode === 'ONCE'" v-model="data.date" type="date" label="Date" :min="today" :rules="[required, notPast]" />
             <v-text-field v-if="data.mode !== 'INTERVAL'" v-model="data.time" type="time" label="Heure" :rules="[required, upcoming]" />
             <v-text-field
               v-if="data.mode === 'INTERVAL'"
@@ -83,8 +86,8 @@ async function submit() {
               :rules="[validInterval]"
             />
             <template v-if="data.mode !== 'ONCE'">
-              <v-text-field v-model="data.startDate" type="date" label="Du" placeholder="Aujourd’hui" persistent-placeholder clearable />
-              <v-text-field v-model="data.endDate" type="date" label="Au" placeholder="Sans fin" persistent-placeholder clearable :rules="[endAfterStart]" />
+              <v-text-field v-model="data.startDate" type="date" label="Du" placeholder="Aujourd’hui" persistent-placeholder clearable :min="today" :rules="[notPast]" />
+              <v-text-field v-model="data.endDate" type="date" label="Au" placeholder="Sans fin" persistent-placeholder clearable :min="today" :rules="[notPast, endAfterStart]" />
             </template>
           </div>
 

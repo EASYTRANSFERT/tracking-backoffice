@@ -51,6 +51,9 @@ export function defaultScheduleName(schedule: Pick<CheckScheduleResponse, 'mode'
 const pad = (value: number) => String(value).padStart(2, '0')
 const toDate = (value: Date) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`
 
+/** Date du jour, AAAA-MM-JJ (bornes des champs de date). */
+export const todayKey = () => toDate(new Date())
+
 /** Valeurs pré-remplies du formulaire : dans une heure (arrondie à la demi-heure), 10:00 chaque jour, toutes les 1 h 30. */
 export function scheduleDefaults(now = new Date()): Required<Pick<CreateCheckScheduleRequest, 'date' | 'time' | 'everyMin' | 'startDate'>> {
   const inOneHour = new Date(now.getTime() + 60 * 60_000)
