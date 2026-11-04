@@ -7,6 +7,8 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     allowedRoles?: UserRole[]
     directory?: 'users' | 'teams'
+    /** La page a sa propre frise d'étapes : le parcours guidé s'y réduit à une ligne. */
+    hasStepper?: boolean
   }
 }
 
