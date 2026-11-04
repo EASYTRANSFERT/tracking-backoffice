@@ -19,7 +19,7 @@ describe('parcours guidé', () => {
   })
 
   it('suit l’ordre imposé par l’API, comptes d’abord, périodes avant les sites et le planning', () => {
-    expect(onboardingSteps.administrator.map((step) => step.title)).toEqual(['Comptes', 'Équipes', 'Missions', 'Périodes', 'Sites', 'Planning', 'Téléphones'])
+    expect(onboardingSteps.administrator.map((step) => step.title)).toEqual(['Comptes', 'Équipes', 'Missions', 'Périodes', 'Sites', 'Planning', 'QR codes'])
     expect(onboardingSteps.supervisor.map((step) => step.title)).toEqual(['Missions', 'Périodes', 'Contrôles'])
   })
 

@@ -21,7 +21,7 @@ export const onboardingSteps: Record<OnboardingRole, OnboardingStep[]> = {
     { title: 'Sites', to: { name: 'admin-site-create' } },
     // Les créneaux se planifient depuis la fiche d'un site.
     { title: 'Planning', to: { name: 'admin-sites' } },
-    { title: 'Téléphones', to: { name: 'admin-devices' } },
+    { title: 'QR codes', to: { name: 'admin-qr-codes' } },
   ],
   supervisor: [
     { title: 'Missions', to: { name: 'supervisor-missions' } },
