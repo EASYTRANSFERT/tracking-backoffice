@@ -49,7 +49,7 @@ async function download(format: PeriodReportFormat) {
     <template v-else>
       <div class="space-y-3">
         <v-alert v-if="header.final" type="success" variant="tonal" density="compact" title="Totaux définitifs" />
-        <v-alert v-else type="warning" variant="tonal" density="compact" title="Totaux provisoire" text="Cette période n'est pas encore terminée" />
+        <v-alert v-else type="warning" variant="text" density="compact" title="Totaux provisoires" text="Cette période n'est pas encore terminée" />
         <v-alert v-if="waiting > 0" type="info" variant="tonal" density="compact">
           {{ waiting }} session{{ waiting > 1 ? 's' : '' }} en attente ou ouverte{{ waiting > 1 ? 's' : '' }}, hors totaux.
           <a href="#" class="ml-1 font-semibold underline" @click.prevent="emit('show-sessions')">Voir ces sessions</a>
@@ -75,7 +75,7 @@ async function download(format: PeriodReportFormat) {
               <tr v-if="!totals.agents.length"><td colspan="7" class="py-6 text-center text-sm text-[#747985]">Aucun agent sur cette période.</td></tr>
             </tbody>
             <tfoot>
-              <tr class="bg-[#FDE9EA] font-bold text-[#D80F16]">
+              <tr class="font-bold text-primary">
                 <td /><td>Équipe ({{ totals.team.agents }} agent{{ totals.team.agents > 1 ? 's' : '' }})</td><td>{{ totals.team.daysWorked }}</td><td>{{ totals.team.sessionsCount }}</td><td>{{ formatMinutes(totals.team.workedMinutes) }}</td><td>{{ formatMinutes(totals.team.lateMinutes) }}</td><td>{{ totals.team.absencesCount }}</td>
               </tr>
             </tfoot>

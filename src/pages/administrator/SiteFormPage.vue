@@ -16,18 +16,19 @@ const router = useRouter();
 const store = useAdministratorStore();
 const feedback = useUiFeedbackStore();
 const { supervisors, missions, teamOptions } = storeToRefs(store);
-const { generatingId, printingId, generate, print } = useSiteQrCode();
+const { generatingId, printingId, printedIds, generate, print } = useSiteQrCode();
 
 const id = computed(() => route.params.siteId as string | undefined);
 const site = computed(() => id.value ? store.getSiteById(id.value) : undefined)
 // Site tout juste créé : le parcours se termine sur son QR code.
 const createdId = ref<string>()
 const createdSite = computed(() => createdId.value ? store.getSiteById(createdId.value) : undefined)
-// Étapes restantes après la création ; la première se coche dès que le QR code est généré.
+// Étapes restantes après la création : générer puis imprimer se cochent au fil des actions,
+// la planification se fait sur la fiche du site.
 const createdSteps = computed(() => [
   { title: 'Générez le QR code', text: 'Un code unique, propre à ce site.', done: Boolean(createdSite.value?.qrRotatedAt) },
-  { title: 'Imprimez-le et affichez-le sur place', text: 'Les agents le scannent pour pointer.', done: false },
-  { title: 'Planifiez l’équipe', text: 'Depuis la fiche du site.', done: false },
+  { title: 'Imprimez-le et affichez-le sur place', text: 'Les agents le scannent pour pointer.', done: Boolean(createdId.value && printedIds.value.has(createdId.value)) },
+  { title: 'Planifiez l’équipe', text: 'Depuis la fiche du site.', done: false, to: createdId.value ? { name: 'admin-site-details', params: { siteId: createdId.value } } : undefined },
 ])
 
 // Création depuis une mission : la mission est pré-remplie et « Retour » ramène à la mission,
@@ -121,6 +122,7 @@ async function submit(payload: SiteInput) {
                       <div>
                         <p class="font-medium">{{ step.title }}</p>
                         <p class="text-sm text-medium-emphasis">{{ step.text }}</p>
+                        <v-btn v-if="step.to" :to="step.to" variant="text" color="primary" size="small" append-icon="mdi-arrow-right" class="mt-1 -ml-2">Planifier</v-btn>
                       </div>
                     </li>
                   </ol>

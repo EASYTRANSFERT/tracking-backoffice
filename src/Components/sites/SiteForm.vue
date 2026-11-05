@@ -42,7 +42,7 @@ const placedPoints = computed(() => points.value.filter((point): point is SitePo
 const required = (value: string) => Boolean(String(value ?? '').trim()) || 'Ce champ est obligatoire'
 const requiredChoice = (value?: string) => Boolean(value) || 'Ce champ est obligatoire'
 // L'API refuse un site sans adresse ni description de l'emplacement.
-const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim()) 
+const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim())
 const missionTitle = (item: Mission) => `${item.code} · ${item.title}`
 watch([data, points], () => emit('dirtyChange', true), { deep: true })
 
@@ -116,7 +116,6 @@ async function submit() {
           <p class="text-xs text-[#848484]">Périmètre ({{ placedPoints.length }} points)</p>
           <SitePerimeterMap :points="points" />
         </div>
-        <v-alert v-if="!site" type="info" variant="tonal" text="Le QR code du site sera généré à l’étape suivante, une fois le site créé." />
       </v-card-text>
     </template>
 

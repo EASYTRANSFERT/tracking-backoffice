@@ -14,8 +14,10 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&'
  * surgissante bloquée par le navigateur, et la page en cours reste intacte.
  */
 export function printQrCode({ siteName, location, image, generatedAt }: PrintableQrCode): Promise<void> {
+  // Le navigateur nomme le PDF d'après le titre de la page principale, pas celui de l'iframe.
+  const fileName = `QR code - ${siteName}`
   const date = generatedAt ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(generatedAt)) : null
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>QR code · ${escapeHtml(siteName)}</title>
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(fileName)}</title>
 <style>
   @page { size: A4; margin: 18mm; }
   * { box-sizing: border-box; }
@@ -39,13 +41,14 @@ export function printQrCode({ siteName, location, image, generatedAt }: Printabl
     const frame = Object.assign(document.createElement('iframe'), { title: 'Impression du QR code' })
     Object.assign(frame.style, { position: 'fixed', width: '0', height: '0', border: '0', right: '0', bottom: '0' })
     document.body.appendChild(frame)
-    const cleanUp = () => { frame.remove(); resolve() }
+    const pageTitle = document.title
+    const cleanUp = () => { document.title = pageTitle; frame.remove(); resolve() }
     frame.onload = () => {
       const view = frame.contentWindow
       if (!view) return cleanUp()
       // Imprime une fois l'image décodée, puis retire l'iframe après la boîte d'impression.
       const qr = view.document.querySelector('img')
-      const go = () => { view.focus(); view.print(); window.setTimeout(cleanUp, 500) }
+      const go = () => { document.title = fileName; view.focus(); view.print(); window.setTimeout(cleanUp, 500) }
       if (qr && !qr.complete) qr.addEventListener('load', go, { once: true })
       else go()
     }

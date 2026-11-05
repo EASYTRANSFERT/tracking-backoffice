@@ -129,7 +129,6 @@ defineExpose({ validate })
         persistent-hint
         :rules="[radiusRule]"
       />
-      <v-alert type="info" variant="tonal" text="La zone formée par les points, élargie du rayon de tolérance, représente le périmètre de pointage." />
     </v-card-text>
     <SitePointMapDialog v-model="mapDialogOpen" :point-index="mapPointIndex" :points="points" @confirm="setPoint(mapPointIndex, $event)" @move="setPoint" />
   </v-form>
