@@ -59,28 +59,19 @@ const emit = defineEmits<{
         rounded="lg"
         @update:model-value="emit('update:page', $event)"
       />
-      <div v-else class="flex items-center gap-2" aria-label="Navigation par curseur">
-        <v-btn
-          variant="outlined"
-          color="secondary"
-          size="small"
-          prepend-icon="mdi-chevron-left"
-          :disabled="!hasPrevious"
-          @click="emit('previous')"
-        >
-          Précédent
-        </v-btn>
-        <v-btn
-          variant="outlined"
-          color="secondary"
-          size="small"
-          append-icon="mdi-chevron-right"
-          :disabled="!hasNext"
-          @click="emit('next')"
-        >
-          Suivant
-        </v-btn>
-      </div>
+      <!-- Même rendu que la pagination numérotée : seule la page courante est connue,
+           les flèches avancent ou reculent d'une page via le curseur. -->
+      <v-pagination
+        v-else
+        aria-label="Navigation par curseur"
+        :model-value="page"
+        :length="hasNext ? page + 1 : page"
+        :total-visible="1"
+        density="compact"
+        size="small"
+        rounded="lg"
+        @update:model-value="$event > page ? emit('next') : emit('previous')"
+      />
     </div>
   </div>
 </template>

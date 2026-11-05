@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import AppTableFooter from '@/Components/common/AppTableFooter.vue'
+import { usePagination } from '@/composables/usePagination'
 import type { Mission, MissionStatus } from '@/types/administrator'
 
 const props = withDefaults(defineProps<{
@@ -34,7 +35,6 @@ const search = ref('')
 const status = ref<MissionStatus | 'all'>('all')
 const dateFrom = ref('')
 const dateTo = ref('')
-const page = ref(1)
 const filtered = computed(() => {
   return [...props.missions].filter((mission) => {
     const startDate = mission.startAt?.slice(0, 10) ?? ''
@@ -44,9 +44,7 @@ const filtered = computed(() => {
       && (!dateTo.value || Boolean(startDate && startDate <= dateTo.value))
   }).sort((a, b) => (b.startAt ?? b.createdAt ?? '').localeCompare(a.startAt ?? a.createdAt ?? ''))
 })
-const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / props.pageSize)))
-const start = computed(() => (page.value - 1) * props.pageSize)
-const displayed = computed(() => filtered.value.slice(start.value, start.value + props.pageSize))
+const { page, pageCount, start, end, displayed } = usePagination(filtered, () => props.pageSize)
 watch([search, status, dateFrom, dateTo], () => { page.value = 1 })
 const formatDate = (value?: string) => value
   ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
@@ -86,6 +84,6 @@ const formatDate = (value?: string) => value
       </v-table>
     </div>
     <AppEmptyState v-else-if="!loading" icon="mdi-clipboard-search-outline" title="Aucune mission trouvée" description="Créez une mission ou modifiez vos filtres." />
-    <AppTableFooter v-if="filtered.length" :page="page" :page-count="pageCount" :start="start + 1" :end="Math.min(start + pageSize, filtered.length)" :total="filtered.length" label="missions" @update:page="page = $event" />
+    <AppTableFooter v-if="filtered.length" v-model:page="page" :page-count="pageCount" :start="start + 1" :end="end" :total="filtered.length" label="missions" />
   </v-card>
 </template>
