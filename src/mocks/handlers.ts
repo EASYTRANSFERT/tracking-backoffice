@@ -17,6 +17,7 @@ import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendan
 import type { CheckResponse, TriggerCheckRequest } from '@/types/check'
 import { adjustmentHandlers } from '@/mocks/adjustment-handlers'
 import { checkScheduleHandlers } from '@/mocks/check-schedule-handlers'
+import { demoRequestHandlers } from '@/mocks/demo-request-handlers'
 import { missionOverviewHandlers } from '@/mocks/mission-overview-handlers'
 import { periodHandlers } from '@/mocks/period-handlers'
 import { periodTotalsHandlers } from '@/mocks/period-totals-handlers'
@@ -224,6 +225,7 @@ export const handlers = [
   ...missionOverviewHandlers(api, problem, () => sites),
   ...adjustmentHandlers(api, problem, () => sessions),
   ...checkScheduleHandlers(api, problem),
+  ...demoRequestHandlers(api, problem, page),
   http.get(api('/sites'), ({ request }) => {
     const params = new URL(request.url).searchParams
     const filtered = sites.filter((site) => (['status', 'missionId', 'teamId', 'managerId'] as const)
