@@ -3,7 +3,6 @@ import { fullName } from '@/utils/people'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { isAxiosError } from 'axios'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import AppTableFooter from '@/Components/common/AppTableFooter.vue'
 import AuditLogDetailsDialog from '@/Components/audit/AuditLogDetailsDialog.vue'
@@ -11,12 +10,11 @@ import AuditLogTable from '@/Components/audit/AuditLogTable.vue'
 import { auditActionLabel, auditOutcomeOptions, auditTargetRoute, dayBoundToIso, knownAuditActions } from '@/Components/audit/audit-format'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { addDays, toDayKey } from '@/Components/sites/site-schedule'
-import { getApiErrorMessage } from '@/utils/api-error'
+import { apiErrorCode, getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { AUDIT_PAGE_SIZES, useAuditStore, type AuditFilters } from '@/stores/audit.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import type { ApiProblemDetails } from '@/types/api'
 import type { AuditLogResponse, AuditOutcome } from '@/types/audit'
 
 const router = useRouter()
@@ -78,7 +76,7 @@ function currentFilters(): AuditFilters {
 }
 
 function showError(error: unknown, fallback: string) {
-  const code = isAxiosError<ApiProblemDetails>(error) ? error.response?.data?.code : undefined
+  const code = apiErrorCode(error)
   if (code === 'VALIDATION_FAILED') feedback.error(getApiErrorMessage(error, 'Période invalide.'))
   else if (code === 'FORBIDDEN') feedback.error('Vous n’avez pas accès à ce journal.')
   else feedback.error(getApiErrorMessage(error, fallback))

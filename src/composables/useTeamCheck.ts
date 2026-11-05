@@ -1,11 +1,9 @@
-import { isAxiosError } from 'axios'
 import { storeToRefs } from 'pinia'
 
 import { useAttendanceStore } from '@/stores/attendance.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import { getApiErrorMessage } from '@/utils/api-error'
+import { apiErrorCode, getApiErrorMessage } from '@/utils/api-error'
 import { checkRefusals } from '@/utils/check-schedule'
-import type { ApiProblemDetails } from '@/types/api'
 
 const formatTime = (value: string) => new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(new Date(value))
 
@@ -27,7 +25,7 @@ export function useTeamCheck() {
       const count = campaign.checks.length
       feedback.success(`Contrôle lancé : ${count} agent${count > 1 ? 's' : ''} à confirmer avant ${formatTime(campaign.deadlineAt)}.`)
     } catch (error) {
-      const code = isAxiosError<ApiProblemDetails>(error) ? error.response?.data?.code : undefined
+      const code = apiErrorCode(error)
       feedback.error(code && checkRefusals[code] ? checkRefusals[code] : getApiErrorMessage(error, 'Impossible de lancer le contrôle.'))
     }
   }

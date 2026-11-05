@@ -1,5 +1,5 @@
 import { formatDateTime, formatMinutes, statusLabels, validationConfig } from '@/Components/attendance/attendance-labels'
-import { apiErrorCode } from '@/utils/period-format'
+import { apiCodeMessage } from '@/utils/api-error'
 import type { AdjustedValues, AdjustmentResponse, CreateAdjustmentRequest } from '@/types/adjustment'
 import type { WorkSessionResponse } from '@/types/attendance'
 import type { PeriodResponse } from '@/types/period'
@@ -83,7 +83,7 @@ const errorMessages: Record<string, string> = {
 }
 
 /** Message français d'un refus de régularisation ; null si le code est inconnu (on garde alors le message de l'API). */
-export const adjustmentErrorMessage = (error: unknown) => errorMessages[apiErrorCode(error) ?? ''] ?? null
+export const adjustmentErrorMessage = (error: unknown) => apiCodeMessage(error, errorMessages)
 
 /** Une période en clôture ou clôturée n'accepte plus de régularisation (409 PERIOD_CLOSED). */
 export const isPeriodClosed = (period?: Pick<PeriodResponse, 'state'> | null) => period?.state === 'CLOSING' || period?.state === 'CLOSED'

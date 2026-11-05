@@ -3,17 +3,18 @@ import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
+import AppTableFooter from '@/Components/common/AppTableFooter.vue'
 import CheckScheduleDialog from '@/Components/checks/CheckScheduleDialog.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useCreateQuery } from '@/composables/useCreateQuery'
+import { usePagination } from '@/composables/usePagination'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCheckStore } from '@/stores/check.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import { getApiErrorMessage } from '@/utils/api-error'
+import { apiCodeMessage, getApiErrorMessage } from '@/utils/api-error'
 import { checkRefusals, describePeriod, describeSchedule } from '@/utils/check-schedule'
-import { apiErrorCode } from '@/utils/period-format'
 import type { Team } from '@/types/administrator'
 import type { CheckScheduleResponse, CreateCheckScheduleRequest } from '@/types/check'
 
@@ -25,6 +26,7 @@ const administratorStore = useAdministratorStore()
 const supervisorStore = useSupervisorStore()
 const feedback = useUiFeedbackStore()
 const { schedules, isLoading, isSaving, togglingId } = storeToRefs(store)
+const pagination = usePagination(schedules)
 
 const teams = computed<Team[]>(() => isSupervisor.value
   ? supervisorStore.scopeTeams
@@ -33,7 +35,7 @@ const teamName = (teamId: string) => (isSupervisor.value ? supervisorStore.teams
 const teamsLabel = (teamIds: string[]) => teamIds.length ? teamIds.map(teamName).join(', ') : 'Toutes les équipes'
 // « Toutes » : pour le superviseur, ses équipes seulement (vide vaudrait toute l'entreprise côté API).
 const targetTeamIds = (teamIds: string[]) => teamIds.length || !isSupervisor.value ? teamIds : teams.value.map((team) => team.id)
-const errorMessage = (error: unknown, fallback: string) => checkRefusals[apiErrorCode(error) ?? ''] ?? getApiErrorMessage(error, fallback)
+const errorMessage = (error: unknown, fallback: string) => apiCodeMessage(error, checkRefusals) ?? getApiErrorMessage(error, fallback)
 
 onMounted(async () => {
   if (isSupervisor.value) supervisorStore.loadScope().then(() => supervisorStore.loadScopeTeams()).catch(() => undefined)
@@ -87,7 +89,7 @@ useCreateQuery(() => open())
       <div v-if="schedules.length" class="overflow-x-auto">
         <v-table class="min-w-[640px]">
           <tbody>
-            <tr v-for="schedule in schedules" :key="schedule.id" :class="{ 'opacity-60': !schedule.active }">
+            <tr v-for="schedule in pagination.displayed.value" :key="schedule.id" :class="{ 'opacity-60': !schedule.active }">
               <td class="py-4">
                 <p class="font-semibold text-[#292d38]">{{ schedule.name }}</p>
                 <p class="mt-1 text-xs text-[#747985]">{{ [describeSchedule(schedule), describePeriod(schedule)].filter(Boolean).join(' · ') }}</p>
@@ -109,6 +111,7 @@ useCreateQuery(() => open())
           </tbody>
         </v-table>
       </div>
+      <AppTableFooter v-if="schedules.length" v-model:page="pagination.page.value" :page-count="pagination.pageCount.value" :start="pagination.start.value + 1" :end="pagination.end.value" :total="pagination.total.value" label="contrôles" />
       <AppEmptyState v-else-if="!isLoading" icon="mdi-account-clock-outline" title="Aucun contrôle programmé" description="Programmez un contrôle pour une date précise, chaque jour ou à intervalle.">
         <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="open()">Nouveau contrôle</v-btn>
       </AppEmptyState>

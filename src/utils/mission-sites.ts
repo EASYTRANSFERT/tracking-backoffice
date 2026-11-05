@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios'
 
 import { getApiErrorMessage } from '@/utils/api-error'
-import { apiErrorCode } from '@/utils/period-format'
+import { apiErrorCode } from '@/utils/api-error'
 
 /** Un site refusé par POST /missions/{id}/sites, avec sa raison. */
 export interface MissionSiteProblem {
