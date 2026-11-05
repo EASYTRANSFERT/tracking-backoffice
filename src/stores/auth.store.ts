@@ -12,6 +12,7 @@ import { userService } from '@/Services/user.service'
 import { getDashboardRoles } from '@/types/roles'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useAuditStore } from '@/stores/audit.store'
+import { useDemoRequestStore } from '@/stores/demo-request.store'
 import { usePeriodStore } from '@/stores/period.store'
 import { useOperatorStore } from '@/stores/operator.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
@@ -371,6 +372,7 @@ export const useAuthStore = defineStore('auth', () => {
     useAdministratorStore().resetData()
     useSupervisorStore().reset()
     useAuditStore().resetData()
+    useDemoRequestStore().resetData()
     usePeriodStore().resetData()
   }
 
