@@ -1,17 +1,35 @@
 <script setup lang="ts">
-import { MIN_TOLERANCE_RADIUS_M, toleranceRadiusRule } from '@/utils/site-radius'
-import { fullName } from '@/utils/people'
+import { fullName, nameOr } from '@/utils/people'
 import { computed, reactive, ref, watch } from 'vue'
-import LocationAutocomplete from '@/Components/sites/LocationAutocomplete.vue'
+import AppMissingOption from '@/Components/common/AppMissingOption.vue'
+import AppStepperLayout from '@/Components/common/AppStepperLayout.vue'
+import AppSummaryList from '@/Components/common/AppSummaryList.vue'
+import SitePerimeterFields from '@/Components/sites/SitePerimeterFields.vue'
 import SitePerimeterMap from '@/Components/sites/SitePerimeterMap.vue'
-import SitePointMapDialog from '@/Components/sites/SitePointMapDialog.vue'
-import { delimitsSurface, formatCoordinates, SITE_POINT_COUNT, SITE_POINT_MAX } from '@/Components/sites/site-map'
+import { SITE_POINT_COUNT } from '@/Components/sites/site-map'
+import { isFormValid, useStepper, type StepItem } from '@/composables/useStepper'
 import type { EnterpriseUser, Mission, Site, SiteInput, SitePoint, Team } from '@/types/administrator'
-import type { GeocodingResult } from '@/types/geocoding'
 
-const props = defineProps<{ site?: Site; managers: EnterpriseUser[]; missions: Mission[]; teams: Team[]; loading?: boolean; defaultMissionId?: string }>()
+const props = defineProps<{
+  site?: Site; managers: EnterpriseUser[]; missions: Mission[]; teams: Team[]; loading?: boolean; defaultMissionId?: string
+  /** Vrai une fois le site créé : la dernière étape (QR code, slot `created`) s'affiche. */
+  created?: boolean
+}>()
 const emit = defineEmits<{ submit: [payload: SiteInput]; cancel: []; dirtyChange: [dirty: boolean] }>()
-const form = ref()
+
+const steps: StepItem[] = [
+  { title: 'Informations', subtitle: 'Nom et emplacement', description: 'Nom du site, adresse et description de l’emplacement', icon: 'mdi-map-marker-plus-outline' },
+  { title: 'Périmètre', subtitle: 'Zone de pointage', description: 'Trois points au minimum délimitant la zone de présence autorisée', icon: 'mdi-crosshairs-gps' },
+  { title: 'Encadrement', subtitle: 'Mission, superviseur, équipe', description: 'Qui suit le site et quelle équipe y travaille', icon: 'mdi-account-hard-hat-outline' },
+  { title: 'Récapitulatif', subtitle: 'Vérification', description: 'Vérifiez les informations avant d’enregistrer', icon: 'mdi-clipboard-check-outline' },
+]
+// À la création, une dernière étape présente le QR code, généré une fois le site enregistré.
+const qrStep: StepItem = { title: 'QR code', subtitle: 'Après la création', description: 'Le site est créé : générez et imprimez son QR code de pointage', icon: 'mdi-qrcode' }
+const allSteps = computed(() => props.site ? steps : [...steps, qrStep])
+
+const infoForm = ref()
+const governanceForm = ref()
+const perimeterFields = ref<InstanceType<typeof SitePerimeterFields>>()
 const data = reactive<SiteInput>({
   name: props.site?.name ?? '', address: props.site?.address ?? '', city: props.site?.city ?? '',
   locationDescription: props.site?.locationDescription ?? '',
@@ -20,140 +38,93 @@ const data = reactive<SiteInput>({
   teamId: props.site?.teamId ?? undefined, radiusM: props.site?.radiusM,
 })
 const points = ref<(SitePoint | null)[]>(Array.from({ length: Math.max(SITE_POINT_COUNT, props.site?.points?.length ?? 0) }, (_, index) => props.site?.points?.[index] ?? null))
-const placedCount = computed(() => points.value.filter(Boolean).length)
-const mapDialogOpen = ref(false)
-const mapPointIndex = ref(0)
-const perimeterError = ref<string | null>(null)
+const placedPoints = computed(() => points.value.filter((point): point is SitePoint => Boolean(point)))
 const required = (value: string) => Boolean(String(value ?? '').trim()) || 'Ce champ est obligatoire'
 const requiredChoice = (value?: string) => Boolean(value) || 'Ce champ est obligatoire'
 // L'API refuse un site sans adresse ni description de l'emplacement.
 const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim())
-// Facultatif : vide, l'API reprend le rayon par défaut de l'entreprise ; saisi, il est d'au moins 100 m.
-const radiusRule = (value?: number | string) => value === undefined || value === '' || toleranceRadiusRule(value)
 const missionTitle = (item: Mission) => `${item.code} · ${item.title}`
-const placedPoints = computed(() => points.value.filter((point): point is SitePoint => Boolean(point)))
-const isFlatPerimeter = computed(() => placedCount.value >= SITE_POINT_COUNT && !delimitsSurface(placedPoints.value))
-// Un point se débloque quand le précédent est placé.
-const isPointEnabled = (index: number) => index === 0 || Boolean(points.value[index - 1] || points.value[index])
-const pointAsResult = (point: SitePoint | null, index: number): GeocodingResult | null => point
-  ? { id: `point-${index}`, displayName: point.address || formatCoordinates(point), latitude: point.latitude, longitude: point.longitude }
-  : null
 watch([data, points], () => emit('dirtyChange', true), { deep: true })
-watch(placedCount, () => { perimeterError.value = null })
 
-function setPoint(index: number, point: SitePoint | null) {
-  points.value[index] = point
-  if (index === 0 && point?.address && !data.address?.trim()) data.address = point.address
+const validators = [() => isFormValid(infoForm.value), () => perimeterFields.value?.validate() ?? false, () => isFormValid(governanceForm.value)]
+const { current, completed, invalid, isFirst, isLast, canReach, next, previous, goTo, validateAll } = useStepper(steps.length, {
+  validate: (index) => validators[index]?.() ?? true,
+  freeNavigation: () => Boolean(props.site),
+})
+// Une fois le site créé, les étapes du formulaire sont terminées et ne se rouvrent plus.
+const timeline = computed(() => props.created
+  ? { current: steps.length, completed: steps.map((_, index) => index), invalid: [], canReach: () => false }
+  : { current: current.value, completed: completed.value, invalid: invalid.value, canReach })
+
+const summary = computed(() => {
+  const mission = props.missions.find((item) => item.id === data.missionId)
+  const manager = props.managers.find((item) => item.id === data.managerId)
+  const team = props.teams.find((item) => item.id === data.teamId)
+  return [
+    { label: 'Nom', value: data.name },
+    { label: 'Ville', value: data.city || '—' },
+    { label: 'Adresse', value: data.address || '—', wide: true },
+    { label: 'Description de l’emplacement', value: data.locationDescription || '—', wide: true },
+    { label: 'Mission', value: mission ? missionTitle(mission) : 'Aucune mission' },
+    { label: 'Superviseur du site', value: nameOr(manager, '—') },
+    { label: 'Équipe', value: team?.name ?? 'Aucune équipe' },
+    { label: 'Rayon de tolérance', value: data.radiusM ? `${data.radiusM} m` : 'Rayon par défaut de l’entreprise' },
+  ]
+})
+
+function setFirstAddress(address: string) {
+  if (!data.address?.trim()) data.address = address
 }
-function setPointFromResult(index: number, result: GeocodingResult | null) {
-  setPoint(index, result ? { latitude: result.latitude, longitude: result.longitude, address: result.displayName } : null)
-}
-// Le contour part de trois points ; on peut en ajouter autant que nécessaire (50 au plus, limite de l'API).
-const canAddPoint = computed(() => points.value.length < SITE_POINT_MAX && Boolean(points.value.at(-1)))
-function addPoint() {
-  if (canAddPoint.value) points.value.push(null)
-}
-// Les trois premiers points sont obligatoires : seuls les points ajoutés se retirent.
-function removePoint(index: number) {
-  if (index >= SITE_POINT_COUNT) points.value.splice(index, 1)
-}
-function openMap(index: number) {
-  mapPointIndex.value = index
-  mapDialogOpen.value = true
+function cancel() {
+  emit('dirtyChange', false)
+  emit('cancel')
 }
 async function submit() {
-  const result = await form.value?.validate()
-  if (placedCount.value < SITE_POINT_COUNT) {
-    perimeterError.value = `Ajoutez au moins ${SITE_POINT_COUNT} points du périmètre pour positionner le site.`
-    return
-  }
-  if (isFlatPerimeter.value) return
-  if (!result?.valid) return
+  if (!(await validateAll())) return
   emit('dirtyChange', false)
   emit('submit', { ...data, radiusM: data.radiusM ? Number(data.radiusM) : undefined, points: placedPoints.value })
 }
 </script>
 
 <template>
-  <v-form ref="form" @submit.prevent="submit">
-    <div class="space-y-6">
-      <v-card>
-        <v-card-title class="flex items-center gap-3 px-6 py-5">
-          <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-map-marker-plus-outline" color="primary" /></v-avatar>
-          <div><h2 class="text-base font-bold">Informations du site</h2><p class="mt-1 text-xs font-normal text-[#747985]">Nom, adresse et superviseur</p></div>
-        </v-card-title>
-        <v-divider />
+  <AppStepperLayout :steps="allSteps" v-bind="timeline" @select="goTo">
+    <slot v-if="created" name="created" />
+    <template v-else>
+      <v-form v-show="current === 0" ref="infoForm" @submit.prevent="next">
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
           <v-text-field v-model="data.name" label="Nom du site*" :rules="[required]" />
           <v-text-field v-model="data.city" label="Ville" />
-          <v-text-field v-model="data.address" label="Adresse" class="md:col-span-2" :rules="[addressOrDescription]" />
+          <v-text-field v-model="data.address" label="Adresse*" class="md:col-span-2" :rules="[addressOrDescription]" />
           <v-textarea v-model="data.locationDescription" label="Description de l’emplacement" placeholder="Ex. : entrée principale, près de la réception" persistent-placeholder rows="2" auto-grow counter="500" maxlength="500" class="md:col-span-2" :rules="[addressOrDescription]" />
-          <v-select v-model="data.missionId" label="Mission" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Aucune mission" persistent-placeholder clearable :disabled="Boolean(site?.missionId)" :hint="site?.missionId ? 'La mission d’un site ne peut pas être modifiée.' : ''" persistent-hint />
-          <v-select v-model="data.managerId" label="Superviseur du site*" :items="managers" :item-title="fullName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]"/>
-          <v-select v-model="data.teamId" label="Équipe" :items="teams" item-title="name" item-value="id" placeholder="Aucune équipe pour l’instant" persistent-placeholder :clearable="!site?.teamId" :hint="site?.teamId ? 'L’équipe peut être remplacée, pas retirée. Les créneaux déjà planifiés restent à leurs agents.' : ''" persistent-hint />
-          <v-text-field v-model.number="data.radiusM" type="number" :min="MIN_TOLERANCE_RADIUS_M" label="Rayon de tolérance" suffix="m" placeholder="100" persistent-placeholder :rules="[radiusRule]" />
         </v-card-text>
-      </v-card>
-      <v-card>
-        <v-card-title class="flex items-center gap-3 px-6 py-5">
-          <v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-crosshairs-gps" color="primary" /></v-avatar>
-          <div><h2 class="text-base font-bold">Périmètre de pointage</h2><p class="mt-1 text-xs font-normal text-[#747985]">Trois points au minimum délimitant la zone de présence autorisée</p></div>
-        </v-card-title>
-        <v-divider />
-        <v-card-text class="space-y-5 px-6 py-6">
-          <v-alert type="warning" variant="tonal" density="compact" icon="mdi-alert-outline">
-            Pour positionner le site sur la carte, vous devez renseigner au moins trois points délimitant son périmètre. Vous pouvez en ajouter d’autres pour épouser la forme du site.
-          </v-alert>
-          <div class="space-y-3">
-            <div v-for="(point, index) in points" :key="index" class="flex items-start gap-3">
-              <span
-                class="mt-4 grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold"
-                :class="point ? 'bg-[#d80f16] text-white' : 'border-2 border-[#d9dce2] text-[#747985]'"
-              >{{ index + 1 }}</span>
-              <LocationAutocomplete
-                class="min-w-0 flex-1"
-                :model-value="pointAsResult(point, index)"
-                :label="`Adresse du point ${index + 1}`"
-                :hint="point ? formatCoordinates(point) : undefined"
-                :disabled="!isPointEnabled(index)"
-                @update:model-value="setPointFromResult(index, $event)"
-              />
-              <v-btn
-                class="mt-2"
-                icon="mdi-map-marker-plus-outline"
-                color="primary"
-                variant="tonal"
-                :disabled="!isPointEnabled(index)"
-                :aria-label="`Placer le point ${index + 1} sur la carte`"
-                @click="openMap(index)"
-              />
-              <!-- Colonne réservée dès qu'il y a des points ajoutés : tous les boutons de carte restent alignés. -->
-              <div v-if="points.length > SITE_POINT_COUNT" class="mt-2 w-10 shrink-0">
-                <v-btn v-if="index >= SITE_POINT_COUNT" icon="mdi-close" color="error" variant="text" :aria-label="`Retirer le point ${index + 1}`" @click="removePoint(index)" />
-              </div>
-            </div>
-            <div class="flex items-center justify-end gap-3">
-              <p v-if="points.length >= SITE_POINT_MAX" class="text-xs text-[#747985]">Maximum de {{ SITE_POINT_MAX }} points atteint.</p>
-              <v-btn variant="outlined" color="primary" prepend-icon="mdi-plus" :disabled="!canAddPoint" @click="addPoint">Ajouter un point</v-btn>
-            </div>
-          </div>
-          <v-alert v-if="isFlatPerimeter" type="error" variant="tonal" density="compact" text="Les points sont alignés ou confondus : ils doivent délimiter une surface, pas une ligne." />
-          <v-alert v-if="perimeterError" type="error" variant="tonal" density="compact" :text="perimeterError" />
-          <div class="space-y-2">
-            <div class="flex items-center justify-between text-xs text-[#747985]">
-              <p>Aperçu du périmètre</p>
-              <p class="font-medium" :class="placedCount === points.length ? 'text-[#2e7d4f]' : 'text-[#535865]'">{{ placedCount }} / {{ points.length }} points</p>
-            </div>
-            <SitePerimeterMap :points="points" @select="openMap" />
-          </div>
-          <v-alert type="info" variant="tonal" text="La zone formée par les points représente le périmètre de pointage. Le QR code sera généré après l’enregistrement." />
+      </v-form>
+      <SitePerimeterFields v-show="current === 1" ref="perimeterFields" v-model:points="points" v-model:radius-m="data.radiusM" :active="current === 1" @first-address="setFirstAddress" />
+      <v-form v-show="current === 2" ref="governanceForm" @submit.prevent="next">
+        <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
+          <v-select v-model="data.managerId" label="Superviseur du site*" class="md:col-span-2" :items="managers" :item-title="fullName" item-value="id" placeholder="Dérouler la liste" :rules="[requiredChoice]">
+            <template #no-data><AppMissingOption text="Aucun superviseur actif." label="Créer un compte superviseur" :to="{ name: 'admin-user-create' }" /></template>
+          </v-select>
+          <v-select v-model="data.missionId" label="Mission" :items="missions" :item-title="missionTitle" item-value="id" placeholder="Aucune mission" persistent-placeholder clearable :disabled="Boolean(site?.missionId)" :hint="site?.missionId ? 'La mission d’un site ne peut pas être modifiée.' : 'Une fois choisie, la mission du site ne pourra plus être changée.'" persistent-hint />
+          <v-select v-model="data.teamId" label="Équipe" :items="teams" item-title="name" item-value="id" placeholder="Aucune équipe pour l’instant" persistent-placeholder :clearable="!site?.teamId" :hint="site?.teamId ? 'L’équipe peut être remplacée, pas retirée. Les créneaux déjà planifiés restent à leurs agents.' : ''" persistent-hint>
+            <template #no-data><AppMissingOption text="Aucune équipe pour l’instant." label="Créer une équipe" :to="{ name: 'admin-team-create' }" /></template>
+          </v-select>
         </v-card-text>
-      </v-card>
-    </div>
-    <SitePointMapDialog v-model="mapDialogOpen" :point-index="mapPointIndex" :points="points" @confirm="setPoint(mapPointIndex, $event)" @move="setPoint" />
-    <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-      <v-btn variant="outlined" color="secondary" size="large" @click="emit('dirtyChange', false); emit('cancel')">Annuler</v-btn>
-      <v-btn type="submit" color="primary" size="large" :loading="loading" prepend-icon="mdi-content-save-outline">{{ site ? 'Enregistrer les modifications' : 'Créer le site' }}</v-btn>
-    </div>
-  </v-form>
+      </v-form>
+      <v-card-text v-if="current === 3" class="space-y-6 px-6 py-6">
+        <AppSummaryList :items="summary" />
+        <div class="space-y-2">
+          <p class="text-xs text-[#848484]">Périmètre ({{ placedPoints.length }} points)</p>
+          <SitePerimeterMap :points="points" />
+        </div>
+      </v-card-text>
+    </template>
+
+    <template v-if="!created" #actions>
+      <v-btn variant="text" color="secondary" size="large" :disabled="loading" @click="cancel">Annuler</v-btn>
+      <v-spacer class="hidden sm:block" />
+      <v-btn v-if="!isFirst" variant="outlined" color="secondary" size="large" prepend-icon="mdi-arrow-left" :disabled="loading" @click="previous">Précédent</v-btn>
+      <v-btn v-if="!isLast" color="primary" size="large" append-icon="mdi-arrow-right" @click="next">Suivant</v-btn>
+      <v-btn v-else color="primary" size="large" :loading="loading" prepend-icon="mdi-content-save-outline" @click="submit">{{ site ? 'Enregistrer les modifications' : 'Créer le site' }}</v-btn>
+    </template>
+  </AppStepperLayout>
 </template>

@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import DashboardStatCard from '@/Components/DashboardStatCard.vue'
 import MissionTable from '@/Components/missions/MissionTable.vue'
+import OnboardingButton from '@/Components/onboarding/OnboardingButton.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useDeviceStore } from '@/stores/device.store'
@@ -25,7 +26,7 @@ const viewMission = (mission: Mission) => router.push({ name: 'admin-mission-det
       <template #title>Tableau de bord</template>
       <template #description>Consultez les données disponibles pour votre entreprise.</template>
       <template #actions>
-        <v-btn color="primary" prepend-icon="mdi-plus" size="large" :to="{ name: 'admin-mission-create' }">Nouvelle mission</v-btn>
+        <OnboardingButton />
       </template>
     </PageHeader>
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

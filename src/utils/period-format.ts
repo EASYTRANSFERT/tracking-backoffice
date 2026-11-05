@@ -1,5 +1,7 @@
 import { isAxiosError } from 'axios'
 
+import { apiCodeMessage } from '@/utils/api-error'
+
 import type { ApiPeriodState, PeriodBlockers, PeriodResponse } from '@/types/period'
 
 const stateConfigs: Record<string, { label: string; color: string; icon: string }> = {
@@ -46,10 +48,6 @@ export function readClosureBlockers(error: unknown): PeriodBlockers | null {
   return found ? { pending: found.pending, open: found.open, sampleSessionIds: found.sampleSessionIds ?? [] } : null
 }
 
-/** Code d'erreur métier d'une réponse de l'API (problem details), s'il y en a un. */
-export const apiErrorCode = (error: unknown) =>
-  isAxiosError<{ code?: string }>(error) ? error.response?.data?.code : undefined
-
 const errorMessages: Record<string, string> = {
   PERIOD_OVERLAP: 'Cette période chevauche une période existante.',
   PERIOD_RANGE_INVALID: 'Dates invalides : la fin ne peut pas précéder le début.',
@@ -60,4 +58,4 @@ const errorMessages: Record<string, string> = {
 }
 
 /** Message français d'un code d'erreur de période, null s'il est inconnu (l'appelant retombe sur le message de l'API). */
-export const periodErrorMessage = (error: unknown) => errorMessages[apiErrorCode(error) ?? ''] ?? null
+export const periodErrorMessage = (error: unknown) => apiCodeMessage(error, errorMessages)

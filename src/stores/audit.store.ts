@@ -1,6 +1,7 @@
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { useCursorPages } from '@/composables/useCursorPages'
 import { auditService } from '@/Services/audit.service'
 import { tenantService } from '@/Services/tenant.service'
 import { listAllPages } from '@/utils/pagination'
@@ -12,57 +13,30 @@ export type AuditFilters = Omit<AuditLogListQuery, 'cursor' | 'limit'>
 export const AUDIT_PAGE_SIZES = [25, 50, 100, 200]
 
 export const useAuditStore = defineStore('audit', () => {
-  const logs = ref<AuditLogResponse[]>([])
   const filters = ref<AuditFilters>({})
   const pageSize = ref(50)
-  const page = ref(1)
-  const nextCursor = ref<string | null>(null)
-  /** Curseur de chaque page déjà vue (undefined pour la première) : l'API ne sait pas reculer. */
-  const cursorHistory = ref<(string | undefined)[]>([])
   const tenants = ref<TenantResponse[]>([])
-  const isLoading = ref(false)
   /** Les actions rencontrées alimentent les suggestions du filtre, la liste de l'API n'étant pas fermée. */
   const seenActions = ref<string[]>([])
 
-  const hasNext = computed(() => nextCursor.value !== null)
-  const hasPrevious = computed(() => page.value > 1)
-  const tenantName = (id: string) => tenants.value.find((tenant) => tenant.id === id)?.name ?? null
+  const pages = useCursorPages<AuditLogResponse>(async (cursor) => {
+    const response = await auditService.list({ ...activeFilters(), cursor, limit: pageSize.value })
+    seenActions.value = [...new Set([...seenActions.value, ...response.items.map((log) => log.action)])].sort()
+    return response
+  })
+  const { items: logs, page, nextCursor, isLoading, hasNext, hasPrevious } = pages
 
-  async function fetchPage(cursor: string | undefined) {
-    isLoading.value = true
-    try {
-      const response = await auditService.list({ ...activeFilters(), cursor, limit: pageSize.value })
-      logs.value = response.items
-      nextCursor.value = response.nextCursor ?? null
-      seenActions.value = [...new Set([...seenActions.value, ...response.items.map((log) => log.action)])].sort()
-    } finally {
-      isLoading.value = false
-    }
-  }
+  const tenantName = (id: string) => tenants.value.find((tenant) => tenant.id === id)?.name ?? null
 
   /** Repart de la première page avec de nouveaux filtres ou une nouvelle taille de page. */
   async function loadLogs(nextFilters: AuditFilters = filters.value, nextPageSize = pageSize.value) {
     filters.value = { ...nextFilters }
     pageSize.value = nextPageSize
-    await fetchPage(undefined)
-    cursorHistory.value = [undefined]
-    page.value = 1
+    await pages.first()
   }
 
-  async function nextPage() {
-    if (!nextCursor.value) return
-    const cursor = nextCursor.value
-    await fetchPage(cursor)
-    cursorHistory.value.push(cursor)
-    page.value += 1
-  }
-
-  async function previousPage() {
-    if (page.value <= 1) return
-    await fetchPage(cursorHistory.value[page.value - 2])
-    cursorHistory.value.pop()
-    page.value -= 1
-  }
+  const nextPage = () => pages.next()
+  const previousPage = () => pages.previous()
 
   /** Opérateur : noms des entreprises pour le filtre et la colonne « Entreprise ». */
   async function loadTenants() {
@@ -75,11 +49,8 @@ export const useAuditStore = defineStore('audit', () => {
   }
 
   function resetData() {
-    logs.value = []
+    pages.reset()
     filters.value = {}
-    page.value = 1
-    nextCursor.value = null
-    cursorHistory.value = []
     tenants.value = []
     seenActions.value = []
   }

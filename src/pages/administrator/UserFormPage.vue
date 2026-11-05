@@ -6,14 +6,16 @@ const route = useRoute(); const router = useRouter(); const store = useAdministr
 const loadingUser = ref(Boolean(id.value) && !user.value)
 onMounted(async () => { store.loadTeamOptions().catch(() => undefined); if (!id.value) return; try { await store.ensureUsers([id.value]) } finally { loadingUser.value = false } })
 onBeforeRouteLeave(async () => !dirty.value || await feedback.askConfirmation({ title: 'Quitter sans enregistrer ?', message: 'Les modifications de cet utilisateur seront perdues.', confirmText: 'Quitter' }))
+// Bouton occupé pendant l'appel : un double clic créerait deux comptes.
+const saving = ref(false)
 async function submit(payload: EnterpriseUserInput) {
-  try { dirty.value = false; let userId: string;
-  if (id.value) {
-    await store.updateUser(id.value, payload); userId = id.value }
-    else {
-      userId = await store.createUser(payload) }
-      feedback.success(id.value ? 'Utilisateur mis à jour.' : 'Utilisateur créé.');
-      await router.push({ name: 'admin-user-details', params: { userId } }) }
-      catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cet utilisateur.')) } }
+  if (saving.value) return
+  saving.value = true; dirty.value = false; let userId: string
+  // Seul l'appel à l'API peut échouer ici : une fois le compte créé, la suite ne doit jamais annoncer un échec.
+  try { userId = id.value ? (await store.updateUser(id.value, payload), id.value) : await store.createUser(payload) }
+  catch (error) { dirty.value = true; feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer cet utilisateur.')); return }
+  finally { saving.value = false }
+  feedback.success(id.value ? 'Utilisateur mis à jour.' : 'Utilisateur créé.')
+  await router.push({ name: 'admin-user-details', params: { userId } }) }
 </script>
-<template><div class="mx-auto w-full max-w-[1050px]"><PageHeader><template #title>{{ id ? 'Modifier l’utilisateur' : 'Nouvel utilisateur' }}</template><template #description>{{ id ? 'Mettez à jour ses informations et ses droits.' : 'Créez le profil puis envoyez une invitation sécurisée.' }}</template><template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-users' }">Retour</v-btn></template></PageHeader><v-progress-linear v-if="loadingUser" indeterminate color="primary" /><v-alert v-else-if="id && !user" type="error" variant="tonal" title="Utilisateur introuvable" /><UserForm v-else :user="user" :teams="knownTeams" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" /></div></template>
+<template><div class="mx-auto w-full max-w-[1050px]"><PageHeader><template #title>{{ id ? 'Modifier l’utilisateur' : 'Nouvel utilisateur' }}</template><template #description>{{ id ? 'Mettez à jour ses informations et ses droits.' : 'Créez le profil puis envoyez une invitation sécurisée.' }}</template><template #actions><v-btn variant="text" prepend-icon="mdi-arrow-left" :to="{ name: 'admin-users' }">Retour</v-btn></template></PageHeader><v-progress-linear v-if="loadingUser" indeterminate color="primary" /><v-alert v-else-if="id && !user" type="error" variant="tonal" title="Utilisateur introuvable" /><UserForm v-else :user="user" :teams="knownTeams" :loading="saving" @submit="submit" @cancel="router.back()" @dirty-change="dirty = $event" /></div></template>

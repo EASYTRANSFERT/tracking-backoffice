@@ -11,6 +11,8 @@ export function useSiteQrCode() {
   const feedback = useUiFeedbackStore()
   const generatingId = ref<string | null>(null)
   const printingId = ref<string | null>(null)
+  /** Sites dont l'affiche a été envoyée à l'impression pendant cette visite. */
+  const printedIds = ref(new Set<string>())
 
   // Chaque génération fait tourner le jeton : l'ancien QR code imprimé devient invalide.
   const confirmRotation = (site: Site, confirmText: string, intro = '') => feedback.askConfirmation({
@@ -65,10 +67,11 @@ export function useSiteQrCode() {
         image: current.qrImage,
         generatedAt: current.qrRotatedAt,
       })
+      printedIds.value = new Set(printedIds.value).add(site.id)
     } finally {
       printingId.value = null
     }
   }
 
-  return { generatingId, printingId, generate, print }
+  return { generatingId, printingId, printedIds, generate, print }
 }

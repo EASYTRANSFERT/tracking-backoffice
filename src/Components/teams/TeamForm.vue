@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { fullName } from '@/utils/people'
+import AppMissingOption from '@/Components/common/AppMissingOption.vue'
 import { reactive, ref, watch } from 'vue'
 
 import type { EnterpriseUser, Team, TeamInput } from '@/types/administrator'
@@ -59,8 +60,10 @@ async function submit() {
           :rules="[required]"
           :hint="team ? 'Le changement demande votre code de vérification.' : undefined"
           :persistent-hint="Boolean(team)"
-          :no-data-text="team ? 'Aucun membre dans cette équipe : ajoutez d’abord des agents.' : 'Aucun chef d’équipe actif : créez d’abord un compte au rôle Chef d’équipe.'"
-        />
+          no-data-text="Aucun membre dans cette équipe : ajoutez d’abord des agents."
+        >
+          <template v-if="!team" #no-data><AppMissingOption text="Aucun chef d’équipe actif." label="Créer un compte" :to="{ name: 'admin-user-create' }" /></template>
+        </v-select>
       </v-card-text>
     </v-card>
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

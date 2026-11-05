@@ -1,11 +1,10 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { isAxiosError } from 'axios'
 
 import { exportService } from '@/Services/export.service'
+import { apiErrorCode } from '@/utils/api-error'
 import { openDownload } from '@/utils/download'
 import { exportDownloadMessage, exportFailureMessage } from '@/utils/export-error'
-import type { ApiProblemDetails } from '@/types/api'
 import type { AssignmentExportRequest, ExportResponse } from '@/types/export'
 
 /** Le fichier est produit en arrière-plan : on interroge son état toutes les secondes, deux minutes au plus. */
@@ -45,7 +44,7 @@ export const useExportStore = defineStore('export', () => {
       const { url, filename } = await exportService.download(item.id)
       openDownload(url, filename)
     } catch (error) {
-      const code = isAxiosError<ApiProblemDetails>(error) ? error.response?.data?.code : undefined
+      const code = apiErrorCode(error)
       const message = exportDownloadMessage(code)
       throw message ? new Error(message) : error
     }

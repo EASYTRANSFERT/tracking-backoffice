@@ -13,8 +13,8 @@ import { useUserDisplay } from '@/composables/useUserDisplay'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { CLOSURE_POLL_INTERVAL_MS, usePeriodStore } from '@/stores/period.store'
 import { useUiFeedbackStore } from '@/stores/ui-feedback.store'
-import { getApiErrorMessage } from '@/utils/api-error'
-import { apiErrorCode, formatPeriodRange, periodErrorMessage, readClosureBlockers } from '@/utils/period-format'
+import { apiErrorCode, getApiErrorMessage } from '@/utils/api-error'
+import { formatPeriodRange, periodErrorMessage, readClosureBlockers } from '@/utils/period-format'
 import type { PeriodBlockers } from '@/types/period'
 
 const route = useRoute()

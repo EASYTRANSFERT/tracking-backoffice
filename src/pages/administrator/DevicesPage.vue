@@ -4,11 +4,13 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
+import AppTableFooter from '@/Components/common/AppTableFooter.vue'
 import DeviceRevokeDialog from '@/Components/devices/DeviceRevokeDialog.vue'
 import DeviceTable from '@/Components/devices/DeviceTable.vue'
 import { deviceStatusOptions } from '@/Components/devices/device-format'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useDeviceRevocation } from '@/composables/useDeviceRevocation'
+import { usePagination } from '@/composables/usePagination'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useDeviceStore } from '@/stores/device.store'
@@ -19,11 +21,14 @@ const router = useRouter()
 const store = useDeviceStore()
 const administratorStore = useAdministratorStore()
 const feedback = useUiFeedbackStore()
-const { devices, hasMore, isLoading, isLoadingMore } = storeToRefs(store)
+const { devices, hasMore, isLoading } = storeToRefs(store)
 watch(devices, (list) => { administratorStore.ensureUsers(list.map((device) => device.userId)).catch(() => undefined) })
 const revocation = useDeviceRevocation()
 const userId = ref<string | null>(store.filters.userId ?? null)
 const status = ref<ApiDeviceStatus | null>(store.filters.status ?? null)
+const pagination = usePagination(devices)
+// Les appareils arrivent par lots de l'API : arrivé sur la dernière page chargée, on charge le lot suivant.
+watch([pagination.page, pagination.pageCount], ([page, count]) => { if (page === count && hasMore.value) void loadMore() })
 const agentOptions = computed(() => administratorStore.teamDirectoryUsers.map((user) => ({ title: fullName(user), value: user.id })))
 
 async function load() {
@@ -40,7 +45,7 @@ async function loadMore() {
 
 const view = (device: DeviceResponse) => router.push({ name: 'admin-device-details', params: { deviceId: device.id } })
 
-watch([userId, status], load)
+watch([userId, status], () => { pagination.page.value = 1; void load() })
 onMounted(() => {
   void load()
   administratorStore.loadDirectory().catch(() => feedback.warning('Les noms des agents n’ont pas pu être chargés.'))
@@ -67,11 +72,9 @@ onMounted(() => {
         </div>
       </div>
       <v-divider />
-      <DeviceTable v-if="devices.length" :devices="devices" :agent-name="store.agentName" @view="view" @revoke="revocation.open" />
+      <DeviceTable v-if="devices.length" :devices="pagination.displayed.value" :agent-name="store.agentName" @view="view" @revoke="revocation.open" />
       <AppEmptyState v-else-if="!isLoading" icon="mdi-cellphone-off" title="Aucun appareil trouvé" description="Les appareils apparaissent ici dès qu’un agent active l’application mobile." />
-      <div v-if="hasMore" class="flex justify-center border-t px-5 py-4">
-        <v-btn variant="outlined" color="secondary" prepend-icon="mdi-chevron-down" :loading="isLoadingMore" @click="loadMore">Charger plus</v-btn>
-      </div>
+      <AppTableFooter v-if="devices.length" v-model:page="pagination.page.value" :page-count="pagination.pageCount.value" :start="pagination.start.value + 1" :end="pagination.end.value" :total="pagination.total.value" :label="hasMore ? 'appareils chargés' : 'appareils'" />
     </v-card>
     <DeviceRevokeDialog :device="revocation.target.value" :agent-name="revocation.targetAgentName.value" :loading="revocation.isRevoking.value" :error-message="revocation.errorMessage.value" @submit="revocation.submit" @cancel="revocation.close" />
   </div>

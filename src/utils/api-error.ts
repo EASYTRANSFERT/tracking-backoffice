@@ -4,6 +4,14 @@ import { SessionExpiredError } from '@/Services/api-client'
 
 import type { ApiProblemDetails } from '@/types/api'
 
+/** Code d'erreur métier d'une réponse de l'API (problem details), s'il y en a un. */
+export const apiErrorCode = (error: unknown) =>
+  isAxiosError<ApiProblemDetails>(error) ? error.response?.data?.code : undefined
+
+/** Message français associé au code métier de l'erreur dans `messages`, ou null. */
+export const apiCodeMessage = (error: unknown, messages: Record<string, string>) =>
+  messages[apiErrorCode(error) ?? ''] ?? null
+
 const NETWORK_ERROR_REASON = 'impossible de joindre le serveur, vérifiez votre connexion.'
 
 /**

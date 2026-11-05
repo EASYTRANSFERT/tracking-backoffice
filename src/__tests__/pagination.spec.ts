@@ -9,7 +9,7 @@ describe('listAllPages', () => {
       b: { items: [3, 4], nextCursor: 'c' },
       c: { items: [5], nextCursor: null },
     }
-    const fetchPage = vi.fn(async ({ cursor }: { cursor?: string; limit: number }) => pages[cursor ?? 'start']!)
+    const fetchPage = vi.fn<(query: { cursor?: string; limit: number }) => Promise<{ items: number[]; nextCursor?: string | null }>>(async ({ cursor }) => pages[cursor ?? 'start']!)
 
     await expect(listAllPages(fetchPage)).resolves.toEqual([1, 2, 3, 4, 5])
     expect(fetchPage).toHaveBeenCalledTimes(3)
@@ -17,7 +17,7 @@ describe('listAllPages', () => {
   })
 
   it('makes a single call when there is only one page', async () => {
-    const fetchPage = vi.fn(async () => ({ items: ['a'] }))
+    const fetchPage = vi.fn<() => Promise<{ items: string[] }>>(async () => ({ items: ['a'] }))
 
     await expect(listAllPages(fetchPage)).resolves.toEqual(['a'])
     expect(fetchPage).toHaveBeenCalledTimes(1)

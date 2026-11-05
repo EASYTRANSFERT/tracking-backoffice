@@ -23,6 +23,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['operator'],
   },
   {
+    title: 'Demandes de démo',
+    routeName: 'demo-requests',
+    icon: 'mdi-presentation',
+    allowedRoles: ['operator'],
+  },
+  {
     title: 'Journal d’audit',
     routeName: 'audit-logs',
     icon: 'mdi-history',
@@ -66,6 +72,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['administrator'],
   },
   {
+    title: 'Contrôles',
+    routeName: 'admin-checks',
+    icon: 'mdi-account-clock-outline',
+    allowedRoles: ['administrator'],
+  },
+  {
     title: 'Périodes',
     routeName: 'admin-periods',
     icon: 'mdi-calendar-range',
@@ -105,6 +117,12 @@ export const dashboardNavigation: NavigationItem[] = [
     title: 'Mes missions',
     routeName: 'supervisor-missions',
     icon: 'mdi-clipboard-text-clock-outline',
+    allowedRoles: ['supervisor'],
+  },
+  {
+    title: 'Contrôles',
+    routeName: 'supervisor-checks',
+    icon: 'mdi-account-clock-outline',
     allowedRoles: ['supervisor'],
   },
   {

@@ -16,6 +16,8 @@ import type { DeviceReplacementRequest, DeviceResponse, RevokeDeviceRequest } fr
 import type { DecideSessionRequest, WorkSessionResponse } from '@/types/attendance'
 import type { CheckResponse, TriggerCheckRequest } from '@/types/check'
 import { adjustmentHandlers } from '@/mocks/adjustment-handlers'
+import { checkScheduleHandlers } from '@/mocks/check-schedule-handlers'
+import { demoRequestHandlers } from '@/mocks/demo-request-handlers'
 import { missionOverviewHandlers } from '@/mocks/mission-overview-handlers'
 import { periodHandlers } from '@/mocks/period-handlers'
 import { periodTotalsHandlers } from '@/mocks/period-totals-handlers'
@@ -46,7 +48,7 @@ const tenants: TenantResponse[] = mockCompanies.map((company) => {
     activatedAt: company.status === 'active' ? company.createdAt : null,
     suspendedAt: company.status === 'suspended' ? company.createdAt : null,
     suspensionReason: company.suspensionReason ?? null,
-    settings: { radiusM: 100, lateToleranceMin: 15, maxAccuracyM: 50, missingExitAfterMin: 60, checksPerSession: 3, retention: { selfieDays: 30, dataYears: 5, anonymizeAfterYears: 5, exportDays: 7 } },
+    settings: { radiusM: 100, lateToleranceMin: 15, maxAccuracyM: 50, missingExitAfterMin: 60, checksPerSession: 3, activationSmsRequired: true, retention: { selfieDays: 30, dataYears: 5, anonymizeAfterYears: 5, exportDays: 7 } },
     createdAt: company.createdAt, updatedAt: company.createdAt,
   }
 })
@@ -222,6 +224,8 @@ export const handlers = [
   ...periodTotalsHandlers(api, problem),
   ...missionOverviewHandlers(api, problem, () => sites),
   ...adjustmentHandlers(api, problem, () => sessions),
+  ...checkScheduleHandlers(api, problem),
+  ...demoRequestHandlers(api, problem, page),
   http.get(api('/sites'), ({ request }) => {
     const params = new URL(request.url).searchParams
     const filtered = sites.filter((site) => (['status', 'missionId', 'teamId', 'managerId'] as const)
@@ -567,7 +571,7 @@ export const handlers = [
       plan: offer ? { offerId: offer.id, code: offer.code, name: offer.name, maxAgents: offer.maxAgents, assignedAt: timestamp } : null,
       contractFrom: payload.contractFrom, contractTo: payload.contractTo ?? null,
       activatedAt: null, suspendedAt: null, suspensionReason: null,
-      settings: payload.settings ?? { radiusM: 100, lateToleranceMin: 15, maxAccuracyM: 50, missingExitAfterMin: 60, checksPerSession: 3, retention: { selfieDays: 30, dataYears: 5, anonymizeAfterYears: 5, exportDays: 7 } },
+      settings: payload.settings ?? { radiusM: 100, lateToleranceMin: 15, maxAccuracyM: 50, missingExitAfterMin: 60, checksPerSession: 3, activationSmsRequired: true, retention: { selfieDays: 30, dataYears: 5, anonymizeAfterYears: 5, exportDays: 7 } },
       createdAt: timestamp, updatedAt: timestamp,
     }
     tenants.unshift(tenant)

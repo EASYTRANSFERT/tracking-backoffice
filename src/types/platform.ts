@@ -16,6 +16,8 @@ export interface TenantSettings {
   maxAccuracyM: number
   missingExitAfterMin: number
   checksPerSession: number
+  /** Vrai : l'activation d'un téléphone demande un code SMS en plus du matricule. Faux : le matricule suffit. */
+  activationSmsRequired: boolean
   retention: RetentionSettings
 }
 

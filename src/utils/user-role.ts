@@ -1,4 +1,4 @@
-import { apiErrorCode } from '@/utils/period-format'
+import { apiCodeMessage } from '@/utils/api-error'
 import type { EnterpriseUserRole } from '@/types/administrator'
 
 export const roleLabels: Record<EnterpriseUserRole, string> = { administrator: 'Administrateur', supervisor: 'Superviseur', teamLeader: 'Chef d’équipe', agent: 'Agent' }
@@ -13,4 +13,4 @@ const errorMessages: Record<string, string> = {
 }
 
 /** Message français d'un refus de changement de rôle, null s'il est inconnu (l'appelant retombe sur le message de l'API). */
-export const userRoleErrorMessage = (error: unknown) => errorMessages[apiErrorCode(error) ?? ''] ?? null
+export const userRoleErrorMessage = (error: unknown) => apiCodeMessage(error, errorMessages)

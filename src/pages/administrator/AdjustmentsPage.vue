@@ -101,7 +101,7 @@ async function submit(request: CreateAdjustmentRequest) {
       <template #description>Corrigez l’entrée, la sortie ou le retard d’une session, avec un motif, et consultez l’historique de ses corrections.</template>
     </PageHeader>
 
-    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
       <SessionFinder
         :agents="agents"
         :sites="finderSites"
@@ -116,53 +116,46 @@ async function submit(request: CreateAdjustmentRequest) {
         @load-more="loadMore"
       />
 
-      <v-card v-if="!selected">
-        <AppEmptyState icon="mdi-cursor-default-click-outline" title="Choisissez une session" description="Recherchez un agent, un site ou une journée, puis sélectionnez la session à régulariser." />
+      <v-card v-if="!selected" variant="flat" color="transparent">
+        <AppEmptyState icon="mdi-cursor-default-click-outline" title="Choisissez une session" description="Sélectionnez dans la liste la session à régulariser." />
       </v-card>
 
-      <div v-else class="space-y-6">
-        <v-card>
-          <v-card-title class="flex flex-wrap items-center justify-between gap-2 px-6 py-5">
-            <span class="p-3">{{ agentName(selected.userId) }}</span>
-            <v-chip :color="validationConfig[selected.validation].color" variant="tonal">{{ validationConfig[selected.validation].label }}</v-chip>
-          </v-card-title>
-          <v-divider />
-          <v-card-text class="grid gap-5 px-6 py-6 sm:grid-cols-3">
-            <div><p class="text-xs text-[#848484]">Site</p><p class="mt-1 font-medium">{{ siteName(selected.siteId) }}</p></div>
-            <div><p class="text-xs text-[#848484]">Journée</p><p class="mt-1 font-medium">{{ selected.day ?? '—' }}</p></div>
-            <div><p class="text-xs text-[#848484]">Statut</p><p class="mt-1 font-medium">{{ statusLabels[selected.status] }}</p></div>
-            <div><p class="text-xs text-[#848484]">Entrée</p><p class="mt-1 font-medium">{{ formatDateTime(selected.inAt) }}</p></div>
-            <div><p class="text-xs text-[#848484]">Sortie</p><p class="mt-1 font-medium">{{ formatDateTime(selected.outAt) }}</p></div>
-            <div><p class="text-xs text-[#848484]">Durée travaillée</p><p class="mt-1 font-medium">{{ formatMinutes(selected.minutes) }}</p></div>
-            <div><p class="text-xs text-[#848484]">Retard retenu</p><p class="mt-1 font-medium">{{ formatMinutes(selected.lateMin ?? 0) }}</p></div>
-            <div v-if="selectedPeriod">
-              <p class="text-xs text-[#848484]">Période</p>
-              <p class="mt-1 flex flex-wrap items-center gap-2 font-medium">{{ formatPeriodRange(selectedPeriod) }}<PeriodStateChip :state="selectedPeriod.state" /></p>
-            </div>
-            <div v-if="selected.flags.length" class="sm:col-span-3">
-              <p class="text-xs text-[#848484]">Anomalies</p>
-              <div class="mt-1 flex flex-wrap gap-2"><v-chip v-for="flag in selected.flags" :key="flag" color="warning" variant="tonal" size="small">{{ flagLabels[flag] }}</v-chip></div>
-            </div>
-          </v-card-text>
-        </v-card>
+      <v-card v-else>
+        <div class="flex flex-wrap items-start justify-between gap-3 px-6 py-5">
+          <div>
+            <h2 class="text-lg font-bold">{{ agentName(selected.userId) }}</h2>
+            <p class="mt-1 text-sm text-medium-emphasis">{{ siteName(selected.siteId) }} · {{ selected.day ?? '—' }} · {{ statusLabels[selected.status] }}</p>
+          </div>
+          <v-chip :color="validationConfig[selected.validation].color" variant="tonal">{{ validationConfig[selected.validation].label }}</v-chip>
+        </div>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-4 px-6 pb-5 sm:grid-cols-4">
+          <div><p class="text-xs text-medium-emphasis">Entrée</p><p class="mt-1 font-medium">{{ formatDateTime(selected.inAt) }}</p></div>
+          <div><p class="text-xs text-medium-emphasis">Sortie</p><p class="mt-1 font-medium">{{ formatDateTime(selected.outAt) }}</p></div>
+          <div><p class="text-xs text-medium-emphasis">Durée travaillée</p><p class="mt-1 font-medium">{{ formatMinutes(selected.minutes) }}</p></div>
+          <div><p class="text-xs text-medium-emphasis">Retard retenu</p><p class="mt-1 font-medium">{{ formatMinutes(selected.lateMin ?? 0) }}</p></div>
+          <div v-if="selectedPeriod" class="col-span-2">
+            <p class="text-xs text-medium-emphasis">Période</p>
+            <p class="mt-1 flex flex-wrap items-center gap-2 font-medium">{{ formatPeriodRange(selectedPeriod) }}<PeriodStateChip :state="selectedPeriod.state" /></p>
+          </div>
+          <div v-if="selected.flags.length" class="col-span-2">
+            <p class="text-xs text-medium-emphasis">Anomalies</p>
+            <div class="mt-1 flex flex-wrap gap-2"><v-chip v-for="flag in selected.flags" :key="flag" color="warning" variant="tonal" size="small">{{ flagLabels[flag] }}</v-chip></div>
+          </div>
+        </div>
 
-        <v-card>
-          <v-card-title class="px-6 py-5">Nouvelle régularisation</v-card-title>
-          <v-divider />
-          <v-card-text v-if="locked" class="px-6 py-6">
-            <v-alert type="warning" variant="tonal" density="compact" text="La période de cette session est en clôture ou clôturée : elle ne peut plus être régularisée. L’historique reste consultable ci-dessous." />
-          </v-card-text>
-          <AdjustmentForm v-else :session="selected" :loading="isSaving" :error-message="formError" @submit="submit" />
-        </v-card>
+        <v-divider />
+        <h3 class="px-6 pt-5 font-semibold">Nouvelle régularisation</h3>
+        <v-card-text v-if="locked" class="px-6 py-4">
+          <v-alert type="warning" variant="tonal" density="compact" text="La période de cette session est en clôture ou clôturée : elle ne peut plus être régularisée. L’historique reste consultable ci-dessous." />
+        </v-card-text>
+        <AdjustmentForm v-else :session="selected" :loading="isSaving" :error-message="formError" @submit="submit" />
 
-        <v-card>
-          <v-card-title class="px-6 py-5">Historique des régularisations</v-card-title>
-          <v-divider />
-          <v-progress-linear v-if="isHistoryLoading" indeterminate color="primary" height="2" />
-          <AdjustmentTimeline v-if="history.length" :adjustments="history" :author-name="authorName" />
-          <p v-else-if="!isHistoryLoading" class="px-6 py-8 text-center text-sm text-[#747985]">Cette session n’a jamais été régularisée.</p>
-        </v-card>
-      </div>
+        <v-divider />
+        <h3 class="px-6 pt-5 font-semibold">Historique</h3>
+        <v-progress-linear v-if="isHistoryLoading" indeterminate color="primary" height="2" class="mt-3" />
+        <AdjustmentTimeline v-if="history.length" :adjustments="history" :author-name="authorName" />
+        <p v-else-if="!isHistoryLoading" class="px-6 py-6 text-sm text-medium-emphasis">Cette session n’a jamais été régularisée.</p>
+      </v-card>
     </div>
   </div>
 </template>

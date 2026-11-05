@@ -1,5 +1,5 @@
 import { getApiErrorMessage } from '@/utils/api-error'
-import { apiErrorCode } from '@/utils/period-format'
+import { apiErrorCode } from '@/utils/api-error'
 import type { PeriodReportFormat } from '@/types/period'
 
 /** bilan-<equipe>-<from>-<to>.xlsx : le serveur n'expose pas encore Content-Disposition en CORS. */

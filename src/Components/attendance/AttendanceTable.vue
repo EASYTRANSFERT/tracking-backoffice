@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
 import AppTableFooter from '@/Components/common/AppTableFooter.vue'
+import { usePagination } from '@/composables/usePagination'
 import AttendanceSessionDialog from '@/Components/attendance/AttendanceSessionDialog.vue'
 import { checkResultConfig, flagLabels, formatDateTime, formatMinutes, isDecidable, validationConfig } from '@/Components/attendance/attendance-labels'
 import { useTeamCheck } from '@/composables/useTeamCheck'
@@ -22,12 +23,10 @@ const props = defineProps<{ sites: Site[]; canDecide?: boolean; canAdjust?: bool
 
 const store = useAttendanceStore()
 const feedback = useUiFeedbackStore()
-const flagged = ref(true)
+const flagged = ref(false)
 const query = ref('')
 const validation = ref<ApiSessionValidation | 'all'>('all')
 const date = ref('')
-const page = ref(1)
-const pageSize = 8
 const selected = ref<WorkSessionResponse>()
 const dialog = ref(false)
 
@@ -48,14 +47,10 @@ const filtered = computed(() => store.sessions.filter((session) =>
   (validation.value === 'all' || session.validation === validation.value) &&
   (!date.value || session.inAt.slice(0, 10) === date.value),
 ))
-const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize)))
-const start = computed(() => (page.value - 1) * pageSize)
-const displayed = computed(() => filtered.value.slice(start.value, start.value + pageSize))
+const { page, pageCount, start, end, displayed } = usePagination(filtered, 8)
 const validationItems = [{ title: 'Toutes les décisions', value: 'all' }, ...Object.entries(validationConfig).map(([value, config]) => ({ title: config.label, value }))]
 
 watch([query, validation, date], () => { page.value = 1 })
-// Une décision ou un rechargement peut raccourcir la liste : on ne reste pas sur une page devenue vide.
-watch(pageCount, (count) => { if (page.value > count) page.value = count })
 watch([siteIds, flagged], async ([ids]) => {
   page.value = 1
   if (!ids.length) { store.reset(); return }
@@ -93,7 +88,7 @@ function review(session: WorkSessionResponse) {
       </div>
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr]">
         <v-btn-toggle v-model="flagged" mandatory color="primary" variant="outlined" density="comfortable" class="gap-3">
-          <v-btn :value="true" prepend-icon="mdi-alert-outline" >Anomalies</v-btn>
+          <v-btn :value="true" prepend-icon="mdi-alert-outline">Anomalies</v-btn>
           <v-btn :value="false">Toutes</v-btn>
         </v-btn-toggle>
         <v-text-field v-model="query" :placeholder="showSite ? 'Agent ou site' : 'Agent'" prepend-inner-icon="mdi-magnify" density="compact" hide-details clearable />
@@ -125,7 +120,7 @@ function review(session: WorkSessionResponse) {
             <td v-if="showSite" class="text-sm text-[#535865]">{{ siteName(session.siteId) }}</td>
             <td class="whitespace-nowrap text-sm text-[#535865]">{{ formatDateTime(session.inAt) }}</td>
             <td class="whitespace-nowrap text-sm text-[#535865]">{{ formatDateTime(session.outAt) }}</td>
-            <td class="whitespace-nowrap text-sm text-[#535865]">{{ formatMinutes(session.minutes) }}<span v-if="session.lateMin" class="block text-xs text-[#a76000]">{{ formatMinutes(session.lateMin) }} de retard</span></td>
+            <td class="whitespace-now rap text-sm text-[#535865]">{{ formatMinutes(session.minutes) }}<span v-if="session.lateMin" class="block text-xs text-[#a76000]">{{ formatMinutes(session.lateMin) }} de retard</span></td>
             <td>
               <div v-if="session.flags.length" class="flex flex-wrap gap-1 py-2">
                 <v-chip size="x-small" color="warning" variant="tonal">{{ flagLabels[session.flags[0]!] ?? session.flags[0] }}</v-chip>
@@ -148,7 +143,7 @@ function review(session: WorkSessionResponse) {
       </v-table>
     </div>
     <AppEmptyState v-else-if="!store.isLoading" icon="mdi-clock-check-outline" title="Aucun pointage à afficher" :description="flagged ? 'Aucune session avec anomalie sur ces sites.' : 'Aucune session ne correspond aux filtres sélectionnés.'" />
-    <AppTableFooter v-if="filtered.length" :page="page" :page-count="pageCount" :start="start + 1" :end="Math.min(start + pageSize, filtered.length)" :total="filtered.length" label="sessions" @update:page="page = $event" />
+    <AppTableFooter v-if="filtered.length" v-model:page="page" :page-count="pageCount" :start="start + 1" :end="end" :total="filtered.length" label="sessions" />
 
     <AttendanceSessionDialog v-model="dialog" :session="selected" :site-name="siteName(selected?.siteId)" :can-decide="canDecide" :can-adjust="canAdjust" />
   </v-card>

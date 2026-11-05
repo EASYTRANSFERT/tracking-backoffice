@@ -12,10 +12,9 @@ import { mockEnterpriseUsers, mockTeams } from '@/mocks/administrator-data'
 import { useAuthStore } from '@/stores/auth.store'
 import { readRejectedImportReport } from '@/utils/matricule-import'
 import { listAllPages } from '@/utils/pagination'
-import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, SitePoint, Team, TeamInput } from '@/types/administrator'
-import type { CreateMissionRequest, MissionResponse, UpdateMissionRequest } from '@/types/mission'
-import type { CreateSiteRequest, SiteCoordinate, SiteResponse, UpdateSiteRequest } from '@/types/site'
-import type { TeamResponse } from '@/types/team'
+import type { EnterpriseUser, EnterpriseUserInput, Mission, MissionInput, Site, SiteInput, Team, TeamInput } from '@/types/administrator'
+import type { CreateMissionRequest, UpdateMissionRequest } from '@/types/mission'
+import type { CreateSiteRequest, SiteCoordinate, UpdateSiteRequest } from '@/types/site'
 import type { MatriculeImportReport, UpdateUserRequest } from '@/types/user'
 
 const mockMode = import.meta.env.VITE_ENABLE_MOCKS === 'true'
@@ -44,8 +43,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
   const activeUsersCount = computed(() => users.value.filter(
     (user) => user.role !== 'administrator' && user.status === 'active',
   ).length)
-  const activeSitesCount = computed(() => sites.value.filter((site) => site.status === 'active').length)
-  const ongoingMissionsCount = computed(() => missions.value.filter((mission) => mission.status === 'ongoing').length)
   /** Nombre de membres (agents et chef d'équipe) par équipe. */
   const teamMemberCounts = ref<Record<string, number>>({})
   /** Comptes chargés un par un pour afficher un nom (responsable, chef, superviseur…). */
@@ -115,7 +112,6 @@ export const useAdministratorStore = defineStore('administrator', () => {
     return updated
   }
 
-  const getUserById = (id: string) => users.value.find((user) => user.id === id)
   const getSiteById = (id: string) => sites.value.find((site) => site.id === id)
   const getMissionById = (id: string) => missions.value.find((mission) => mission.id === id)
   const teamOptions = ref<Team[]>([])
@@ -509,8 +505,8 @@ export const useAdministratorStore = defineStore('administrator', () => {
 
   return {
     users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportSites,
-    activeUsersCount, activeSitesCount, ongoingMissionsCount,
-    getUserById, getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
+    activeUsersCount,
+    getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
     createUser, updateUser, changeUserRole, toggleUserStatus, importMatricules,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,

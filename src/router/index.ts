@@ -88,6 +88,12 @@ const router = createRouter({
           meta: { title: 'Modifier l’offre', allowedRoles: ['operator'] },
         },
         {
+          path: 'demo-requests',
+          name: 'demo-requests',
+          component: () => import('@/pages/operator/DemoRequestsPage.vue'),
+          meta: { title: 'Demandes de démo', allowedRoles: ['operator'] },
+        },
+        {
           path: 'platform-monitoring',
           name: 'platform-monitoring',
           component: () => import('@/pages/operator/PlatformMonitoringPage.vue'),
@@ -200,7 +206,7 @@ const router = createRouter({
           path: 'sites/new',
           name: 'admin-site-create',
           component: () => import('@/pages/administrator/SiteFormPage.vue'),
-          meta: { title: 'Nouveau site', allowedRoles: ['administrator'] },
+          meta: { title: 'Nouveau site', allowedRoles: ['administrator'], hasStepper: true },
         },
         {
           path: 'sites/import',
@@ -218,7 +224,7 @@ const router = createRouter({
           path: 'sites/:siteId/edit',
           name: 'admin-site-edit',
           component: () => import('@/pages/administrator/SiteFormPage.vue'),
-          meta: { title: 'Modifier le site', allowedRoles: ['administrator'] },
+          meta: { title: 'Modifier le site', allowedRoles: ['administrator'], hasStepper: true },
         },
         {
           path: 'periods',
@@ -248,7 +254,13 @@ const router = createRouter({
           path: 'missions/new',
           name: 'admin-mission-create',
           component: () => import('@/pages/administrator/MissionFormPage.vue'),
-          meta: { title: 'Nouvelle mission', allowedRoles: ['administrator'] },
+          meta: { title: 'Nouvelle mission', allowedRoles: ['administrator'], hasStepper: true },
+        },
+        {
+          path: 'checks',
+          name: 'admin-checks',
+          component: () => import('@/pages/administrator/ChecksPage.vue'),
+          meta: { title: 'Contrôles', allowedRoles: ['administrator'] },
         },
         {
           path: 'missions/:missionId',
@@ -260,7 +272,7 @@ const router = createRouter({
           path: 'missions/:missionId/edit',
           name: 'admin-mission-edit',
           component: () => import('@/pages/administrator/MissionFormPage.vue'),
-          meta: { title: 'Modifier la mission', allowedRoles: ['administrator'] },
+          meta: { title: 'Modifier la mission', allowedRoles: ['administrator'], hasStepper: true },
         },
         {
           path: 'devices',
@@ -322,6 +334,12 @@ const router = createRouter({
           name: 'supervisor-mission-details',
           component: () => import('@/pages/supervisor/SupervisorMissionDetailsPage.vue'),
           meta: { title: 'Détail mission', allowedRoles: ['supervisor'] },
+        },
+        {
+          path: 'checks',
+          name: 'supervisor-checks',
+          component: () => import('@/pages/administrator/ChecksPage.vue'),
+          meta: { title: 'Contrôles', allowedRoles: ['supervisor'] },
         },
         {
           path: 'adjustments',

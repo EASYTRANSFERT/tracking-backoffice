@@ -14,6 +14,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   maxAccuracyM: 50,
   missingExitAfterMin: 240,
   checksPerSession: 0,
+  activationSmsRequired: true,
   retention: { selfieDays: 90, dataYears: 5, anonymizeAfterYears: 5, exportDays: 7 },
 }
 

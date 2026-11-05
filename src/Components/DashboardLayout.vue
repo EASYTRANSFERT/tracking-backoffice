@@ -7,6 +7,7 @@ import { useDisplay } from 'vuetify'
 import { useColorMode } from '@/composables/useColorMode'
 import AppSidebar from '@/Components/layout/AppSidebar.vue'
 import AppTopbar from '@/Components/layout/AppTopbar.vue'
+import OnboardingBar from '@/Components/onboarding/OnboardingBar.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useOperatorStore } from '@/stores/operator.store'
@@ -48,6 +49,7 @@ watch(lgAndUp, (isDesktop) => {
 
     <v-main class="bg-background">
       <v-container fluid class="pa-4 pa-md-8">
+        <OnboardingBar />
         <RouterView />
       </v-container>
     </v-main>
