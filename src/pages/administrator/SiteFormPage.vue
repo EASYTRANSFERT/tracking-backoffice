@@ -23,6 +23,12 @@ const site = computed(() => id.value ? store.getSiteById(id.value) : undefined)
 // Site tout juste créé : le parcours se termine sur son QR code.
 const createdId = ref<string>()
 const createdSite = computed(() => createdId.value ? store.getSiteById(createdId.value) : undefined)
+// Étapes restantes après la création ; la première se coche dès que le QR code est généré.
+const createdSteps = computed(() => [
+  { title: 'Générez le QR code', text: 'Un code unique, propre à ce site.', done: Boolean(createdSite.value?.qrRotatedAt) },
+  { title: 'Imprimez-le et affichez-le sur place', text: 'Les agents le scannent pour pointer.', done: false },
+  { title: 'Planifiez l’équipe', text: 'Depuis la fiche du site.', done: false },
+])
 
 // Création depuis une mission : la mission est pré-remplie et « Retour » ramène à la mission,
 // ou à l'étape « Sites » du formulaire de mission quand on en vient.
@@ -102,17 +108,29 @@ async function submit(payload: SiteInput) {
                          :created="Boolean(createdSite)" @submit="submit"
                          @cancel="router.back()" @dirty-change="dirty = $event">
           <template #created>
-            <v-card-text v-if="createdSite" class="grid gap-6 px-6 py-6 md:grid-cols-[minmax(0,1fr)_300px]">
-              <div class="space-y-5">
-                <v-alert type="success" variant="tonal" :title="`Le site « ${createdSite.name} » est créé`">
-                  Générez son QR code et affichez-le sur place : les agents le scannent pour pointer. Planifiez ensuite l’équipe depuis la fiche du site.
-                </v-alert>
-                <div class="flex flex-wrap gap-3">
-                  <v-btn v-if="fromMissionId" color="primary" prepend-icon="mdi-arrow-left" :to="backRoute">Retour à la mission</v-btn>
-                  <v-btn :variant="fromMissionId ? 'outlined' : 'flat'" color="primary" prepend-icon="mdi-eye-outline" :to="{ name: 'admin-site-details', params: { siteId: createdSite.id } }">Voir le site</v-btn>
+            <v-card-text v-if="createdSite" class="px-6 py-8">
+              <div class="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,1fr)_320px]">
+                <div>
+                  <h2 class="mt-2 text-2xl font-bold">Le site « {{ createdSite.name }} » est créé</h2>
+                  <p class="mt-2 text-medium-emphasis">Plus qu’une étape pour que les agents puissent pointer sur place.</p>
+                  <ol class="mt-6 space-y-4">
+                    <li v-for="(step, index) in createdSteps" :key="step.title" class="flex items-start gap-3">
+                      <v-avatar :color="step.done ? 'success' : 'primary'" variant="tonal" size="32" class="shrink-0">
+                        <v-icon v-if="step.done" icon="mdi-check" size="18" /><span v-else class="text-sm font-bold">{{ index + 1 }}</span>
+                      </v-avatar>
+                      <div>
+                        <p class="font-medium">{{ step.title }}</p>
+                        <p class="text-sm text-medium-emphasis">{{ step.text }}</p>
+                      </div>
+                    </li>
+                  </ol>
+                  <div class="mt-8 flex flex-wrap gap-3">
+                    <v-btn v-if="fromMissionId" color="primary" prepend-icon="mdi-arrow-left" :to="backRoute">Retour à la mission</v-btn>
+                    <v-btn :variant="fromMissionId ? 'outlined' : 'flat'" color="primary" prepend-icon="mdi-eye-outline" :to="{ name: 'admin-site-details', params: { siteId: createdSite.id } }">Voir le site</v-btn>
+                  </div>
                 </div>
+                <QrCodeCard :site="createdSite" elevation="4" rounded="xl" :loading="generatingId === createdSite.id" :printing="printingId === createdSite.id" @print="print" @regenerate="generate" />
               </div>
-              <QrCodeCard :site="createdSite" variant="outlined" :loading="generatingId === createdSite.id" :printing="printingId === createdSite.id" @print="print" @regenerate="generate" />
             </v-card-text>
           </template>
         </SiteForm>

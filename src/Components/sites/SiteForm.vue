@@ -42,7 +42,7 @@ const placedPoints = computed(() => points.value.filter((point): point is SitePo
 const required = (value: string) => Boolean(String(value ?? '').trim()) || 'Ce champ est obligatoire'
 const requiredChoice = (value?: string) => Boolean(value) || 'Ce champ est obligatoire'
 // L'API refuse un site sans adresse ni description de l'emplacement.
-const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim()) || 'Renseignez l’adresse ou la description de l’emplacement'
+const addressOrDescription = () => Boolean(data.address?.trim() || data.locationDescription?.trim()) 
 const missionTitle = (item: Mission) => `${item.code} · ${item.title}`
 watch([data, points], () => emit('dirtyChange', true), { deep: true })
 
@@ -94,7 +94,7 @@ async function submit() {
         <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
           <v-text-field v-model="data.name" label="Nom du site*" :rules="[required]" />
           <v-text-field v-model="data.city" label="Ville" />
-          <v-text-field v-model="data.address" label="Adresse" class="md:col-span-2" :rules="[addressOrDescription]" />
+          <v-text-field v-model="data.address" label="Adresse*" class="md:col-span-2" :rules="[addressOrDescription]" />
           <v-textarea v-model="data.locationDescription" label="Description de l’emplacement" placeholder="Ex. : entrée principale, près de la réception" persistent-placeholder rows="2" auto-grow counter="500" maxlength="500" class="md:col-span-2" :rules="[addressOrDescription]" />
         </v-card-text>
       </v-form>

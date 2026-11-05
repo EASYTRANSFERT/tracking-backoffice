@@ -120,10 +120,12 @@ defineExpose({ validate })
         type="number"
         :min="MIN_TOLERANCE_RADIUS_M"
         label="Rayon de tolérance"
+        base-color="primary"
+        prepend-inner-icon="mdi-map-marker-radius-outline"
         suffix="m"
         placeholder="100"
         persistent-placeholder
-        hint="Marge GPS autour du contour. Vide : rayon par défaut de l’entreprise."
+        hint="Optionnel"
         persistent-hint
         :rules="[radiusRule]"
       />

@@ -18,7 +18,7 @@ const rotatedAt = computed(() => props.site.qrRotatedAt
           </div>
           <AppStatusChip :status="site.status" />
           </div>
-          <div class="mx-auto my-6 grid h-40 w-40 place-items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div class="mx-auto my-6 grid h-40 w-40 place-items-center overflow-hidden rounded-xl bg-white">
             <img v-if="site.qrImage" :src="site.qrImage" :alt="`QR code du site ${site.name}`" class="h-full w-full object-contain [image-rendering:pixelated]" />
             <v-icon v-else icon="mdi-qrcode" size="128" color="grey-lighten-1" />
             </div>
