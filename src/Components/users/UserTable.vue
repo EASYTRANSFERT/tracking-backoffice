@@ -47,7 +47,13 @@ const teamName = (teamId?: string) => props.teams.find((team) => team.id === tea
             <td><div class="flex min-h-16 items-center gap-3"><v-avatar color="red-lighten-5" size="40"><span class="text-xs font-bold text-primary">{{ user.firstName[0] }}{{ user.lastName[0] }}</span></v-avatar><div><p class="font-semibold text-[#292d38]">{{ user.firstName }} {{ user.lastName }}</p><p class="text-xs text-[#848484]">{{ user.email }}</p></div></div></td>
             <td class="text-sm text-[#535865]">{{ roleLabels[user.role] }}</td><td class="text-sm text-[#535865]">{{ teamName(user.teamId) }}</td><td class="text-sm text-[#535865]">{{ user.employeeNumber }}</td>
             <td><AppStatusChip :status="user.status" /></td>
-            <td @click.stop><v-menu location="bottom end"><template #activator="{ props: menuProps }"><v-btn v-bind="menuProps" icon="mdi-dots-horizontal" variant="text" size="small" /></template><v-list density="compact"><v-list-item prepend-icon="mdi-eye-outline" title="Voir" @click="emit('view', user)" /><template v-if="!readonly"><v-list-item prepend-icon="mdi-pencil-outline" title="Modifier" @click="emit('edit', user)" /><v-divider /><v-list-item :prepend-icon="user.status === 'disabled' ? 'mdi-account-check-outline' : 'mdi-account-off-outline'" :title="user.status === 'disabled' ? 'Réactiver' : 'Désactiver'" @click="emit('changeStatus', user)" /></template></v-list></v-menu></td>
+            <td @click.stop>
+              <v-menu location="bottom end">
+                <template #activator="{ props: menuProps }">
+                  <v-btn v-bind="menuProps" icon="mdi-dots-horizontal" variant="text" size="small" />
+                </template><v-list density="compact"><v-list-item prepend-icon="mdi-eye-outline" title="Voir" @click="emit('view', user)" />
+              <template v-if="!readonly">
+                <v-list-item prepend-icon="mdi-pencil-outline" title="Modifier" @click="emit('edit', user)" /><v-divider /><v-list-item :prepend-icon="user.status === 'disabled' ? 'mdi-account-check-outline' : 'mdi-account-off-outline'" :title="user.status === 'disabled' ? 'Réactiver' : 'Désactiver'" @click="emit('changeStatus', user)" /></template></v-list></v-menu></td>
           </tr>
         </tbody>
       </v-table>
