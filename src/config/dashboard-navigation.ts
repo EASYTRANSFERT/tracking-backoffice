@@ -23,6 +23,12 @@ export const dashboardNavigation: NavigationItem[] = [
     allowedRoles: ['operator'],
   },
   {
+    title: 'Demandes de démo',
+    routeName: 'demo-requests',
+    icon: 'mdi-presentation',
+    allowedRoles: ['operator'],
+  },
+  {
     title: 'Journal d’audit',
     routeName: 'audit-logs',
     icon: 'mdi-history',

@@ -88,6 +88,12 @@ const router = createRouter({
           meta: { title: 'Modifier l’offre', allowedRoles: ['operator'] },
         },
         {
+          path: 'demo-requests',
+          name: 'demo-requests',
+          component: () => import('@/pages/operator/DemoRequestsPage.vue'),
+          meta: { title: 'Demandes de démo', allowedRoles: ['operator'] },
+        },
+        {
           path: 'platform-monitoring',
           name: 'platform-monitoring',
           component: () => import('@/pages/operator/PlatformMonitoringPage.vue'),
