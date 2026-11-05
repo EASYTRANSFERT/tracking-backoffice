@@ -17,11 +17,6 @@ export const assignmentService = {
     return response.data
   },
 
-  async findOne(id: string): Promise<AssignmentResponse> {
-    const response = await apiClient.get<AssignmentResponse>(`/assignments/${id}`)
-    return response.data
-  },
-
   /** Tout ou rien : au premier conflit, aucun créneau n'est écrit. */
   async create(payload: CreateAssignmentsRequest): Promise<AssignmentBatchResponse> {
     const response = await apiClient.post<AssignmentBatchResponse>('/assignments', payload, { headers: idempotencyHeaders() })

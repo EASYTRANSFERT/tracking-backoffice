@@ -39,10 +39,6 @@ export const useSupervisorStore = defineStore('supervisor', () => {
   /** Équipes de ses sites déjà chargées (loadScopeTeams), pour les listes de choix. */
   const scopeTeams = computed(() => [...scopeTeamIds.value].map((id) => teamsById.value[id]).filter((team): team is Team => Boolean(team)))
   const teamCount = computed(() => new Set(sites.value.map((site) => site.teamId).filter(Boolean)).size)
-  const siteCountByMission = computed(() => sites.value.reduce<Record<string, number>>((counts, site) => {
-    if (site.missionId) counts[site.missionId] = (counts[site.missionId] ?? 0) + 1
-    return counts
-  }, {}))
 
   async function loadScope(force = false) {
     if (hasLoaded.value && !force) return
@@ -111,6 +107,6 @@ export const useSupervisorStore = defineStore('supervisor', () => {
 
   return {
     sites, missions, teamCount, teamsById, isLoading, hasLoaded,
-    siteCountByMission, scopeTeamIds, scopeTeams, getMissionById, getMissionSites, loadScope, loadScopeTeams, loadMissionTeams, members, isMembersLoading, loadTeamMembers, reset,
+    scopeTeamIds, scopeTeams, getMissionById, getMissionSites, loadScope, loadScopeTeams, loadMissionTeams, members, isMembersLoading, loadTeamMembers, reset,
   }
 })

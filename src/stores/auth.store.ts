@@ -66,10 +66,6 @@ export const useAuthStore = defineStore('auth', () => {
     )
   })
 
-  const availableRoles = computed(() => {
-    return getDashboardRoles(currentUser.value?.roles ?? [])
-  })
-
   const isFirstMfaSetup = computed(() => {
     return Boolean(qrCode.value)
   })
@@ -408,7 +404,6 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isFirstMfaSetup,
     accessToken,
-    availableRoles,
     
 
     //methods
