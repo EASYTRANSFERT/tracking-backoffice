@@ -2,11 +2,13 @@
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useProductTour } from '@/composables/useProductTour'
 import { roleLabelByRole } from '@/types/roles'
 import { useAuthStore } from '@/stores/auth.store'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const productTour = useProductTour()
 const { activeRole, currentUser, tenant } = storeToRefs(authStore)
 
 const profile = computed(() => {
@@ -48,6 +50,7 @@ async function handleLogout() {
     <template #activator="{ props }">
       <v-btn
         v-bind="props"
+        data-tour="user-menu"
         variant="text"
         class="ml-1 h-auto px-2 text-none"
       >
@@ -89,6 +92,12 @@ async function handleLogout() {
           prepend-icon="mdi-cog-outline"
           title="Paramètres"
           :to="{ name: profile.settingsRoute }"
+        />
+
+        <v-list-item
+          prepend-icon="mdi-map-marker-question-outline"
+          title="Revoir la visite"
+          @click="productTour.replay()"
         />
 
         <v-divider class="my-2" />

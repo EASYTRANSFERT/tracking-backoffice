@@ -16,5 +16,5 @@ function start() {
 </script>
 
 <template>
-  <v-btn v-if="steps.length" color="primary" size="large" prepend-icon="mdi-map-marker-path" @click="start">Commencer ici</v-btn>
+  <v-btn v-if="steps.length" data-tour="onboarding-start" color="primary" size="large" prepend-icon="mdi-map-marker-path" @click="start">Commencer ici</v-btn>
 </template>

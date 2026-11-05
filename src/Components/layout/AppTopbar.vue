@@ -40,6 +40,7 @@ function goBack() {
   >
     <v-app-bar-nav-icon
       aria-label="Afficher ou masquer le menu"
+      data-tour="menu-toggle"
       class="ml-1"
       @click="emit('toggleNavigation')"
     />
@@ -76,7 +77,7 @@ function goBack() {
       aria-label="Notifications"
     />-->
 
-    <ColorModeToggle />
+    <ColorModeToggle data-tour="color-mode" />
 
     <UserMenu />
 
