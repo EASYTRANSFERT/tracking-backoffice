@@ -121,6 +121,7 @@ async function handleLogout() {
             v-for="item in navigationItems"
             :key="item.routeName"
             :to="{ name: item.routeName }"
+            :data-tour="`nav-${item.routeName}`"
             class="relative flex min-h-[52px] items-center rounded-2xl [@media(max-height:820px)]:min-h-11 px-3 text-[15px] font-medium text-[#3f434d] no-underline transition-colors hover:bg-[#f7f7f8]"
             :class="
               isItemActive(item.routeName) ? 'bg-[#FDE9EA] font-semibold !text-[#D80F16]' : ''

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { getApiErrorMessage } from '@/utils/api-error'
 import { onMounted, ref, watch } from 'vue'
-import { RouterView } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 
 import { useColorMode } from '@/composables/useColorMode'
+import { useProductTour } from '@/composables/useProductTour'
 import AppSidebar from '@/Components/layout/AppSidebar.vue'
 import AppTopbar from '@/Components/layout/AppTopbar.vue'
 import OnboardingBar from '@/Components/onboarding/OnboardingBar.vue'
@@ -21,6 +22,11 @@ const auth = useAuthStore()
 const operatorStore = useOperatorStore()
 const administratorStore = useAdministratorStore()
 const feedback = useUiFeedbackStore()
+const route = useRoute()
+const productTour = useProductTour()
+
+// Visite guidée proposée à la première arrivée sur l'accueil du rôle (connexion, ou retour à l'accueil plus tard).
+watch(() => route.name, productTour.startIfFirstVisit, { immediate: true })
 
 onMounted(async () => {
   try {
