@@ -36,7 +36,6 @@ async function submit(payload: CompanyInput) {
         return
       }
       const id = await store.createCompany(payload)
-      feedback.success('Entreprise créée.')
       await router.push({ name: 'company-details', params: { companyId: id }, query: { created: '1' } })
     })
   } catch (error) {

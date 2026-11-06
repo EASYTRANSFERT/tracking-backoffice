@@ -97,7 +97,7 @@ const sites: SiteResponse[] = mockSites.map((site) => ({
   })),
   radiusM: site.radiusM ?? 100,
   managerId: site.managerId,
-  // Une équipe par site fictif : Vridi pour l'équipe Nord, Yopougon pour l'équipe Sud.
+  // Une équipe par site fictif : SiteDemo1 pour EquipeDemo1, SiteDemo2 pour EquipeDemo2.
   teamId: ({ 'site-1': 'team-1', 'site-2': 'team-2' } as Record<string, string>)[site.id],
   status: 'ACTIVE',
   createdAt: site.createdAt,

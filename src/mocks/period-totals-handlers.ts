@@ -6,8 +6,8 @@ import type { PeriodAgentTotals, PeriodDailyTotals, PeriodTotalsResponse } from 
 type Problem = (status: number, code: string, detail: string) => Response
 
 const agents: PeriodAgentTotals[] = [
-  { userId: 'usr_mock_1', matricule: 'COU-1996', firstName: 'Assia', lastName: 'Jean', daysWorked: 18, sessionsCount: 18, workedMinutes: 8_370, lateMinutes: 25, absencesCount: 1 },
-  { userId: 'usr_mock_2', matricule: 'COU-2001', firstName: 'Moussa', lastName: 'Diallo', daysWorked: 20, sessionsCount: 20, workedMinutes: 9_300, lateMinutes: 70, absencesCount: 0 },
+  { userId: 'usr_mock_1', matricule: 'COU-1996', firstName: 'Agent', lastName: 'Demo5', daysWorked: 18, sessionsCount: 18, workedMinutes: 8_370, lateMinutes: 25, absencesCount: 1 },
+  { userId: 'usr_mock_2', matricule: 'COU-2001', firstName: 'Agent', lastName: 'Demo6', daysWorked: 20, sessionsCount: 20, workedMinutes: 9_300, lateMinutes: 70, absencesCount: 0 },
 ]
 const sum = (key: 'sessionsCount' | 'workedMinutes' | 'lateMinutes' | 'absencesCount') => agents.reduce((total, agent) => total + agent[key], 0)
 
@@ -20,12 +20,12 @@ export function periodTotalsHandlers(api: (path: string) => string, problem: Pro
       const closed = period.state === 'CLOSED'
       const body: PeriodTotalsResponse = {
         period: {
-          periodId: period.id, teamId: period.teamId ?? '', teamName: 'Équipe Plateau', from: period.from, to: period.to, state: period.state,
+          periodId: period.id, teamId: period.teamId ?? '', teamName: 'EquipeDemo3', from: period.from, to: period.to, state: period.state,
           final: closed, pending: closed ? 0 : 3, open: closed ? 0 : 1, forced: Boolean(period.forced), unvalidatedCount: period.unvalidatedCount ?? 0,
         },
         agents,
         team: { sessionsCount: sum('sessionsCount'), workedMinutes: sum('workedMinutes'), lateMinutes: sum('lateMinutes'), absencesCount: sum('absencesCount'), agents: agents.length, daysWorked: agents.reduce((total, agent) => total + agent.daysWorked, 0) },
-        sites: [{ siteId: 'sit_mock_1', siteName: 'Plateau – tour B', agents: agents.length, sessionsCount: sum('sessionsCount'), workedMinutes: sum('workedMinutes'), lateMinutes: sum('lateMinutes'), absencesCount: sum('absencesCount') }],
+        sites: [{ siteId: 'sit_mock_1', siteName: 'SiteDemo4', agents: agents.length, sessionsCount: sum('sessionsCount'), workedMinutes: sum('workedMinutes'), lateMinutes: sum('lateMinutes'), absencesCount: sum('absencesCount') }],
       }
       return HttpResponse.json(body)
     }),
