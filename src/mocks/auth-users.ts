@@ -15,7 +15,7 @@ export const mockAuthUsers: MockAuthUser[] = [
     user: {
       id: 'usr_0192f1c47d3a7b219e553f0a2c8d4e10',
       matricule: 'KBA-OP-001',
-      names: 'Martial Djezou',
+      names: 'Operateur Demo1',
       email: 'operateur@kaybic.africa',
       phone: '+2250700000001',
       roles: ['OPERATOR'],
@@ -31,7 +31,7 @@ export const mockAuthUsers: MockAuthUser[] = [
     user: {
       id: 'user-1',
       matricule: 'ENT-ADM-001',
-      names: 'Aïcha Koné',
+      names: 'Admin Demo1',
       email: 'admin@entreprise.test',
       phone: '+2250700000002',
       roles: ['ADMIN'],
@@ -47,7 +47,7 @@ export const mockAuthUsers: MockAuthUser[] = [
     user: {
       id: 'user-2',
       matricule: 'ENT-SUP-001',
-      names: 'Yann Kouassi',
+      names: 'Superviseur Demo1',
       email: 'superviseur@entreprise.test',
       phone: '+2250700000003',
       roles: ['SUPERVISOR'],
@@ -64,7 +64,7 @@ export const mockAuthUsers: MockAuthUser[] = [
     user: {
       id: 'user-3',
       matricule: 'ENT-LEAD-001',
-      names: 'Fatou Bamba',
+      names: 'Chef Demo1',
       email: 'chef.equipe@entreprise.test',
       phone: '+2250700000004',
       roles: ['TEAM_LEAD'],

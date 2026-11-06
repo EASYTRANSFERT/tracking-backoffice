@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import AppCopyableValue from '@/Components/common/AppCopyableValue.vue'
+
 interface Props {
   qrCode?: string | null
   firstSetup?: boolean
@@ -21,6 +23,9 @@ const emit = defineEmits<{
 }>()
 
 const code = ref('')
+
+// Mode démo : code TOTP des comptes visiteurs (src/mocks/auth-users.ts), affiché sous le champ
+const visitorTotpCode = '123456'
 const validationError = ref<string | null>(null)
 
 const displayedError = computed(() => {
@@ -112,6 +117,11 @@ function handleSubmit() {
         autofocus
         class="w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] text-gray-900 outline-none transition placeholder:text-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
         @input="handleCodeInput"
+      />
+      <AppCopyableValue
+        class="mx-auto mt-1"
+        label="Code visiteur"
+        :value="visitorTotpCode"
       />
     </div>
 
