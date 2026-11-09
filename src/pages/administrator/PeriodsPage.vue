@@ -3,13 +3,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
-import AppTableFooter from '@/Components/common/AppTableFooter.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import PeriodCreateDialog from '@/Components/periods/PeriodCreateDialog.vue'
 import PeriodTable from '@/Components/periods/PeriodTable.vue'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useCreateQuery } from '@/composables/useCreateQuery'
-import { usePagination } from '@/composables/usePagination'
 import { usePeriodAccess } from '@/composables/usePeriodAccess'
 import { usePeriodStore } from '@/stores/period.store'
 import { useSupervisorStore } from '@/stores/supervisor.store'
@@ -34,8 +32,6 @@ const visiblePeriods = computed(() => readonly.value ? periodsOfTeams(periods.va
 const creatableTeams = computed(() => readonly.value ? supervisorStore.scopeTeams : knownTeams.value)
 const teamName = (teamId?: string) => (readonly.value ? supervisorStore.teamsById[teamId ?? '']?.name : administratorStore.findTeam(teamId)?.name) ?? '—'
 const filtered = computed(() => visiblePeriods.value.filter((period) => !state.value || period.state === state.value))
-const pagination = usePagination(filtered)
-watch(state, () => { pagination.page.value = 1 })
 const createOpen = ref(false)
 const createError = ref<string | null>(null)
 const createTeamIds = ref<string[]>([])
@@ -89,8 +85,7 @@ useCreateQuery(openCreate)
         <v-select v-model="state" :items="periodStateOptions" placeholder="Tous les états" density="compact" hide-details clearable class="lg:max-w-[240px]" />
       </div>
       <v-divider />
-      <PeriodTable v-if="filtered.length" :periods="pagination.displayed.value" :team-name="teamName" @view="view" />
-      <AppTableFooter v-if="filtered.length" v-model:page="pagination.page.value" :page-count="pagination.pageCount.value" :start="pagination.start.value + 1" :end="pagination.end.value" :total="pagination.total.value" label="périodes" />
+      <PeriodTable v-if="filtered.length" :periods="filtered" :team-name="teamName" :reset-on="[state]" @view="view" />
       <AppEmptyState v-else-if="!isLoading" icon="mdi-calendar-blank-outline" title="Aucune période" :description="readonly ? 'Créez une période pour encadrer la validation des pointages de vos équipes.' : 'Créez une période pour valider puis clôturer les pointages de l’entreprise.'">
         <v-btn color="primary" variant="tonal" prepend-icon="mdi-calendar-plus" @click="openCreate">Nouvelle période</v-btn>
       </AppEmptyState>
