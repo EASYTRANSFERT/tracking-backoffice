@@ -3,11 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import AppEmptyState from '@/Components/common/AppEmptyState.vue'
-import AppTableFooter from '@/Components/common/AppTableFooter.vue'
+import AppDataTable, { type AppDataTableColumn } from '@/Components/common/AppDataTable.vue'
 import CheckScheduleDialog from '@/Components/checks/CheckScheduleDialog.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import { useCreateQuery } from '@/composables/useCreateQuery'
-import { usePagination } from '@/composables/usePagination'
 import { useAdministratorStore } from '@/stores/administrator.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCheckStore } from '@/stores/check.store'
@@ -26,7 +25,12 @@ const administratorStore = useAdministratorStore()
 const supervisorStore = useSupervisorStore()
 const feedback = useUiFeedbackStore()
 const { schedules, isLoading, isSaving, togglingId } = storeToRefs(store)
-const pagination = usePagination(schedules)
+const columns: AppDataTableColumn[] = [
+  { key: 'name', title: 'Contrôle' },
+  { key: 'teams', title: 'Équipes', cellClass: 'text-sm text-[#535865]' },
+  { key: 'active', title: 'Actif', class: 'w-16' },
+  { key: 'actions', title: 'Actions', class: 'w-12 text-right', cellClass: 'text-right' },
+]
 
 const teams = computed<Team[]>(() => isSupervisor.value
   ? supervisorStore.scopeTeams
@@ -86,32 +90,27 @@ useCreateQuery(() => open())
     </PageHeader>
     <v-progress-linear v-if="isLoading" indeterminate color="primary" class="mb-4" />
     <v-card class="overflow-hidden">
-      <div v-if="schedules.length" class="overflow-x-auto">
-        <v-table class="min-w-[640px]">
-          <tbody>
-            <tr v-for="schedule in pagination.displayed.value" :key="schedule.id" :class="{ 'opacity-60': !schedule.active }">
-              <td class="py-4">
-                <p class="font-semibold text-[#292d38]">{{ schedule.name }}</p>
-                <p class="mt-1 text-xs text-[#747985]">{{ [describeSchedule(schedule), describePeriod(schedule)].filter(Boolean).join(' · ') }}</p>
-              </td>
-              <td class="text-sm text-[#535865]">{{ teamsLabel(schedule.teamIds) }}</td>
-              <td class="w-16">
-                <v-switch :model-value="schedule.active" color="primary" density="compact" hide-details inset :loading="togglingId === schedule.id" :aria-label="schedule.active ? 'Suspendre' : 'Réactiver'" @update:model-value="toggle(schedule)" />
-              </td>
-              <td class="w-12 text-right">
-                <v-menu location="bottom end">
-                  <template #activator="{ props: menuProps }"><v-btn v-bind="menuProps" icon="mdi-dots-vertical" variant="text" size="small" aria-label="Actions" /></template>
-                  <v-list density="compact" min-width="160">
-                    <v-list-item prepend-icon="mdi-pencil-outline" title="Modifier" @click="open(schedule)" />
-                    <v-list-item prepend-icon="mdi-delete-outline" title="Supprimer" base-color="error" @click="remove(schedule)" />
-                  </v-list>
-                </v-menu>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
-      </div>
-      <AppTableFooter v-if="schedules.length" v-model:page="pagination.page.value" :page-count="pagination.pageCount.value" :start="pagination.start.value + 1" :end="pagination.end.value" :total="pagination.total.value" label="contrôles" />
+      <AppDataTable v-if="schedules.length" bare hide-header :items="schedules" :columns="columns" label="contrôles" table-class="min-w-[640px]" :row-class="(schedule) => (schedule.active ? undefined : 'opacity-60')">
+        <template #cell-name="{ item: schedule }">
+          <div class="py-1">
+            <p class="font-semibold text-[#292d38]">{{ schedule.name }}</p>
+            <p class="mt-1 text-xs text-[#747985]">{{ [describeSchedule(schedule), describePeriod(schedule)].filter(Boolean).join(' · ') }}</p>
+          </div>
+        </template>
+        <template #cell-teams="{ item: schedule }">{{ teamsLabel(schedule.teamIds) }}</template>
+        <template #cell-active="{ item: schedule }">
+          <v-switch :model-value="schedule.active" color="primary" density="compact" hide-details inset :loading="togglingId === schedule.id" :aria-label="schedule.active ? 'Suspendre' : 'Réactiver'" @update:model-value="toggle(schedule)" />
+        </template>
+        <template #cell-actions="{ item: schedule }">
+          <v-menu location="bottom end">
+            <template #activator="{ props: menuProps }"><v-btn v-bind="menuProps" icon="mdi-dots-vertical" variant="text" size="small" aria-label="Actions" /></template>
+            <v-list density="compact" min-width="160">
+              <v-list-item prepend-icon="mdi-pencil-outline" title="Modifier" @click="open(schedule)" />
+              <v-list-item prepend-icon="mdi-delete-outline" title="Supprimer" base-color="error" @click="remove(schedule)" />
+            </v-list>
+          </v-menu>
+        </template>
+      </AppDataTable>
       <AppEmptyState v-else-if="!isLoading" icon="mdi-account-clock-outline" title="Aucun contrôle programmé" description="Programmez un contrôle pour une date précise, chaque jour ou à intervalle.">
         <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="open()">Nouveau contrôle</v-btn>
       </AppEmptyState>

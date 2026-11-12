@@ -13,6 +13,6 @@ onMounted(async () => { try { await store.loadSites() } catch (error) { feedback
   <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center"><v-text-field v-model="search" class="w-full sm:max-w-[420px]" prepend-inner-icon="mdi-magnify" placeholder="Rechercher un site par son nom" density="compact" hide-details clearable autofocus /><p v-if="search && !isSitesLoading" class="text-sm text-[#747985]">{{ filteredSites.length }} site{{ filteredSites.length > 1 ? 's' : '' }} sur {{ sites.length }}</p></div>
   <v-progress-linear v-if="isSitesLoading" indeterminate color="primary" class="mb-4" />
   <div v-if="filteredSites.length" class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"><QrCodeCard v-for="site in pagination.displayed.value" :key="site.id" :site="site" :loading="generatingId === site.id" :printing="printingId === site.id" @print="print" @regenerate="generate" /></div>
-  <AppTableFooter v-if="filteredSites.length" class="mt-5 !border-t-0 !px-0" v-model:page="pagination.page.value" :page-count="pagination.pageCount.value" :start="pagination.start.value + 1" :end="pagination.end.value" :total="pagination.total.value" label="sites" />
+  <AppTableFooter v-if="filteredSites.length" class="mt-5 !border-t-0 !px-0" v-bind="pagination.footerProps.value" label="sites" />
   <v-card v-else-if="!isSitesLoading"><AppEmptyState icon="mdi-qrcode-remove" :title="search ? 'Aucun site trouvé' : 'Aucun site'" :description="search ? `Aucun site ne correspond à « ${search} ».` : 'Créez un site pour obtenir son QR code.'" /></v-card>
 </div></template>
