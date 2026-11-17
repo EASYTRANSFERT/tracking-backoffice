@@ -49,8 +49,36 @@ const currentPasswordRule = (value: string) => !data.password || Boolean(value) 
 const passwordRule = (value: string) => (!value && !passwordRequired.value) || strongEnoughPassword(value)
 const strongEnoughPassword = (value: string) =>
   value.length >= 12 || 'Le mot de passe doit contenir au moins 12 caractères'
+// Photo de profil : obligatoire à la création d'un agent ou d'un chef d'équipe, facultative pour un superviseur.
+// Pour l'instant gardée dans la vue seulement : l'API n'expose pas encore d'envoi de photo.
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+const photo = ref<File | null>(null)
+const photoInput = ref<{ resetValidation: () => void }>()
+const photoPreview = ref<string>()
+const photoRequired = computed(() => !props.user && roleCanHaveTeam.value)
+const roleHasPhoto = computed(() => data.role !== 'administrator')
+const photoRules = [
+  (value: File | File[] | null) => {
+    const file = Array.isArray(value) ? value[0] : value
+    if (!file) return !photoRequired.value || 'La photo est obligatoire pour un agent ou un chef d’équipe'
+    if (!file.type.startsWith('image/')) return 'Choisissez une image (JPEG, PNG…)'
+    return file.size <= PHOTO_MAX_BYTES || 'La photo ne doit pas dépasser 5 Mo'
+  },
+]
+watch(photo, (file, _old, onCleanup) => {
+  const picked = Array.isArray(file) ? file[0] : file
+  photoPreview.value = picked?.type.startsWith('image/') ? URL.createObjectURL(picked) : undefined
+  const url = photoPreview.value
+  onCleanup(() => { if (url) URL.revokeObjectURL(url) })
+  emit('dirtyChange', true)
+})
 watch(data, () => emit('dirtyChange', true), { deep: true })
-watch(() => data.role, () => { if (!roleCanHaveTeam.value) data.teamId = undefined })
+watch(() => data.role, () => {
+  if (!roleCanHaveTeam.value) data.teamId = undefined
+  if (!roleHasPhoto.value) photo.value = null
+  // La règle de la photo dépend du rôle : une erreur affichée pour un agent ne doit pas rester pour un superviseur.
+  photoInput.value?.resetValidation()
+})
 async function submit() {
   const result = await form.value?.validate()
   if (!result?.valid) return
@@ -71,6 +99,27 @@ async function submit() {
       <v-card-title class="flex items-center gap-3 px-6 py-5"><v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-account-edit-outline" color="primary" /></v-avatar><div><h2 class="text-base font-bold">{{ title }}</h2><p class="mt-1 text-xs font-normal text-[#747985]">{{ description }}</p></div></v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
+        <div v-if="roleHasPhoto" class="flex items-start gap-4 md:col-span-2">
+          <v-avatar size="72" color="grey-lighten-3">
+            <v-img v-if="photoPreview" :src="photoPreview" alt="Aperçu de la photo de profil" cover />
+            <v-icon v-else icon="mdi-account-circle-outline" size="40" color="grey" />
+          </v-avatar>
+          <v-file-input
+            ref="photoInput"
+            v-model="photo"
+            class="flex-1"
+            variant="outlined"
+            :label="photoRequired ? 'Photo de profil' : 'Photo de profil (facultative)'"
+            accept="image/*"
+            prepend-icon=""
+            prepend-inner-icon="mdi-camera-outline"
+            show-size
+            clearable
+            hint="Visage bien visible, 5 Mo maximum"
+            persistent-hint
+            :rules="photoRules"
+          />
+        </div>
         <v-text-field v-model="data.firstName" label="Prénom" :rules="[required]" />
         <v-text-field v-model="data.lastName" label="Nom" :rules="[required]" />
         <v-text-field v-model="data.phone" label="Téléphone" placeholder="+2250700000000" hint="Format international avec indicatif pays" persistent-hint inputmode="tel" autocomplete="tel" :rules="[required,internationalPhone]" maxlength="14"/>
