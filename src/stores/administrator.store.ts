@@ -167,7 +167,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
       role: roleToApi[input.role],
       teamId: input.teamId,
       password: input.password || undefined,
-    })
+    }, input.photo)
     replaceUser(mapUser(created))
     return created.id
   }
@@ -197,6 +197,11 @@ export const useAdministratorStore = defineStore('administrator', () => {
     if (!user) return
     if (user.status === 'disabled') throw new Error("L’API ne fournit pas d’endpoint de réactivation utilisateur.")
     replaceUser(mapUser(await userService.disable(id)))
+  }
+
+  /** Ajoute ou remplace la photo de profil d'un compte. */
+  async function replaceUserPhoto(id: string, file: File) {
+    replaceUser(mapUser(await userService.replaceProfilePhoto(id, file)))
   }
 
   /** Recharge un compte dont l'état a changé côté API (ex. changement de téléphone). */
@@ -507,7 +512,7 @@ export const useAdministratorStore = defineStore('administrator', () => {
     users, supervisors, teamDirectoryUsers, sites, missions, teams, isDirectoryLoading, hasLoadedDirectory, isMissionsLoading, hasLoadedMissions, isSitesLoading, hasLoadedSites, canReactivateUsers, canImportSites,
     activeUsersCount,
     getSiteById, getMissionById, getTeamById, loadDirectory, loadMissions, loadMission, loadSites, loadSite,
-    createUser, updateUser, changeUserRole, toggleUserStatus, importMatricules,
+    createUser, updateUser, replaceUserPhoto, changeUserRole, toggleUserStatus, importMatricules,
     createSite, updateSite, archiveSite, importSites, regenerateQrCode,
     teamOptions, loadTeamOptions, loadTeam,
     createMission, updateMission, assignMissionSupervisor, openMission, closeMission,

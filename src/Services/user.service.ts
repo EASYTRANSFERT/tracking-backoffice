@@ -12,6 +12,16 @@ import type {
   UserResponse,
 } from '@/types/user'
 
+/** Corps multipart de POST /users : les champs texte habituels plus la photo (axios pose lui-même le Content-Type). */
+function toFormData(payload: CreateUserRequest, photo: File): FormData {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(payload)) {
+    if (value !== undefined && value !== null && value !== '') body.append(key, String(value))
+  }
+  body.append('photo', photo)
+  return body
+}
+
 export const userService = {
   async list(query: UserListQuery = {}): Promise<UserPageResponse> {
     const response = await apiClient.get<UserPageResponse>('/users', { params: query })
@@ -26,8 +36,18 @@ export const userService = {
     return response.data
   },
 
-  async create(payload: CreateUserRequest): Promise<UserResponse> {
-    const response = await apiClient.post<UserResponse>('/users', payload, { headers: idempotencyHeaders() })
+  /** Avec une photo (agent, chef d'équipe), la requête part en multipart ; sinon en JSON. `role` doit alors être une seule valeur. */
+  async create(payload: CreateUserRequest, photo?: File): Promise<UserResponse> {
+    const body = photo ? toFormData(payload, photo) : payload
+    const response = await apiClient.post<UserResponse>('/users', body, { headers: idempotencyHeaders() })
+    return response.data
+  },
+
+  /** Ajoute ou remplace la photo de profil d'un compte (admin et opérateur seulement). */
+  async replaceProfilePhoto(userId: string, photo: File): Promise<UserResponse> {
+    const body = new FormData()
+    body.append('photo', photo)
+    const response = await apiClient.put<UserResponse>(`/users/${userId}/profile-photo`, body, { headers: idempotencyHeaders() })
     return response.data
   },
 

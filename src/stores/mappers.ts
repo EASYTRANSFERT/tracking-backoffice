@@ -67,6 +67,7 @@ export function mapUser(user: UserResponse): EnterpriseUser {
     teamId: user.teamId,
     status: user.status === 'ACTIVE' ? 'active' : user.status === 'DISABLED' ? 'disabled' : 'invited',
     createdAt: user.createdAt,
+    photoUrl: user.profilePhotoUrl,
   }
 }
 

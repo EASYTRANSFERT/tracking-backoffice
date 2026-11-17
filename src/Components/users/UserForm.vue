@@ -49,35 +49,29 @@ const currentPasswordRule = (value: string) => !data.password || Boolean(value) 
 const passwordRule = (value: string) => (!value && !passwordRequired.value) || strongEnoughPassword(value)
 const strongEnoughPassword = (value: string) =>
   value.length >= 12 || 'Le mot de passe doit contenir au moins 12 caractères'
-// Photo de profil : obligatoire à la création d'un agent ou d'un chef d'équipe, facultative pour un superviseur.
-// Pour l'instant gardée dans la vue seulement : l'API n'expose pas encore d'envoi de photo.
+// Photo de profil : exigée par l'API à la création d'un agent ou d'un chef d'équipe (envoi en multipart).
+// Les comptes back-office se créent toujours sans photo ; elle se change ensuite depuis la fiche.
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
-const photo = ref<File | null>(null)
-const photoInput = ref<{ resetValidation: () => void }>()
+const photo = ref<File | File[] | null>(null)
+const photoFile = computed(() => (Array.isArray(photo.value) ? photo.value[0] : photo.value) ?? undefined)
 const photoPreview = ref<string>()
-const photoRequired = computed(() => !props.user && roleCanHaveTeam.value)
-const roleHasPhoto = computed(() => data.role !== 'administrator')
+const showPhoto = computed(() => !props.user && roleCanHaveTeam.value)
 const photoRules = [
-  (value: File | File[] | null) => {
-    const file = Array.isArray(value) ? value[0] : value
-    if (!file) return !photoRequired.value || 'La photo est obligatoire pour un agent ou un chef d’équipe'
-    if (!file.type.startsWith('image/')) return 'Choisissez une image (JPEG, PNG…)'
-    return file.size <= PHOTO_MAX_BYTES || 'La photo ne doit pas dépasser 5 Mo'
-  },
+  () => Boolean(photoFile.value) || 'Ajoutez une photo de profil pour un chef d’équipe ou un agent.',
+  () => !photoFile.value || PHOTO_TYPES.includes(photoFile.value.type) || 'La photo doit être une image JPEG, PNG ou WebP.',
+  () => !photoFile.value || photoFile.value.size <= PHOTO_MAX_BYTES || 'La photo dépasse 5 Mo.',
 ]
-watch(photo, (file, _old, onCleanup) => {
-  const picked = Array.isArray(file) ? file[0] : file
-  photoPreview.value = picked?.type.startsWith('image/') ? URL.createObjectURL(picked) : undefined
-  const url = photoPreview.value
+// L'URL d'aperçu est libérée au changement de fichier comme au démontage (arrêt du watcher).
+watch(photoFile, (file, _old, onCleanup) => {
+  const url = file?.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+  photoPreview.value = url
   onCleanup(() => { if (url) URL.revokeObjectURL(url) })
   emit('dirtyChange', true)
 })
 watch(data, () => emit('dirtyChange', true), { deep: true })
 watch(() => data.role, () => {
-  if (!roleCanHaveTeam.value) data.teamId = undefined
-  if (!roleHasPhoto.value) photo.value = null
-  // La règle de la photo dépend du rôle : une erreur affichée pour un agent ne doit pas rester pour un superviseur.
-  photoInput.value?.resetValidation()
+  if (!roleCanHaveTeam.value) { data.teamId = undefined; photo.value = null }
 })
 async function submit() {
   const result = await form.value?.validate()
@@ -89,6 +83,7 @@ async function submit() {
     password: roleHasCredentials.value ? data.password : '',
     phone: normalizePhone(data.phone),
     teamId: data.teamId || undefined,
+    photo: showPhoto.value ? photoFile.value : undefined,
   })
 }
 </script>
@@ -99,23 +94,22 @@ async function submit() {
       <v-card-title class="flex items-center gap-3 px-6 py-5"><v-avatar color="red-lighten-5" rounded="lg"><v-icon icon="mdi-account-edit-outline" color="primary" /></v-avatar><div><h2 class="text-base font-bold">{{ title }}</h2><p class="mt-1 text-xs font-normal text-[#747985]">{{ description }}</p></div></v-card-title>
       <v-divider />
       <v-card-text class="grid gap-x-5 gap-y-2 px-6 py-6 md:grid-cols-2">
-        <div v-if="roleHasPhoto" class="flex items-start gap-4 md:col-span-2">
+        <div v-if="showPhoto" class="flex items-start gap-4 md:col-span-2">
           <v-avatar size="72" color="grey-lighten-3">
             <v-img v-if="photoPreview" :src="photoPreview" alt="Aperçu de la photo de profil" cover />
             <v-icon v-else icon="mdi-account-circle-outline" size="40" color="grey" />
           </v-avatar>
           <v-file-input
-            ref="photoInput"
             v-model="photo"
             class="flex-1"
             variant="outlined"
-            :label="photoRequired ? 'Photo de profil' : 'Photo de profil (facultative)'"
-            accept="image/*"
+            label="Photo de profil"
+            accept="image/jpeg,image/png,image/webp"
             prepend-icon=""
-            prepend-inner-icon="mdi-camera-outline"
+            prepend-inner-icon="mdi-camera"
             show-size
             clearable
-            hint="Visage bien visible, 5 Mo maximum"
+            hint="Visage bien visible — JPEG, PNG ou WebP, 5 Mo maximum"
             persistent-hint
             :rules="photoRules"
           />

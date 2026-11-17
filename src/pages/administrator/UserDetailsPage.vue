@@ -9,6 +9,7 @@ import DeviceRevokeDialog from '@/Components/devices/DeviceRevokeDialog.vue'
 import DeviceTable from '@/Components/devices/DeviceTable.vue'
 import PageHeader from '@/Components/layout/PageHeader.vue'
 import TotpConfirmDialog from '@/Components/security/TotpConfirmDialog.vue'
+import UserAvatar from '@/Components/users/UserAvatar.vue'
 import { useDeviceRevocation } from '@/composables/useDeviceRevocation'
 import { useBusy } from '@/composables/useBusy'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -50,6 +51,19 @@ async function saveRole(code: string) {
   } catch (error) { roleError.value = userRoleErrorMessage(error) ?? getApiErrorMessage(error, 'Impossible de modifier le rôle.') }
   finally { roleSaving.value = false }
 }
+// Photo de profil : exigée pour un agent ou un chef d'équipe, absente des comptes créés avant cette règle (ou promus chef d'équipe).
+const photoMissing = computed(() => Boolean(user.value) && !user.value!.photoUrl && (user.value!.role === 'agent' || user.value!.role === 'teamLeader'))
+const photoPicker = ref<HTMLInputElement>(); const photoUpload = useBusy()
+const openPhotoPicker = () => photoPicker.value?.click()
+async function changePhoto(event: Event) {
+  const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''
+  if (!file || !user.value) return
+  try { await photoUpload.run(() => store.replaceUserPhoto(user.value!.id, file)); photoRefreshed = false; feedback.success('Photo de profil mise à jour.') }
+  catch (error) { feedback.error(getApiErrorMessage(error, 'Impossible d’enregistrer la photo.')) }
+}
+// L'URL signée expire (5 min) : on relit l'utilisateur une seule fois pour en obtenir une neuve.
+let photoRefreshed = false
+function refreshPhoto() { if (photoRefreshed || !user.value) return; photoRefreshed = true; store.refreshUser(user.value.id).catch(() => undefined) }
 const statusChange = useBusy()
 async function changeStatus() { if (!user.value) return; const wasDisabled = user.value.status === 'disabled'; if (wasDisabled && !canReactivate.value) { feedback.error("L’API ne fournit pas encore de réactivation utilisateur."); return } const action = wasDisabled ? 'Réactiver' : 'Désactiver'; const confirmed = await feedback.askConfirmation({ title: `${action} ce compte ?`, message: `Cette action concerne ${fullName(user.value)}.`, confirmText: action, color: wasDisabled ? 'success' : 'error' }); if (!confirmed) return; try { await statusChange.run(() => store.toggleUserStatus(user.value!.id)); feedback.success(wasDisabled ? 'Compte réactivé.' : 'Compte désactivé.') } catch (error) { feedback.error(getApiErrorMessage(error, 'Action impossible.')) } }
 </script>
@@ -92,6 +106,13 @@ async function changeStatus() { if (!user.value) return; const wasDisabled = use
     </v-card>
     <v-card>
       <v-card-text class="pa-6">
+        <div class="flex flex-col items-center gap-3 text-center">
+          <UserAvatar :user="user" size="112" @photo-error="refreshPhoto" />
+          <v-chip v-if="photoMissing" color="warning" variant="tonal" size="small" prepend-icon="mdi-camera-off-outline">Photo manquante</v-chip>
+          <input ref="photoPicker" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="changePhoto">
+          <v-btn variant="outlined" color="primary" size="small" prepend-icon="mdi-camera" :loading="photoUpload.isBusy.value" @click="openPhotoPicker">Changer la photo</v-btn>
+        </div>
+        <v-divider class="my-5" />
         <div class="flex items-center justify-between">
           <span class="font-bold">État du compte</span>
           <AppStatusChip :status="user.status" />

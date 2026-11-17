@@ -14,9 +14,13 @@ export interface EnterpriseUser {
   teamId?: string
   status: EnterpriseUserStatus
   createdAt: string
+  /** URL signée temporaire (5 min) : relire l'utilisateur pour en obtenir une neuve. */
+  photoUrl?: string
 }
 
-export type EnterpriseUserInput = Omit<EnterpriseUser, 'id' | 'status' | 'createdAt'> & {
+export type EnterpriseUserInput = Omit<EnterpriseUser, 'id' | 'status' | 'createdAt' | 'photoUrl'> & {
+  /** Photo de profil, exigée par l'API à la création d'un agent ou d'un chef d'équipe. */
+  photo?: File
   password?: string
   /** Mot de passe actuel, exigé par PATCH /users/{id}/password pour en changer. */
   currentPassword?: string

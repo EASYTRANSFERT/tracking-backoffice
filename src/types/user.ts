@@ -23,6 +23,10 @@ export interface UserResponse {
   updatedAt: string
   /** Compte back-office : vrai si le courriel d'invitation (choix du mot de passe) est parti. */
   invitationSent?: boolean
+  /** URL signée temporaire, absente si le compte n'a pas de photo. Ne pas la stocker. */
+  profilePhotoUrl?: string
+  /** Durée de validité de profilePhotoUrl, en secondes (300 par défaut). */
+  profilePhotoUrlExpiresIn?: number
 }
 
 export interface CreateUserRequest {

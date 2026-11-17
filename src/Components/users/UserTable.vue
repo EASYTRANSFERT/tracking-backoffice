@@ -3,6 +3,7 @@ import { matchesSearch } from '@/utils/search'
 import { fullName } from '@/utils/people'
 import { computed, ref } from 'vue'
 import AppStatusChip from '@/Components/AppStatusChip.vue'
+import UserAvatar from '@/Components/users/UserAvatar.vue'
 import AppDataTable, { type AppDataTableColumn } from '@/Components/common/AppDataTable.vue'
 import type { EnterpriseUser, EnterpriseUserRole, EnterpriseUserStatus, Team } from '@/types/administrator'
 
@@ -55,7 +56,7 @@ const columns: AppDataTableColumn[] = [
     </template>
     <template #cell-user="{ item: user }">
       <div class="flex min-h-16 items-center gap-3">
-        <v-avatar color="red-lighten-5" size="40"><span class="text-xs font-bold text-primary">{{ user.firstName[0] }}{{ user.lastName[0] }}</span></v-avatar>
+        <UserAvatar :user="user" />
         <div><p class="font-semibold text-[#292d38]">{{ user.firstName }} {{ user.lastName }}</p><p class="text-xs text-[#848484]">{{ user.email }}</p></div>
       </div>
     </template>

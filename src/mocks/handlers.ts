@@ -219,6 +219,17 @@ function page<T>(request: Request, items: T[]) {
   return { items: result, nextCursor: next < items.length ? String(next) : null }
 }
 
+/** Contrôles de l'API sur la photo de profil : JPEG, PNG ou WebP, 5 Mo au plus. */
+function mockPhotoProblem(photo: File) {
+  if (photo.size > 5 * 1024 * 1024) return new HttpResponse(null, { status: 413 })
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(photo.type)) return problem(400, 'PROFILE_PHOTO_INVALID', 'La photo doit être une image JPEG, PNG ou WebP de 5 Mo au plus.')
+}
+
+/** URL « signée » factice : l'image elle-même, servie depuis le navigateur. */
+function mockPhotoUrl(photo: File): Pick<UserResponse, 'profilePhotoUrl' | 'profilePhotoUrlExpiresIn'> {
+  return { profilePhotoUrl: URL.createObjectURL(photo), profilePhotoUrlExpiresIn: 300 }
+}
+
 export const handlers = [
   ...periodHandlers(api, problem),
   ...periodTotalsHandlers(api, problem),
@@ -692,12 +703,30 @@ export const handlers = [
     const user = users.find((item) => item.id === String(params.userId))
     return user ? HttpResponse.json(user) : problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
   }),
+  // Agent ou chef d'équipe : multipart avec la photo (PROFILE_PHOTO_REQUIRED sinon) ; comptes back-office : JSON.
   http.post(api('/users'), async ({ request }) => {
-    const payload = (await request.json()) as CreateUserRequest
+    const isMultipart = request.headers.get('Content-Type')?.includes('multipart/form-data')
+    const form = isMultipart ? await request.formData() : undefined
+    const payload = form ? (Object.fromEntries([...form.entries()].filter(([key]) => key !== 'photo')) as unknown as CreateUserRequest) : (await request.json()) as CreateUserRequest
+    const roles = [payload.role].flat()
+    const photo = form?.get('photo')
+    if (roles.some((role) => role === 'AGENT' || role === 'TEAM_LEAD') && !(photo instanceof File)) return problem(400, 'PROFILE_PHOTO_REQUIRED', 'Ajoutez une photo de profil pour un chef d’équipe ou un agent.')
+    const photoError = photo instanceof File ? mockPhotoProblem(photo) : undefined
+    if (photoError) return photoError
     const timestamp = now()
-    const user: UserResponse = { id: `user-${Date.now()}`, matricule: generatedMatricule(), names: payload.names, email: payload.email, phone: payload.phone, roles: [payload.role].flat(), teamId: payload.teamId, status: 'PENDING_ACTIVATION', createdAt: timestamp, updatedAt: timestamp }
+    const user: UserResponse = { id: `user-${Date.now()}`, matricule: generatedMatricule(), names: payload.names, email: payload.email, phone: payload.phone, roles, teamId: payload.teamId, status: 'PENDING_ACTIVATION', createdAt: timestamp, updatedAt: timestamp, ...(photo instanceof File ? mockPhotoUrl(photo) : {}) }
     users.unshift(user)
     return HttpResponse.json(user, { status: 201 })
+  }),
+  http.put(api('/users/:userId/profile-photo'), async ({ params, request }) => {
+    const user = users.find((item) => item.id === String(params.userId))
+    if (!user) return problem(404, 'NOT_FOUND', "L’utilisateur demandé n’existe pas.")
+    const photo = (await request.formData()).get('photo')
+    if (!(photo instanceof File)) return problem(400, 'PROFILE_PHOTO_REQUIRED', 'Ajoutez une photo de profil pour un chef d’équipe ou un agent.')
+    const photoError = mockPhotoProblem(photo)
+    if (photoError) return photoError
+    Object.assign(user, mockPhotoUrl(photo), { updatedAt: now() })
+    return HttpResponse.json(user)
   }),
   http.patch(api('/users/:userId/password'), async ({ params, request }) => {
     const payload = (await request.json()) as UpdatePasswordRequest
