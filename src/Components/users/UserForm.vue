@@ -51,17 +51,11 @@ const strongEnoughPassword = (value: string) =>
   value.length >= 12 || 'Le mot de passe doit contenir au moins 12 caractères'
 // Photo de profil : exigée par l'API à la création d'un agent ou d'un chef d'équipe (envoi en multipart).
 // Les comptes back-office se créent toujours sans photo ; elle se change ensuite depuis la fiche.
-const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+// Aucun contrôle côté client : le serveur vérifie la photo (présence, type, taille) et son message est affiché tel quel.
 const photo = ref<File | File[] | null>(null)
 const photoFile = computed(() => (Array.isArray(photo.value) ? photo.value[0] : photo.value) ?? undefined)
 const photoPreview = ref<string>()
 const showPhoto = computed(() => !props.user && roleCanHaveTeam.value)
-const photoRules = [
-  () => Boolean(photoFile.value) || 'Ajoutez une photo de profil pour un chef d’équipe ou un agent.',
-  () => !photoFile.value || PHOTO_TYPES.includes(photoFile.value.type) || 'La photo doit être une image JPEG, PNG ou WebP.',
-  () => !photoFile.value || photoFile.value.size <= PHOTO_MAX_BYTES || 'La photo dépasse 5 Mo.',
-]
 // L'URL d'aperçu est libérée au changement de fichier comme au démontage (arrêt du watcher).
 watch(photoFile, (file, _old, onCleanup) => {
   const url = file?.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
@@ -111,7 +105,6 @@ async function submit() {
             clearable
             hint="Visage bien visible — JPEG, PNG ou WebP, 5 Mo maximum"
             persistent-hint
-            :rules="photoRules"
           />
         </div>
         <v-text-field v-model="data.firstName" label="Prénom" :rules="[required]" />
